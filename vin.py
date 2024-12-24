@@ -3,11 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-#from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
-from sklearn.isotonic import IsotonicRegression
 import sys
-#from sklearn.interpolate import PchipInterpolator
 
 # Mapping of quality to numeric value
 quality_to_number = {
@@ -71,7 +68,6 @@ def realprice(pred_price):
 if len(sys.argv) < 3:
     print("Error: reqscore or shop_var value is missing.")
     sys.exit(1)
-
 try:
     reqscore = float(sys.argv[1])  # Read the first argument as reqscore
     shop_var = float(sys.argv[2])  # Read the second argument as shop_var
@@ -159,7 +155,6 @@ quality_range_poly = poly.transform(quality_range)  # Transform the range for po
 
 # Predict prices for the smooth quality range
 predicted_prices = model.predict(quality_range_poly)
-
 
 # Plot the scatter and the regression line
 plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
