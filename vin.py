@@ -1,3 +1,5 @@
+from xml.etree.ElementPath import prepare_descendant
+
 import pyperclip
 import numpy as np
 import matplotlib.pyplot as plt
@@ -130,15 +132,34 @@ X_poly = poly.fit_transform(X)
 model = LinearRegression()
 model.fit(X_poly, y)
 
+# Get the predicted values
+y_pred = model.predict(X_poly)
+
+# Calculate absolute percentage errors
+percentage_errors = np.abs((y - y_pred) / y) * 100
+
+# You can now calculate a range of errors, for example:
+mean_error = np.mean(percentage_errors)  # average percentage error
+std_error = np.std(percentage_errors)  # standard deviation of errors
+
 # Calculates the root mean squared error - this is the +/- of the dataset
 mse = mean_squared_error(y, model.predict(X_poly))
 rmse = np.sqrt(mse)
 
-# Predict the price for a given quality
-predicted_price = model.predict(poly.transform([[reqscore]]))
+# Predict price for a new quality (e.g., quality = 10)
+new_quality = reqscore
+new_quality_poly = poly.transform([[new_quality]])
+predicted_price = model.predict(new_quality_poly)[0]
+
+# Calculate the error range (using mean error +/- standard deviation as an example)
+lower_bound = predicted_price * (1 - (mean_error + std_error) / 100)
+#upper_bound = predicted_price * (1 + (mean_error + std_error) / 100)
+
+#' new definition of upper bound'
+upper_bound = predicted_price+rmse
 
 # amends the predicated price to allow for the rmse
-adjusted_price = predicted_price[0] + (rmse*shop_var)
+adjusted_price = predicted_price + ((rmse)*shop_var)
 
 # gets the actual price
 actual_price = realprice(adjusted_price)
@@ -159,15 +180,18 @@ predicted_prices = model.predict(quality_range_poly)
 # Plot the scatter and the regression line
 plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
 plt.plot(quality_range, predicted_prices, color='blue', linestyle='-')  # Polynomial regression line
-plt.scatter(float(reqscore), actual_price, color='green', s=100) # user point
-plt.scatter(float(reqscore), predicted_price, color='orange', s=100) # user point
 plt.axhline(y=actual_price, color='green', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
 plt.axhline(y=predicted_price, color='orange', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
+plt.axhline(y=upper_bound, color='purple', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
 plt.axvline(x=float(reqscore), color='green', linestyle='--', ymin=0, ymax=(actual_price - min(prices)) / (max(prices) - min(prices)))
+plt.axvline(x=float(reqscore), color='purple', linestyle='--', ymin=(actual_price - min(prices)) / (max(prices) - min(prices)), ymax=(upper_bound - min(prices)) / (max(prices) - min(prices)))
+plt.scatter(float(reqscore), actual_price, color='green', s=100) # user point
+plt.scatter(float(reqscore), predicted_price, color='orange', s=100) # user point
+plt.scatter(float(reqscore), upper_bound, color='purple', s=100) # user point
 plt.title('Polynomial Regression: Quality vs Price')
 plt.xlabel('Quality')
 plt.ylabel('Price (£)')
 plt.savefig('static/images/chart.png')  # Save as PNG
 
 # output for sending to flask
-print(f"{round(predicted_price[0],2)},{round(rmse,2)},{round(actual_price,2)}")
+print(f"{round(predicted_price,2)},{round(predicted_price+rmse,2)},{round(actual_price,2)}")
