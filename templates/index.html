@@ -116,8 +116,8 @@
             {% if calculated_price %}
                 <h2>Results:</h2>
                 <p><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
-                <p><strong>Adjusted Price:</strong> £{{ adjusted_price }}</p>
-                <p><strong>Actual Price:</strong> £{{ actual_price }}</p>
+                <p><strong>Total Error:</strong> £{{ adjusted_price }}</p>
+                <p><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
                 <img src="{{ chart_url }}" alt="Price Chart">
             {% endif %}
         </div>

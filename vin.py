@@ -170,4 +170,4 @@ plt.ylabel('Price (£)')
 plt.savefig('static/images/chart.png')  # Save as PNG
 
 # output for sending to flask
-print(f"{round(predicted_price[0],2)},{round(adjusted_price,2)},{round(actual_price,2)}")
+print(f"{round(predicted_price[0],2)},{round(rmse,2)},{round(actual_price,2)}")
