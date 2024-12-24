@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .left-column {
+            width: 45%;
+        }
+        .right-column {
+            width: 45%;
+            text-align: left;
+            padding-left: 20px
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            font-weight: bold;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output {
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Price Calculator</h1>
+
+    <div class="container">
+        <!-- Left Column: Form Inputs -->
+        <div class="left-column">
+            <form method="POST">
+                <!-- Media Dropdown -->
+                <div class="form-group">
+                    <label for="media">Media:</label>
+                    <select id="media" name="media">
+                        <option value="9">Mint (M)</option>
+                        <option value="8">Near Mint (NM or M-)</option>
+                        <option value="7">Very Good Plus (VG+)</option>
+                        <option value="6" selected>Very Good (VG)</option>
+                        <option value="5">Good Plus (G+)</option>
+                        <option value="4">Good (G)</option>
+                        <option value="3">Fair (F)</option>
+                        <option value="2">Poor (P)</option>
+                        <option value="1">Generic</option>
+                        <option value="1">Not Graded</option>
+                        <option value="1">No Cover</option>
+                    </select>
+                </div>
+
+                <!-- Sleeve Dropdown -->
+                <div class="form-group">
+                    <label for="sleeve">Sleeve:</label>
+                    <select id="sleeve" name="sleeve">
+                        <option value="9">Mint (M)</option>
+                        <option value="8">Near Mint (NM or M-)</option>
+                        <option value="7">Very Good Plus (VG+)</option>
+                        <option value="6" selected>Very Good (VG)</option>
+                        <option value="5">Good Plus (G+)</option>
+                        <option value="4">Good (G)</option>
+                        <option value="3">Fair (F)</option>
+                        <option value="2">Poor (P)</option>
+                        <option value="1">Generic</option>
+                        <option value="1">Not Graded</option>
+                        <option value="1">No Cover</option>
+                    </select>
+                </div>
+
+                <!-- Shop Variable -->
+                <div class="form-group">
+                    <label for="shop_var">Shop Variable:</label>
+                    <input type="number" id="shop_var" name="shop_var" value="0.8" step="0.1" min="0.1" max="2">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit">Calculate</button>
+            </form>
+        </div>
+
+        <!-- Right Column: Chart -->
+        <div class="right-column">
+            {% if calculated_price %}
+                <h2>Results:</h2>
+                <p><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
+                <p><strong>Adjusted Price:</strong> £{{ adjusted_price }}</p>
+                <p><strong>Actual Price:</strong> £{{ actual_price }}</p>
+                <img src="{{ chart_url }}" alt="Price Chart">
+            {% endif %}
+        </div>
+    </div>
+
+</body>
+</html>
