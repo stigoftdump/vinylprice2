@@ -24,7 +24,8 @@ def index():
         code_path = project_path + 'vin.py'
 
         # Run the Python script with the input
-        result = subprocess.run([python_path, code_path, str(quality), shop_var], capture_output=True, text=True)
+        #result = subprocess.run([python_path, code_path, str(quality), shop_var], capture_output=True, text=True)
+        result = subprocess.run([python_path, code_path, str(quality), str(shop_var)], capture_output=True, text=True)
 
         # Capture and debug the output
         output = result.stdout.strip()
@@ -53,12 +54,16 @@ def index():
                                calculated_price=calculated_price,
                                adjusted_price=adjusted_price,
                                actual_price=actual_price,
+                               media=media,
+                               sleeve=sleeve,
                                chart_url="static/images/chart.png")
 
     return render_template("index.html",
                            calculated_price=calculated_price,
                            adjusted_price=adjusted_price,
                            actual_price=actual_price,
+                           media=6,
+                           sleeve=6,
                            chart_url=None)
 
 

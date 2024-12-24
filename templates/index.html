@@ -68,17 +68,17 @@
                 <div class="form-group">
                     <label for="media">Media:</label>
                     <select id="media" name="media">
-                        <option value="9">Mint (M)</option>
-                        <option value="8">Near Mint (NM or M-)</option>
-                        <option value="7">Very Good Plus (VG+)</option>
-                        <option value="6" selected>Very Good (VG)</option>
-                        <option value="5">Good Plus (G+)</option>
-                        <option value="4">Good (G)</option>
-                        <option value="3">Fair (F)</option>
-                        <option value="2">Poor (P)</option>
-                        <option value="1">Generic</option>
-                        <option value="1">Not Graded</option>
-                        <option value="1">No Cover</option>
+                        <option value="9" {% if media == 9 %}selected{% endif %}>Mint (M)</option>
+                        <option value="8" {% if media == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
+                        <option value="7" {% if media == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
+                        <option value="6" {% if media == 6 %}selected{% endif %}>Very Good (VG)</option>
+                        <option value="5" {% if media == 5 %}selected{% endif %}>Good Plus (G+)</option>
+                        <option value="4" {% if media == 4 %}selected{% endif %}>Good (G)</option>
+                        <option value="3" {% if media == 3 %}selected{% endif %}>Fair (F)</option>
+                        <option value="2" {% if media == 2 %}selected{% endif %}>Poor (P)</option>
+                        <option value="1" {% if media == 1 %}selected{% endif %}>Generic</option>
+                        <option value="1" {% if media == 1 %}selected{% endif %}>Not Graded</option>
+                        <option value="1" {% if media == 1 %}selected{% endif %}>No Cover</option>
                     </select>
                 </div>
 
@@ -86,17 +86,17 @@
                 <div class="form-group">
                     <label for="sleeve">Sleeve:</label>
                     <select id="sleeve" name="sleeve">
-                        <option value="9">Mint (M)</option>
-                        <option value="8">Near Mint (NM or M-)</option>
-                        <option value="7">Very Good Plus (VG+)</option>
-                        <option value="6" selected>Very Good (VG)</option>
-                        <option value="5">Good Plus (G+)</option>
-                        <option value="4">Good (G)</option>
-                        <option value="3">Fair (F)</option>
-                        <option value="2">Poor (P)</option>
-                        <option value="1">Generic</option>
-                        <option value="1">Not Graded</option>
-                        <option value="1">No Cover</option>
+                        <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
+                        <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
+                        <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
+                        <option value="6" {% if sleeve == 6 %}selected{% endif %}>Very Good (VG)</option>
+                        <option value="5" {% if sleeve == 5 %}selected{% endif %}>Good Plus (G+)</option>
+                        <option value="4" {% if sleeve == 4 %}selected{% endif %}>Good (G)</option>
+                        <option value="3" {% if sleeve == 3 %}selected{% endif %}>Fair (F)</option>
+                        <option value="2" {% if sleeve == 2 %}selected{% endif %}>Poor (P)</option>
+                        <option value="1" {% if sleeve == 1 %}selected{% endif %}>Generic</option>
+                        <option value="1" {% if sleeve == 1 %}selected{% endif %}>Not Graded</option>
+                        <option value="1" {% if sleeve == 1 %}selected{% endif %}>No Cover</option>
                     </select>
                 </div>
 
