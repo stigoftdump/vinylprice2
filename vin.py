@@ -138,10 +138,6 @@ y_pred = model.predict(X_poly)
 # Calculate absolute percentage errors
 percentage_errors = np.abs((y - y_pred) / y) * 100
 
-# You can now calculate a range of errors, for example:
-mean_error = np.mean(percentage_errors)  # average percentage error
-std_error = np.std(percentage_errors)  # standard deviation of errors
-
 # Calculates the root mean squared error - this is the +/- of the dataset
 mse = mean_squared_error(y, model.predict(X_poly))
 rmse = np.sqrt(mse)
@@ -151,10 +147,6 @@ new_quality = reqscore
 new_quality_poly = poly.transform([[new_quality]])
 predicted_price = model.predict(new_quality_poly)[0]
 
-# Calculate the error range (using mean error +/- standard deviation as an example)
-lower_bound = predicted_price * (1 - (mean_error + std_error) / 100)
-#upper_bound = predicted_price * (1 + (mean_error + std_error) / 100)
-
 #' new definition of upper bound'
 upper_bound = predicted_price+rmse
 
@@ -163,12 +155,6 @@ adjusted_price = predicted_price + ((rmse)*shop_var)
 
 # gets the actual price
 actual_price = realprice(adjusted_price)
-
-# prints some outputs, but eventually we'll only use one, most of this is for debugging
-#print(f"calculated price: {predicted_price[0]}")
-#print(f"rmse: {rmse}")
-#print(f"adjusted price: {adjusted_price}")
-#print(f"actual price: {actual_price}")
 
 # Generate smooth data points for the regression line
 quality_range = np.linspace(min(qualities), max(qualities), 100).reshape(-1, 1)  # Smooth range of qualities

@@ -4,6 +4,20 @@ import os
 
 app = Flask(__name__)
 
+# File to store saved value
+SAVE_FILE = "save_data.json"
+
+def read_save_value():
+    try:
+        with open(SAVE_FILE, 'r') as f:
+            data = json.load(f)
+            return data.get("shop_var", 0.7)  # Default to 0.7 if not set
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0.8  # Default to 0.8
+
+def write_save_value(value):
+    with open(SAVE_FILE, 'w') as f:
+        json.dump({"shop_var": value}, f)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
