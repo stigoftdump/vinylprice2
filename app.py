@@ -25,14 +25,19 @@ def index():
     calculated_price = None
     adjusted_price = None
     actual_price = None
+
+    # Load shop_var from saved file or use default 0.8
+    shop_var = read_save_value()
+
     if request.method == "POST":
         # Get the quality input from the form
         media = int(request.form["media"])
         sleeve = int(request.form["sleeve"])
         quality = media - ((media - sleeve) / 3)
 
-        shop_var = request.form["shop_var"]  # Capture the shop_var value from the form
+        #shop_var = request.form["shop_var"]  # Capture the shop_var value from the form
         write_save_value(shop_var)  # Save the new value
+        shop_var = request.form["shop_var"]  # Capture the shop_var value from the form
 
         start_date = request.form["start_Date"] # Capture the start_Date from the form
 
@@ -82,7 +87,8 @@ def index():
                            actual_price=actual_price,
                            media=6,
                            sleeve=6,
-                           chart_url=None)
+                           chart_url=None,
+                           shop_var = shop_var)
 
 
 # To serve the image properly from the static folder
