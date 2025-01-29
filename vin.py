@@ -8,6 +8,13 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import sys
 
+#TO do list
+# Make the clipboard work better - put in a date to delete older entries?
+# solve the data being weird problem
+# Make the screen look nicer
+#
+#
+
 # Mapping of quality to numeric value
 quality_to_number = {
     'Mint (M) ': 9,

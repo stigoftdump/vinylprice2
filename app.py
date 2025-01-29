@@ -11,7 +11,7 @@ def read_save_value():
     try:
         with open(SAVE_FILE, 'r') as f:
             data = json.load(f)
-            return data.get("shop_var", 0.7)  # Default to 0.7 if not set
+            return data.get("shop_var", 0.8)  # Default to 0.8 if not set
     except (FileNotFoundError, json.JSONDecodeError):
         return 0.8  # Default to 0.8
 
@@ -88,4 +88,4 @@ def send_image(filename):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5002)
