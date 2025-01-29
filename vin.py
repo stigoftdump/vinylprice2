@@ -6,6 +6,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import sys
 from datetime import datetime
+import tkinter as tk
+from tkinter import messagebox
+
 
 #TO do list
 # solve the data being weird problem
@@ -50,6 +53,12 @@ real_prices =[
     39.99
 ]
 
+def show_error_message(message):
+    root = tk.Tk()  # Initialize Tkinter root
+    root.withdraw()  # Hide the root window
+    messagebox.showerror("Clipboard Error", message)  # Show the error message
+    root.destroy()  # Destroy the root window after the message is closed
+
 # converts the record quality and sleeve quality into a score'
 def calculate_score(record_quality, sleeve_quality):
     record_value = quality_to_number.get(record_quality, 0)
@@ -84,6 +93,12 @@ except ValueError:
 
 # Get clipboard content
 clipboard_content = pyperclip.paste()
+
+# Check for the presence of "Order Date" and "Change Currency" in the clipboard content
+if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
+    # Show error message box
+    show_error_message("No Discogs data in clipboard. Go to the Discogs Sales History, CTRL-A to select all, CTRL-C to copy, then come back and re-run")
+    sys.exit(0)  # Exit the script
 
 # Split content into rows based on newlines
 rows = clipboard_content.splitlines()  # 'rows' is defined here

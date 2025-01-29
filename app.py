@@ -90,7 +90,6 @@ def index():
                            chart_url=None,
                            shop_var = shop_var)
 
-
 # To serve the image properly from the static folder
 @app.route("/static/images/<filename>")
 def send_image(filename):
