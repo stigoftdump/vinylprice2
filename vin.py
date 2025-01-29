@@ -1,5 +1,3 @@
-from xml.etree.ElementPath import prepare_descendant
-
 import pyperclip
 import numpy as np
 import matplotlib.pyplot as plt
@@ -90,11 +88,26 @@ clipboard_content = pyperclip.paste()
 # Split content into rows based on newlines
 rows = clipboard_content.splitlines()  # 'rows' is defined here
 
-# Split each row into cells based on tabs ('\t') and convert to tuples
-grid = [tuple(row.split('\t')) for row in rows[1:]]
+# Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
+start_index = None
+end_index = None
 
-# get rid of anything in the grid that   doesn't have something in the first row
-filtered_grid = [row for row in grid if row[0].strip()]
+for i, row in enumerate(rows):
+    if "Order Date" in row:
+        start_index = i
+    if "Change Currency" in row and start_index is not None:
+        end_index = i
+        break
+
+# Ensure valid indices are found
+if start_index is not None and end_index is not None:
+    rows = rows[start_index:end_index]
+
+# Split each row into cells based on tabs ('\t') and convert to tuples
+grid = [tuple(row.split('\t')) for row in rows]
+
+# Exclude header row by skipping the first row (assuming it's the header)
+filtered_grid = [row for row in grid[1:] if row[0].strip()]
 
 # Convert the fourth element (index 3) from a string with '£' to a number
 for i in range(len(filtered_grid)):
@@ -110,7 +123,7 @@ for i in range(len(filtered_grid)):
 # Process each row to calculate the score for the record and sleeve qualities
 processed_grid = []
 for row in filtered_grid:
-    if len(row) > 3:  # Ensure there are enough elements (record and sleeve qualities)
+    if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
         record_quality = row[1]  # Second element (record quality)
         sleeve_quality = row[2]  # Third element (sleeve quality)
         score = calculate_score(record_quality, sleeve_quality)
@@ -123,7 +136,9 @@ for row in filtered_grid:
 qualities = []
 prices = []
 
+
 for row in processed_grid:
+    if len(row) >= 5:  # Ensure there are at least 5 elements
         qualities.append(row[4])  # Quality column (score)
         prices.append(row[3])  # Price column
 
@@ -158,7 +173,7 @@ predicted_price = model.predict(new_quality_poly)[0]
 upper_bound = predicted_price+rmse
 
 # amends the predicated price to allow for the rmse
-adjusted_price = predicted_price + ((rmse)*shop_var)
+adjusted_price = predicted_price + (rmse*shop_var)
 
 # gets the actual price
 actual_price = realprice(adjusted_price)
