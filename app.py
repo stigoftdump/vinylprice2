@@ -31,6 +31,7 @@ def index():
         quality = media - ((media - sleeve) / 3)
 
         shop_var = request.form["shop_var"]  # Capture the shop_var value from the form
+        start_date = request.form["start_Date"] # Capture the start_Date from the form
 
         # Use the full path to the Python interpreter in your virtual environment
         project_path = '/home/stigoftdump/PycharmProjects/PythonProject/vinylprice/'
@@ -38,8 +39,7 @@ def index():
         code_path = project_path + 'vin.py'
 
         # Run the Python script with the input
-        #result = subprocess.run([python_path, code_path, str(quality), shop_var], capture_output=True, text=True)
-        result = subprocess.run([python_path, code_path, str(quality), str(shop_var)], capture_output=True, text=True)
+        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date], capture_output=True, text=True)
 
         # Capture and debug the output
         output = result.stdout.strip()

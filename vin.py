@@ -5,6 +5,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import sys
+from datetime import datetime
 
 #TO do list
 # Make the clipboard work better - put in a date to delete older entries?
@@ -72,12 +73,13 @@ def realprice(pred_price):
     return foundprice
 
 # gets the inputs from the sys arguments
-if len(sys.argv) < 3:
-    print("Error: reqscore or shop_var value is missing.")
+if len(sys.argv) < 4:
+    print("Error: data is missing.")
     sys.exit(1)
 try:
     reqscore = float(sys.argv[1])  # Read the first argument as reqscore
     shop_var = float(sys.argv[2])  # Read the second argument as shop_var
+    start_date = sys.argv[3] # read the third argument as start_date
 except ValueError:
     print("Error: Both reqscore and shop_var must be numbers.")
     sys.exit(1)
@@ -107,7 +109,11 @@ if start_index is not None and end_index is not None:
 grid = [tuple(row.split('\t')) for row in rows]
 
 # Exclude header row by skipping the first row (assuming it's the header)
-filtered_grid = [row for row in grid[1:] if row[0].strip()]
+start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+filtered_grid = [
+    row for row in grid[1:]
+    if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
+    ]
 
 # Convert the fourth element (index 3) from a string with '£' to a number
 for i in range(len(filtered_grid)):
@@ -135,7 +141,6 @@ for row in filtered_grid:
 
 qualities = []
 prices = []
-
 
 for row in processed_grid:
     if len(row) >= 5:  # Ensure there are at least 5 elements
