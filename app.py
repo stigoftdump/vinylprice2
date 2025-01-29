@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, send_from_directory
 import subprocess
 import os
+import json
 
 app = Flask(__name__)
 
@@ -31,6 +32,8 @@ def index():
         quality = media - ((media - sleeve) / 3)
 
         shop_var = request.form["shop_var"]  # Capture the shop_var value from the form
+        write_save_value(shop_var)  # Save the new value
+
         start_date = request.form["start_Date"] # Capture the start_Date from the form
 
         # Use the full path to the Python interpreter in your virtual environment
@@ -70,7 +73,8 @@ def index():
                                actual_price=actual_price,
                                media=media,
                                sleeve=sleeve,
-                               chart_url="static/images/chart.png")
+                               chart_url="static/images/chart.png",
+                               shop_var=shop_var)
 
     return render_template("index.html",
                            calculated_price=calculated_price,

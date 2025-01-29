@@ -8,11 +8,9 @@ import sys
 from datetime import datetime
 
 #TO do list
-# Make the clipboard work better - put in a date to delete older entries?
 # solve the data being weird problem
 # Make the screen look nicer
-#
-#
+# Error checking.
 
 # Mapping of quality to numeric value
 quality_to_number = {
@@ -109,6 +107,7 @@ if start_index is not None and end_index is not None:
 grid = [tuple(row.split('\t')) for row in rows]
 
 # Exclude header row by skipping the first row (assuming it's the header)
+# also removes any purchases from before the start date
 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
 filtered_grid = [
     row for row in grid[1:]
