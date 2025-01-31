@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
+import pickle
 
 
 #TO do list
@@ -53,6 +54,19 @@ real_prices =[
     39.99
 ]
 
+# function to save processed grid to a file
+def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
+    with open(filename, 'wb') as f:
+        pickle.dump(processed_grid, f)
+
+# function to load a saved processed grid from a file
+def load_processed_grid(filename='processed_grid.pkl'):
+    try:
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return []  # Return an empty list if the file doesn't exist
+
 def show_error_message(message):
     root = tk.Tk()  # Initialize Tkinter root
     root.withdraw()  # Hide the root window
@@ -87,6 +101,7 @@ try:
     reqscore = float(sys.argv[1])  # Read the first argument as reqscore
     shop_var = float(sys.argv[2])  # Read the second argument as shop_var
     start_date = sys.argv[3] # read the third argument as start_date
+    add_data = sys.argv[4] # gets the add_data flag
 except ValueError:
     print("Error: Both reqscore and shop_var must be numbers.")
     sys.exit(1)
@@ -153,6 +168,14 @@ for row in filtered_grid:
         # In case there are rows with missing data
         processed_grid.append(row + (None,))
 
+# If add_data is True, load the previously saved processed_grid and add it to the current one
+if add_data == "True":
+    saved_processed_grid = load_processed_grid()
+    processed_grid.extend(saved_processed_grid)
+
+# Save processed grid to file
+save_processed_grid(processed_grid)
+
 qualities = []
 prices = []
 
@@ -183,7 +206,7 @@ percentage_errors = np.abs((y - y_pred) / y) * 100
 mse = mean_squared_error(y, model.predict(X_poly))
 rmse = np.sqrt(mse)
 
-# Predict price for a new quality (e.g., quality = 10)
+# Predict price for a new quality
 new_quality = reqscore
 new_quality_poly = poly.transform([[new_quality]])
 predicted_price = model.predict(new_quality_poly)[0]
@@ -221,4 +244,4 @@ plt.ylabel('Price (£)')
 plt.savefig('static/images/chart.png')  # Save as PNG
 
 # output for sending to flask
-print(f"{round(predicted_price,2)},{round(predicted_price+rmse,2)},{round(actual_price,2)}")
+print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")

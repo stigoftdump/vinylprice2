@@ -40,6 +40,8 @@ def index():
         shop_var = request.form["shop_var"]  # Capture the shop_var value from the form
 
         start_date = request.form["start_Date"] # Capture the start_Date from the form
+        add_data = request.form.get("add_data", "off")  # Use .get() to avoid KeyError
+        add_data_flag = True if add_data == "on" else False  # Convert to a boolean
 
         # Use the full path to the Python interpreter in your virtual environment
         project_path = '/home/stigoftdump/PycharmProjects/PythonProject/vinylprice/'
@@ -47,7 +49,7 @@ def index():
         code_path = project_path + 'vin.py'
 
         # Run the Python script with the input
-        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date], capture_output=True, text=True)
+        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date, str(add_data_flag)], capture_output=True, text=True)
 
         # Capture and debug the output
         output = result.stdout.strip()
@@ -81,6 +83,7 @@ def index():
                                chart_url="static/images/chart.png",
                                shop_var=shop_var)
 
+    # this is loaded on first run (GET) rather than POST
     return render_template("index.html",
                            calculated_price=calculated_price,
                            adjusted_price=adjusted_price,

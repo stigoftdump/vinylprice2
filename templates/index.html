@@ -20,7 +20,7 @@
             padding: 20px;
         }
         .left-column {
-            width: 45%;
+            width: 30%;
         }
         .right-column {
             width: 45%;
@@ -54,6 +54,41 @@
         .form-group {
             margin-bottom: 20px;
         }
+
+        /* Tooltip container */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Tooltip text styling */
+        .tooltip-text {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+
+            /* Positioning */
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position above the icon */
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+
+            /* Fade-in effect */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Show tooltip on hover */
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -67,7 +102,11 @@
                 <!-- Media Dropdown -->
                 <div class="form-group">
                     <label for="media">Media:</label>
-                    <select id="media" name="media">
+                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                        <div class="tooltip-text">The grading of the media.</div>
+                    </div>
+                    <select id="media" name="media" style="width: 200px;">
                         <option value="9" {% if media == 9 %}selected{% endif %}>Mint (M)</option>
                         <option value="8" {% if media == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
                         <option value="7" {% if media == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
@@ -85,7 +124,11 @@
                 <!-- Sleeve Dropdown -->
                 <div class="form-group">
                     <label for="sleeve">Sleeve:</label>
-                    <select id="sleeve" name="sleeve">
+                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                        <div class="tooltip-text">The grading of the sleeve.</div>
+                    </div>
+                    <select id="sleeve" name="sleeve" style="width: 195px;">
                         <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
                         <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
                         <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
@@ -103,14 +146,38 @@
                 <!-- Shop Variable -->
                 <div class="form-group">
                     <label for="shop_var">Shop Variable:</label>
-                    <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
+                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                        <div class="tooltip-text">How much of the price variance you should be applied to the calculated price.</div>
+                    </div>
+                    <input type="number" id="shop_var" name="shop_var" style="width: 122px;" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
                 </div>
 
-                <!-- Start Date -->
-                <div class="form-group">
-                    <label for="start_Date">Start Date of data:</label>
-                    <input type="date" id="start_date" name="start_Date" value="2020-01-01">
+                <!-- Start Date and Add Data Checkbox -->
+                <div class="form-group" style="display: flex; align-items: center;">
+                    <div style="flex-grow: 1;">
+                        <label for="start_date" style="display: flex; align-items: center;">
+                            Start Date of data:
+                            <!-- Info icon with tooltip -->
+                            <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                                <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                                <div class="tooltip-text">Select the start date for the data you want to include.</div>
+                            </div>
+                        </label>
+                        <input type="date" id="start_date" name="start_Date" value="2020-01-01">
+                    </div>
+                    <div style="margin-left: 10px;">
+                        <label for="add_data">
+                            <input type="checkbox" id="add_data" name="add_data">
+                            Add Data
+                            <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                                <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                                <div class="tooltip-text">This will add the current data to the previous run's data rather than replacing it.</div>
+                            </div>
+                        </label>
+                    </div>
                 </div>
+
 
                 <!-- Submit Button -->
                 <button type="submit">Calculate</button>
