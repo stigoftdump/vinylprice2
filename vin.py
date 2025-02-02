@@ -227,6 +227,8 @@ quality_range_poly = poly.transform(quality_range)  # Transform the range for po
 # Predict prices for the smooth quality range
 predicted_prices = model.predict(quality_range_poly)
 
+#latest branch
+
 # Plot the scatter and the regression line
 plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
 plt.plot(quality_range, predicted_prices, color='blue', linestyle='-')  # Polynomial regression line
