@@ -25,6 +25,7 @@ def index():
     calculated_price = None
     adjusted_price = None
     actual_price = None
+    max_price = None
 
     # Load shop_var from saved file or use default 0.8
     shop_var = read_save_value()
@@ -43,13 +44,16 @@ def index():
         add_data = request.form.get("add_data", "off")  # Use .get() to avoid KeyError
         add_data_flag = True if add_data == "on" else False  # Convert to a boolean
 
+        # gets the max price
+        max_price = request.form.get("max_price","").strip()
+
         # Use the full path to the Python interpreter in your virtual environment
         project_path = '/home/stigoftdump/PycharmProjects/PythonProject/vinylprice/'
         python_path = project_path + '.venv/bin/python'  # Correct path
         code_path = project_path + 'vin.py'
 
         # Run the Python script with the input
-        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date, str(add_data_flag)], capture_output=True, text=True)
+        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date, str(add_data_flag), str(max_price)], capture_output=True, text=True)
 
         # Capture and debug the output
         output = result.stdout.strip()
@@ -81,7 +85,8 @@ def index():
                                media=media,
                                sleeve=sleeve,
                                chart_url="static/images/chart.png",
-                               shop_var=shop_var)
+                               shop_var=shop_var,
+                               max_price = max_price)
 
     # this is loaded on first run (GET) rather than POST
     return render_template("index.html",

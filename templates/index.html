@@ -178,6 +178,14 @@
                     </div>
                 </div>
 
+                <div style="margin-left: 10px;">
+                    <label for="max_price">Max Price (Optional):</label>
+                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                        <div class="tooltip-text">Adds in a maximum price allowed, useful for getting rid of outliers.</div>
+                    </div>
+                    <input type="number" id="max_price" name="max_price" value="{{ max_price }}">
+                </div>
 
                 <!-- Submit Button -->
                 <button type="submit">Calculate</button>

@@ -10,12 +10,6 @@ import tkinter as tk
 from tkinter import messagebox
 import pickle
 
-
-#TO do list
-# solve the data being weird problem
-# Make the screen look nicer
-# Error checking.
-
 # Mapping of quality to numeric value
 quality_to_number = {
     'Mint (M) ': 9,
@@ -102,9 +96,16 @@ try:
     shop_var = float(sys.argv[2])  # Read the second argument as shop_var
     start_date = sys.argv[3] # read the third argument as start_date
     add_data = sys.argv[4] # gets the add_data flag
+    max_price = sys.argv[5] # gets the max_price
 except ValueError:
     print("Error: Both reqscore and shop_var must be numbers.")
     sys.exit(1)
+
+# Ensure max_price is either an integer or None
+if max_price and max_price.isdigit():  # Check if it's not empty and is a number
+    max_price = int(max_price)
+else:
+    max_price = None  # Set to None explicitly if it's empty or invalid
 
 # Get clipboard content
 clipboard_content = pyperclip.paste()
@@ -168,6 +169,13 @@ for row in filtered_grid:
         # In case there are rows with missing data
         processed_grid.append(row + (None,))
 
+# adds in the maxprice
+if max_price is not None:
+    processed_grid = [
+        row for row in processed_grid
+        if len(row) > 3 and isinstance(row[3], (int, float))  and row[3] < max_price
+    ]
+
 # If add_data is True, load the previously saved processed_grid and add it to the current one
 if add_data == "True":
     saved_processed_grid = load_processed_grid()
@@ -227,11 +235,10 @@ quality_range_poly = poly.transform(quality_range)  # Transform the range for po
 # Predict prices for the smooth quality range
 predicted_prices = model.predict(quality_range_poly)
 
-#latest branch
-
 # Plot the scatter and the regression line
 plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
 plt.plot(quality_range, predicted_prices, color='blue', linestyle='-')  # Polynomial regression line
+plt.ylim(0, max(prices) * 1.1)  # Ensures the y-axis starts at 0 and extends slightly beyond max value
 plt.axhline(y=actual_price, color='green', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
 plt.axhline(y=predicted_price, color='orange', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
 plt.axhline(y=upper_bound, color='purple', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
