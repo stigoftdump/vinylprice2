@@ -180,7 +180,5 @@ def main():
     # output for sending to flask
     print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")
 
-    #oiwdhcio;wuhc
-
 if __name__ == "__main__":
     main()
