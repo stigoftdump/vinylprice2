@@ -7,6 +7,8 @@ from sklearn.metrics import mean_squared_error
 import sys
 from datetime import datetime
 from functions import *
+from scipy.optimize import curve_fit
+from sklearn.metrics import mean_squared_error
 
 # at the moment, we only have runtype = 1 for a full run
 runtype = 1
@@ -128,21 +130,41 @@ def main():
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
     y = np.array(prices)  # Price as dependent variable
 
-    # Apply polynomial regression
-    poly = PolynomialFeatures(degree=2)
-    X_poly = poly.fit_transform(X)
+    # Initial parameter guesses - adjusted for quality range 1-9
+    # with turning point at quality 6
+    initial_guess = [
+        max(y) * 0.4,  # a1: first rise contribution (40% of price range)
+        1.5,  # b1: steepness of first rise
+        3.0,  # c1: midpoint of first rise (before the turning point at 6)
+        max(y) * 0.5,  # a2: second rise contribution (50% of price range)
+        1.5,  # b2: steepness of second rise
+        7.5,  # c2: midpoint of second rise (after the turning point at 6)
+        min(y)  # d: base price
+    ]
 
-    # # Train the model
-    model = LinearRegression()
-    model.fit(X_poly, y)
+    # Add bounds to ensure monotonicity and reasonable parameters
+    bounds = (
+        [0, 0, 1, 0, 0, 6, 0],  # Lower bounds - c1 ≥ 1, c2 ≥ 6
+        [np.inf, np.inf, 6, np.inf, np.inf, 9, np.inf]  # Upper bounds - c1 ≤ 6, c2 ≤ 9
+    )
 
-    # Calculates the root mean squared error - this is the +/- of the dataset
-    mse = mean_squared_error(y, model.predict(X_poly))
-    rmse =  np.sqrt(mse)
+    # Fit the double sigmoid model
+    params, _ = curve_fit(double_sigmoid, X.flatten(), y, p0=initial_guess, bounds=bounds, maxfev=10000)
 
-    # Predict price for a new quality
-    new_quality_poly = poly.transform([[reqscore]])
-    predicted_price = model.predict(new_quality_poly)[0]
+    # Extract parameters for readability
+    a1, b1, c1, a2, b2, c2, d = params
+
+    def predict_price(quality_value):
+        return double_sigmoid(quality_value, *params)
+
+    # Calculate predictions for all data points
+    y_pred = predict_price(X.flatten())
+
+    # Calculate RMSE
+    rmse = np.sqrt(mean_squared_error(y, y_pred))
+
+    # Predict price for the requested quality score
+    predicted_price = predict_price(reqscore)
 
     #' new definition of upper bound'
     upper_bound = predicted_price+rmse

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import pickle
+import numpy as np
 
 # Mapping of quality to numeric value
 quality_to_number = {
@@ -78,3 +79,15 @@ def realprice(pred_price):
         nearest_divisible_by_10 = round(pred_price / 10) * 10
         foundprice = nearest_divisible_by_10
     return foundprice
+
+def double_sigmoid(x, a1, b1, c1, a2, b2, c2, d):
+    """
+    Sum of two sigmoid functions plus a constant:
+    - a1, a2: heights of each sigmoid
+    - b1, b2: steepness factors
+    - c1, c2: midpoints of each transition
+    - d: base price level
+    """
+    first_rise = a1 / (1 + np.exp(-b1 * (x - c1)))
+    second_rise = a2 / (1 + np.exp(-b2 * (x - c2)))
+    return first_rise + second_rise + d
