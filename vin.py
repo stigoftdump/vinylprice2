@@ -8,170 +8,179 @@ import sys
 from datetime import datetime
 from functions import *
 
-# gets the inputs from the sys arguments
-if len(sys.argv) < 4:
-    print("Error: data is missing.")
-    sys.exit(1)
-try:
-    reqscore = float(sys.argv[1])  # Read the first argument as reqscore
-    shop_var = float(sys.argv[2])  # Read the second argument as shop_var
-    start_date = sys.argv[3] # read the third argument as start_date
-    add_data = sys.argv[4] # gets the add_data flag
-    max_price = sys.argv[5] # gets the max_price
-except ValueError:
-    print("Error: Both reqscore and shop_var must be numbers.")
-    sys.exit(1)
+# at the moment, we only have runtype = 1 for a full run
+runtype = 1
 
-# Ensure max_price is either an integer or None
-if max_price and max_price.isdigit():  # Check if it's not empty and is a number
-    max_price = int(max_price)
-else:
-    max_price = None  # Set to None explicitly if it's empty or invalid
+def main():
+    # only import the args as variables if we need to, we won't need to on recalcs.
+    if runtype==1:
+        # gets the inputs from the sys arguments
+        if len(sys.argv) < 4:
+            print("Error: data is missing.")
+            sys.exit(1)
+        try:
+            reqscore = float(sys.argv[1])  # Read the first argument as reqscore
+            shop_var = float(sys.argv[2])  # Read the second argument as shop_var
+            start_date = sys.argv[3] # read the third argument as start_date
+            add_data = sys.argv[4] # gets the add_data flag
+            max_price = sys.argv[5] # gets the max_price
+        except ValueError:
+            print("Error: Both reqscore and shop_var must be numbers.")
+            sys.exit(1)
 
-# Get clipboard content
-clipboard_content = pyperclip.paste()
+        # Ensure max_price is either an integer or None
+        if max_price and max_price.isdigit():  # Check if it's not empty and is a number
+            max_price = int(max_price)
+        else:
+            max_price = None  # Set to None explicitly if it's empty or invalid
 
-# Check for the presence of "Order Date" and "Change Currency" in the clipboard content
-if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
-    # Show error message box
-    show_error_message("No Discogs data in clipboard. Go to the Discogs Sales History, CTRL-A to select all, CTRL-C to copy, then come back and re-run")
-    sys.exit(0)  # Exit the script
+    # if its a full run, get the processed_grid from the clipboard.
+    # at the end of this part, processed_grid is populated
+    if runtype==1:
+        # Get clipboard content
+        clipboard_content = pyperclip.paste()
 
-# Split content into rows based on newlines
-rows = clipboard_content.splitlines()  # 'rows' is defined here
+        # Check for the presence of "Order Date" and "Change Currency" in the clipboard content
+        if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
+            # Show error message box
+            show_error_message("No Discogs data in clipboard. Go to the Discogs Sales History, CTRL-A to select all, CTRL-C to copy, then come back and re-run")
+            sys.exit(0)  # Exit the script
 
-# Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
-start_index = None
-end_index = None
+        # Split content into rows based on newlines
+        rows = clipboard_content.splitlines()  # 'rows' is defined here
 
-for i, row in enumerate(rows):
-    if "Order Date" in row:
-        start_index = i
-    if "Change Currency" in row and start_index is not None:
-        end_index = i
-        break
+        # Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
+        start_index = None
+        end_index = None
 
-# Ensure valid indices are found
-if start_index is not None and end_index is not None:
-    rows = rows[start_index:end_index]
+        for i, row in enumerate(rows):
+            if "Order Date" in row:
+                start_index = i
+            if "Change Currency" in row and start_index is not None:
+                end_index = i
+                break
 
-# Split each row into cells based on tabs ('\t') and convert to tuples
-grid = [tuple(row.split('\t')) for row in rows]
+        # Ensure valid indices are found
+        if start_index is not None and end_index is not None:
+            rows = rows[start_index:end_index]
 
-# Exclude header row by skipping the first row (assuming it's the header)
-# also removes any purchases from before the start date
-start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-filtered_grid = [
-    row for row in grid[1:]
-    if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
-    ]
+        # Split each row into cells based on tabs ('\t') and convert to tuples
+        grid = [tuple(row.split('\t')) for row in rows]
 
-# Convert the fourth element (index 3) from a string with '£' to a number
-for i in range(len(filtered_grid)):
-    if len(filtered_grid[i]) > 3:  # Ensure there is a fourth element
-        price_str = filtered_grid[i][3]
-        if price_str.startswith('£'):  # Check if the string starts with '£'
-            try:
-                # Remove '£' and convert to a float
-                filtered_grid[i] = filtered_grid[i][:3] + (float(price_str[1:]),)
-            except ValueError:
-                print(f"Error converting {price_str} to a number.")
+        # Exclude header row by skipping the first row (assuming it's the header)
+        # also removes any purchases from before the start date
+        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+        filtered_grid = [
+            row for row in grid[1:]
+            if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
+            ]
 
-# Process each row to calculate the score for the record and sleeve qualities
-processed_grid = []
-for row in filtered_grid:
-    if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
-        record_quality = row[1]  # Second element (record quality)
-        sleeve_quality = row[2]  # Third element (sleeve quality)
-        score = calculate_score(record_quality, sleeve_quality)
-        # Add the score as the last element in the tuple
-        processed_grid.append(row + (score,))
-    else:
-        # In case there are rows with missing data
-        processed_grid.append(row + (None,))
+        # Convert the fourth element (index 3) from a string with '£' to a number
+        for i in range(len(filtered_grid)):
+            if len(filtered_grid[i]) > 3:  # Ensure there is a fourth element
+                price_str = filtered_grid[i][3]
+                if price_str.startswith('£'):  # Check if the string starts with '£'
+                    try:
+                        # Remove '£' and convert to a float
+                        filtered_grid[i] = filtered_grid[i][:3] + (float(price_str[1:]),)
+                    except ValueError:
+                        print(f"Error converting {price_str} to a number.")
 
-# adds in the maxprice
-if max_price is not None:
-    processed_grid = [
-        row for row in processed_grid
-        if len(row) > 3 and isinstance(row[3], (int, float))  and row[3] < max_price
-    ]
+        # Process each row to calculate the score for the record and sleeve qualities
+        processed_grid = []
+        for row in filtered_grid:
+            if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
+                record_quality = row[1]  # Second element (record quality)
+                sleeve_quality = row[2]  # Third element (sleeve quality)
+                score = calculate_score(record_quality, sleeve_quality)
+                # Add the score as the last element in the tuple
+                processed_grid.append(row + (score,))
+            else:
+                # In case there are rows with missing data
+                processed_grid.append(row + (None,))
 
-# If add_data is True, load the previously saved processed_grid and add it to the current one
-if add_data == "True":
-    saved_processed_grid = load_processed_grid()
-    processed_grid.extend(saved_processed_grid)
+        # adds in the maxprice
+        if max_price is not None:
+            processed_grid = [
+                row for row in processed_grid
+                if len(row) > 3 and isinstance(row[3], (int, float))  and row[3] < max_price
+            ]
 
-# Save processed grid to file
-save_processed_grid(processed_grid)
+        # If add_data is True, load the previously saved processed_grid and add it to the current one
+        if add_data == "True":
+            saved_processed_grid = load_processed_grid()
+            processed_grid.extend(saved_processed_grid)
 
-qualities = []
-prices = []
+        # Save processed grid to file
+        save_processed_grid(processed_grid)
 
-for row in processed_grid:
-    if len(row) >= 5:  # Ensure there are at least 5 elements
-        qualities.append(row[4])  # Quality column (score)
-        prices.append(row[3])  # Price column
+    # this is the bit where the polynomial model is applied and t
 
-# Convert to numpy arrays for regression
-X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
-y = np.array(prices)  # Price as dependent variable
+    qualities = []
+    prices = []
 
-# Apply polynomial regression
-poly = PolynomialFeatures(degree=2)
-X_poly = poly.fit_transform(X)
+    for row in processed_grid:
+        if len(row) >= 5:  # Ensure there are at least 5 elements
+            qualities.append(row[4])  # Quality column (score)
+            prices.append(row[3])  # Price column
 
-# # Train the model
-model = LinearRegression()
-model.fit(X_poly, y)
+    # Convert to numpy arrays for regression
+    X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
+    y = np.array(prices)  # Price as dependent variable
 
-# Get the predicted values
-y_pred = model.predict(X_poly)
+    # Apply polynomial regression
+    poly = PolynomialFeatures(degree=2)
+    X_poly = poly.fit_transform(X)
 
-# Calculate absolute percentage errors
-percentage_errors = np.abs((y - y_pred) / y) * 100
+    # # Train the model
+    model = LinearRegression()
+    model.fit(X_poly, y)
 
-# Calculates the root mean squared error - this is the +/- of the dataset
-mse = mean_squared_error(y, model.predict(X_poly))
-rmse = np.sqrt(mse)
+    # Calculates the root mean squared error - this is the +/- of the dataset
+    mse = mean_squared_error(y, model.predict(X_poly))
+    rmse =  np.sqrt(mse)
 
-# Predict price for a new quality
-new_quality = reqscore
-new_quality_poly = poly.transform([[new_quality]])
-predicted_price = model.predict(new_quality_poly)[0]
+    # Predict price for a new quality
+    new_quality_poly = poly.transform([[reqscore]])
+    predicted_price = model.predict(new_quality_poly)[0]
 
-#' new definition of upper bound'
-upper_bound = predicted_price+rmse
+    #' new definition of upper bound'
+    upper_bound = predicted_price+rmse
 
-# amends the predicated price to allow for the rmse
-adjusted_price = predicted_price + (rmse*shop_var)
+    # amends the predicated price to allow for the rmse
+    adjusted_price = predicted_price + (rmse*shop_var)
 
-# gets the actual price
-actual_price = realprice(adjusted_price)
+    # gets the actual price
+    actual_price = realprice(adjusted_price)
 
-# Generate smooth data points for the regression line
-quality_range = np.linspace(min(qualities), max(qualities), 100).reshape(-1, 1)  # Smooth range of qualities
-quality_range_poly = poly.transform(quality_range)  # Transform the range for polynomial features
+    # Generate smooth data points for the regression line
+    quality_range = np.linspace(min(qualities), max(qualities), 100).reshape(-1, 1)  # Smooth range of qualities
+    quality_range_poly = poly.transform(quality_range)  # Transform the range for polynomial features
 
-# Predict prices for the smooth quality range
-predicted_prices = model.predict(quality_range_poly)
+    # Predict prices for the smooth quality range
+    predicted_prices = model.predict(quality_range_poly)
 
-# Plot the scatter and the regression line
-plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
-plt.plot(quality_range, predicted_prices, color='blue', linestyle='-')  # Polynomial regression line
-plt.ylim(0, max(prices) * 1.1)  # Ensures the y-axis starts at 0 and extends slightly beyond max value
-plt.axhline(y=actual_price, color='green', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
-plt.axhline(y=predicted_price, color='orange', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
-plt.axhline(y=upper_bound, color='purple', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
-plt.axvline(x=float(reqscore), color='green', linestyle='--', ymin=0, ymax=(actual_price - min(prices)) / (max(prices) - min(prices)))
-plt.axvline(x=float(reqscore), color='purple', linestyle='--', ymin=(actual_price - min(prices)) / (max(prices) - min(prices)), ymax=(upper_bound - min(prices)) / (max(prices) - min(prices)))
-plt.scatter(float(reqscore), actual_price, color='green', s=100) # user point
-plt.scatter(float(reqscore), predicted_price, color='orange', s=100) # user point
-plt.scatter(float(reqscore), upper_bound, color='purple', s=100) # user point
-plt.title('Polynomial Regression: Quality vs Price')
-plt.xlabel('Quality')
-plt.ylabel('Price (£)')
-plt.savefig('static/images/chart.png')  # Save as PNG
+    # Plot the scatter and the regression line
+    plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
+    plt.plot(quality_range, predicted_prices, color='blue', linestyle='-')  # Polynomial regression line
+    plt.ylim(0, max(prices) * 1.1)  # Ensures the y-axis starts at 0 and extends slightly beyond max value
+    plt.axhline(y=actual_price, color='green', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
+    plt.axhline(y=predicted_price, color='orange', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
+    plt.axhline(y=upper_bound, color='purple', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
+    plt.axvline(x=float(reqscore), color='green', linestyle='--', ymin=0, ymax=(actual_price - min(prices)) / (max(prices) - min(prices)))
+    plt.axvline(x=float(reqscore), color='purple', linestyle='--', ymin=(actual_price - min(prices)) / (max(prices) - min(prices)), ymax=(upper_bound - min(prices)) / (max(prices) - min(prices)))
+    plt.scatter(float(reqscore), actual_price, color='green', s=100) # user point
+    plt.scatter(float(reqscore), predicted_price, color='orange', s=100) # user point
+    plt.scatter(float(reqscore), upper_bound, color='purple', s=100) # user point
+    plt.title('Polynomial Regression: Quality vs Price')
+    plt.xlabel('Quality')
+    plt.ylabel('Price (£)')
+    plt.savefig('static/images/chart.png')  # Save as PNG
 
-# output for sending to flask
-print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")
+    # output for sending to flask
+    print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")
+
+    #oiwdhcio;wuhc
+
+if __name__ == "__main__":
+    main()
