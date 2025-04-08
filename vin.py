@@ -185,7 +185,7 @@ def main():
     plt.ylim(0, max(prices) * 1.1)
 
     # Set x-axis limits to the quality range
-    plt.xlim(1, 9)
+    plt.xlim(min(qualities) * 0.95, max(qualities) * 1.03)
 
     # Add grid for easier reading
     plt.grid(True, linestyle='--', alpha=0.7)
