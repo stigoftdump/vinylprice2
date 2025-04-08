@@ -116,8 +116,6 @@ def main():
         # Save processed grid to file
         save_processed_grid(processed_grid)
 
-    # this is the bit where the polynomial model is applied and t
-
     qualities = []
     prices = []
 
@@ -137,15 +135,15 @@ def main():
         1.5,  # b1: steepness of first rise
         3.0,  # c1: midpoint of first rise (before the turning point at 6)
         max(y) * 0.5,  # a2: second rise contribution (50% of price range)
-        1.5,  # b2: steepness of second rise
+        0.8,  # b2: steepness of second rise
         7.5,  # c2: midpoint of second rise (after the turning point at 6)
         min(y)  # d: base price
     ]
 
     # Add bounds to ensure monotonicity and reasonable parameters
     bounds = (
-        [0, 0, 1, 0, 0, 6, 0],  # Lower bounds - c1 ≥ 1, c2 ≥ 6
-        [np.inf, np.inf, 6, np.inf, np.inf, 9, np.inf]  # Upper bounds - c1 ≤ 6, c2 ≤ 9
+        [0, 0.1, 1, 0, 0.1, 6, 0],  # Lower bounds - c1 ≥ 1, c2 ≥ 6
+        [np.inf, 5, 6, np.inf, 5, 9, np.inf]  # Upper bounds - c1 ≤ 6, c2 ≤ 9
     )
 
     # Fit the double sigmoid model
@@ -175,28 +173,55 @@ def main():
     # gets the actual price
     actual_price = realprice(adjusted_price)
 
-    # Generate smooth data points for the regression line
-    quality_range = np.linspace(min(qualities), max(qualities), 100).reshape(-1, 1)  # Smooth range of qualities
-    quality_range_poly = poly.transform(quality_range)  # Transform the range for polynomial features
+    # Generate smooth data points for plotting the sigmoid curve
+    quality_range = np.linspace(1, 9, 100)  # Quality range from 1 to 9
+    predicted_prices = predict_price(quality_range)
 
-    # Predict prices for the smooth quality range
-    predicted_prices = model.predict(quality_range_poly)
+    # Plot the scatter points and curve
+    plt.scatter(qualities, prices, color='red', label='Items Sold')
+    plt.plot(quality_range, predicted_prices, color='blue', linestyle='-', label='Best Fit')
 
-    # Plot the scatter and the regression line
-    plt.scatter(qualities, prices, color='red')  # Scatter plot of actual data
-    plt.plot(quality_range, predicted_prices, color='blue', linestyle='-')  # Polynomial regression line
-    plt.ylim(0, max(prices) * 1.1)  # Ensures the y-axis starts at 0 and extends slightly beyond max value
-    plt.axhline(y=actual_price, color='green', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
-    plt.axhline(y=predicted_price, color='orange', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
-    plt.axhline(y=upper_bound, color='purple', linestyle='--', xmin=0, xmax=(float(reqscore) - min(qualities)) / (max(qualities) - min(qualities)))
-    plt.axvline(x=float(reqscore), color='green', linestyle='--', ymin=0, ymax=(actual_price - min(prices)) / (max(prices) - min(prices)))
-    plt.axvline(x=float(reqscore), color='purple', linestyle='--', ymin=(actual_price - min(prices)) / (max(prices) - min(prices)), ymax=(upper_bound - min(prices)) / (max(prices) - min(prices)))
-    plt.scatter(float(reqscore), actual_price, color='green', s=100) # user point
-    plt.scatter(float(reqscore), predicted_price, color='orange', s=100) # user point
-    plt.scatter(float(reqscore), upper_bound, color='purple', s=100) # user point
-    plt.title('Polynomial Regression: Quality vs Price')
+    # Set y-axis limits
+    plt.ylim(0, max(prices) * 1.1)
+
+    # Set x-axis limits to the quality range
+    plt.xlim(1, 9)
+
+    # Add grid for easier reading
+    plt.grid(True, linestyle='--', alpha=0.7)
+
+    # Horizontal reference lines
+    plt.axhline(y=predicted_price, color='orange', linestyle='--',
+                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
+                label='Predicted Price')
+    plt.axhline(y=upper_bound, color='purple', linestyle='--',
+                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
+                label='Upper Bound (RMSE)')
+    plt.axhline(y=actual_price, color='green', linestyle='--',
+                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
+                label='Actual Price')
+
+    # Vertical reference line
+    plt.axvline(x=float(reqscore), color='green', linestyle='--',
+                ymin=0, ymax=(actual_price) / (max(prices) * 1.1))
+    plt.axvline(x=float(reqscore), color='purple', linestyle='--',
+                ymin=(actual_price) / (max(prices) * 1.1),
+                ymax=(upper_bound) / (max(prices) * 1.1))
+
+    # Mark specific points
+    plt.scatter(float(reqscore), actual_price, color='green', s=100)
+    plt.scatter(float(reqscore), predicted_price, color='orange', s=100)
+    plt.scatter(float(reqscore), upper_bound, color='purple', s=100)
+
+    # Add title and labels
+    plt.title('Predicted Prices')
     plt.xlabel('Quality')
     plt.ylabel('Price (£)')
+    plt.legend()
+
+    # Annotate the turning point
+    #plt.axvline(x=6, color='gray', linestyle=':', alpha=0.5)
+    #plt.text(6.1, min(prices), 'Turning Point (6)', fontsize=9, color='gray')
     plt.savefig('static/images/chart.png')  # Save as PNG
 
     # output for sending to flask
