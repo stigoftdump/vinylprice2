@@ -217,7 +217,6 @@ def main():
 
     # Create a reverse mapping from number to quality text
     number_to_quality = {v: k for k, v in quality_to_number.items()}
-   # print("number_to_quality:", number_to_quality)
 
     # Gets labels size
     min_quality_label = int(min(min(qualities), reqscore) * 0.97)
@@ -233,9 +232,6 @@ def main():
     plt.xticks(all_quality_numbers, all_quality_labels, rotation=15, ha='right')
     plt.tight_layout()  # Adjust layout to prevent labels from overlapping
 
-    # Annotate the turning point
-    #plt.axvline(x=6, color='gray', linestyle=':', alpha=0.5)
-    #plt.text(6.1, min(prices), 'Turning Point (6)', fontsize=9, color='gray')
     plt.savefig('static/chart.png')  # Save as PNG
 
     # output for sending to flask
