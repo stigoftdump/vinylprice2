@@ -79,8 +79,9 @@ def main():
                 price_str = filtered_grid[i][3]
                 if price_str.startswith('£'):  # Check if the string starts with '£'
                     try:
-                        # Remove '£' and convert to a float
-                        filtered_grid[i] = filtered_grid[i][:3] + (float(price_str[1:]),)
+                        # Remove '£' and commas, then convert to a float
+                        clean_price = price_str[1:].replace(',', '')
+                        filtered_grid[i] = filtered_grid[i][:3] + (float(clean_price),)
                     except ValueError:
                         print(f"Error converting {price_str} to a number.")
 
