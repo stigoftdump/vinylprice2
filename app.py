@@ -1,12 +1,27 @@
+#import vin
+#from functions import * # While not ideal for best practice, for this debugging it's okay
+#import sklearn
+#import scipy
+#import numpy
+#import matplotlib
+#import pyperclip
 from flask import Flask, render_template, request, send_from_directory
 import subprocess
 import os
 import json
+import webbrowser
+import threading
+import time
 
 app = Flask(__name__)
 
 # File to store saved value
 SAVE_FILE = "save_data.json"
+
+def open_browser_once():
+    """Wait briefly and open the browser."""
+    time.sleep(1)
+    webbrowser.open("http://127.0.0.1:5002")
 
 def read_save_value():
     try:
@@ -105,4 +120,8 @@ def send_image(filename):
 
 
 if __name__ == "__main__":
+    from werkzeug.serving import is_running_from_reloader
+
+    if not is_running_from_reloader():
+        threading.Thread(target=open_browser_once).start()
     app.run(debug=True, port=5002)
