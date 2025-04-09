@@ -84,7 +84,7 @@ def index():
                                actual_price=actual_price,
                                media=media,
                                sleeve=sleeve,
-                               chart_url="static/images/chart.png",
+                               chart_url="static/chart.png",
                                shop_var=shop_var,
                                max_price = max_price)
 

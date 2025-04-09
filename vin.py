@@ -185,7 +185,7 @@ def main():
     plt.ylim(0, max(prices) * 1.1)
 
     # Set x-axis limits to the quality range
-    plt.xlim(min(qualities) * 0.97, max(qualities) * 1.03)
+    plt.xlim(min(min(qualities), reqscore) * 0.97, max(qualities) * 1.03)
 
     # Add grid for easier reading
     plt.grid(True, linestyle='--', alpha=0.7)
@@ -222,7 +222,7 @@ def main():
     # Annotate the turning point
     #plt.axvline(x=6, color='gray', linestyle=':', alpha=0.5)
     #plt.text(6.1, min(prices), 'Turning Point (6)', fontsize=9, color='gray')
-    plt.savefig('static/images/chart.png')  # Save as PNG
+    plt.savefig('static/chart.png')  # Save as PNG
 
     # output for sending to flask
     print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")
