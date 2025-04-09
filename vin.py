@@ -181,7 +181,7 @@ def main():
     plt.ylim(0, max(prices) * 1.1)
 
     # Set x-axis limits to the quality range
-    plt.xlim(min(min(qualities), reqscore) * 0.97, max(qualities) * 1.03)
+    plt.xlim(min(min(qualities), reqscore) * 0.97, max(max(qualities), reqscore) * 1.03)
 
     # Add grid for easier reading
     plt.grid(True, linestyle='--', alpha=0.7)
@@ -219,24 +219,18 @@ def main():
     number_to_quality = {v: k for k, v in quality_to_number.items()}
    # print("number_to_quality:", number_to_quality)
 
-    # Get the unique quality numbers present in your data and the range
-    unique_qualities = sorted(list(set(qualities + list(quality_range) + [reqscore])))
-    #print("unique_qualities:", unique_qualities)
+    # Gets labels size
+    min_quality_label = int(min(min(qualities), reqscore) * 0.97)
+    max_quality_label = int(max(max(qualities), reqscore) * 1.03)
 
-    # Filter for whole numbers
-    integer_qualities = [int(q) for q in unique_qualities if q == int(q)]
-    #print("integer_qualities:", integer_qualities)
+    # Generate a list of all whole numbers within this range
+    all_quality_numbers = range(min_quality_label, max_quality_label + 1)
 
-    # filter for the lowest
-    start_quality = min(min(qualities), reqscore)
-    filtered_qualities = [q for q in integer_qualities if q >= start_quality]
-
-    # Generate the corresponding text labels for whole numbers
-    quality_labels = [number_to_quality.get(q, str(q)) for q in filtered_qualities]
-    #print("quality_labels:", quality_labels)
+    # Generate the corresponding text labels for all whole numbers
+    all_quality_labels = [number_to_quality.get(q, str(q)) for q in all_quality_numbers]
 
     # Set the x-axis ticks and labels
-    plt.xticks(filtered_qualities, quality_labels, rotation=45, ha='right')
+    plt.xticks(all_quality_numbers, all_quality_labels, rotation=15, ha='right')
     plt.tight_layout()  # Adjust layout to prevent labels from overlapping
 
     # Annotate the turning point
