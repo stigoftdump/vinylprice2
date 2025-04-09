@@ -215,6 +215,30 @@ def main():
     plt.ylabel('Price (£)')
     plt.legend()
 
+    # Create a reverse mapping from number to quality text
+    number_to_quality = {v: k for k, v in quality_to_number.items()}
+   # print("number_to_quality:", number_to_quality)
+
+    # Get the unique quality numbers present in your data and the range
+    unique_qualities = sorted(list(set(qualities + list(quality_range) + [reqscore])))
+    #print("unique_qualities:", unique_qualities)
+
+    # Filter for whole numbers
+    integer_qualities = [int(q) for q in unique_qualities if q == int(q)]
+    #print("integer_qualities:", integer_qualities)
+
+    # filter for the lowest
+    start_quality = min(min(qualities), reqscore)
+    filtered_qualities = [q for q in integer_qualities if q >= start_quality]
+
+    # Generate the corresponding text labels for whole numbers
+    quality_labels = [number_to_quality.get(q, str(q)) for q in filtered_qualities]
+    #print("quality_labels:", quality_labels)
+
+    # Set the x-axis ticks and labels
+    plt.xticks(filtered_qualities, quality_labels, rotation=45, ha='right')
+    plt.tight_layout()  # Adjust layout to prevent labels from overlapping
+
     # Annotate the turning point
     #plt.axvline(x=6, color='gray', linestyle=':', alpha=0.5)
     #plt.text(6.1, min(prices), 'Turning Point (6)', fontsize=9, color='gray')
