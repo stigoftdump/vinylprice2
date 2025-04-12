@@ -1,7 +1,5 @@
 import pyperclip
-import matplotlib.pyplot as plt
 import sys
-from datetime import datetime
 from functions import *
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
@@ -32,86 +30,23 @@ def main():
         else:
             max_price = None  # Set to None explicitly if it's empty or invalid
 
-    # if its a full run, get the processed_grid from the clipboard.
-    # at the end of this part, processed_grid is populated
-    if runtype==1:
-        # Get clipboard content
-        clipboard_content = pyperclip.paste()
+    # Gets the processed_grid from the clipboard
+    processed_grid = make_processed_grid(pyperclip.paste(), start_date)
 
-        # Check for the presence of "Order Date" and "Change Currency" in the clipboard content
-        if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
-            # Show error message box
-            show_error_message("No Discogs data in clipboard. Go to the Discogs Sales History, CTRL-A to select all, CTRL-C to copy, then come back and re-run")
-            sys.exit(0)  # Exit the script
+    # adds in the maxprice and deletes if anything is above it.
+    if max_price is not None:
+        processed_grid = [
+            row for row in processed_grid
+            if len(row) > 3 and isinstance(row[3], (int, float))  and row[3] < max_price
+        ]
 
-        # Split content into rows based on newlines
-        rows = clipboard_content.splitlines()  # 'rows' is defined here
+    # If add_data is True, load the previously saved processed_grid and add it to the current one
+    if add_data == "True":
+        saved_processed_grid = load_processed_grid()
+        processed_grid.extend(saved_processed_grid)
 
-        # Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
-        start_index = None
-        end_index = None
-
-        for i, row in enumerate(rows):
-            if "Order Date" in row:
-                start_index = i
-            if "Change Currency" in row and start_index is not None:
-                end_index = i
-                break
-
-        # Ensure valid indices are found
-        if start_index is not None and end_index is not None:
-            rows = rows[start_index:end_index]
-
-        # Split each row into cells based on tabs ('\t') and convert to tuples
-        grid = [tuple(row.split('\t')) for row in rows]
-
-        # Exclude header row by skipping the first row (assuming it's the header)
-        # also removes any purchases from before the start date
-        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-        filtered_grid = [
-            row for row in grid[1:]
-            if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
-            ]
-
-        # Convert the fourth element (index 3) from a string with '£' to a number
-        for i in range(len(filtered_grid)):
-            if len(filtered_grid[i]) > 3:  # Ensure there is a fourth element
-                price_str = filtered_grid[i][3]
-                if price_str.startswith('£'):  # Check if the string starts with '£'
-                    try:
-                        # Remove '£' and commas, then convert to a float
-                        clean_price = price_str[1:].replace(',', '')
-                        filtered_grid[i] = filtered_grid[i][:3] + (float(clean_price),)
-                    except ValueError:
-                        print(f"Error converting {price_str} to a number.")
-
-        # Process each row to calculate the score for the record and sleeve qualities
-        processed_grid = []
-        for row in filtered_grid:
-            if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
-                record_quality = row[1]  # Second element (record quality)
-                sleeve_quality = row[2]  # Third element (sleeve quality)
-                score = calculate_score(record_quality, sleeve_quality)
-                # Add the score as the last element in the tuple
-                processed_grid.append(row + (score,))
-            else:
-                # In case there are rows with missing data
-                processed_grid.append(row + (None,))
-
-        # adds in the maxprice
-        if max_price is not None:
-            processed_grid = [
-                row for row in processed_grid
-                if len(row) > 3 and isinstance(row[3], (int, float))  and row[3] < max_price
-            ]
-
-        # If add_data is True, load the previously saved processed_grid and add it to the current one
-        if add_data == "True":
-            saved_processed_grid = load_processed_grid()
-            processed_grid.extend(saved_processed_grid)
-
-        # Save processed grid to file
-        save_processed_grid(processed_grid)
+    # Save processed grid to file
+    save_processed_grid(processed_grid)
 
     qualities = []
     prices = []
@@ -144,7 +79,7 @@ def main():
     )
 
     # Fit the double sigmoid model
-    params, _ = curve_fit(double_sigmoid, X.flatten(), y, p0=initial_guess, bounds=bounds, maxfev=10000)
+    params, _ = curve_fit(double_sigmoid, X.flatten(), y, p0=initial_guess, bounds=bounds, maxfev=100000)
 
     # Extract parameters for readability
     a1, b1, c1, a2, b2, c2, d = params
@@ -174,66 +109,8 @@ def main():
     quality_range = np.linspace(1, 9, 100)  # Quality range from 1 to 9
     predicted_prices = predict_price(quality_range)
 
-    # Plot the scatter points and curve
-    plt.scatter(qualities, prices, color='red', label='Items Sold')
-    plt.plot(quality_range, predicted_prices, color='blue', linestyle='-', label='Best Fit')
-
-    # Set y-axis limits
-    plt.ylim(0, max(prices) * 1.1)
-
-    # Set x-axis limits to the quality range
-    plt.xlim(min(min(qualities), reqscore) * 0.97, max(max(qualities), reqscore) * 1.03)
-
-    # Add grid for easier reading
-    plt.grid(True, linestyle='--', alpha=0.7)
-
-    # Horizontal reference lines
-    plt.axhline(y=predicted_price, color='orange', linestyle='--',
-                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
-                label='Predicted Price')
-    plt.axhline(y=upper_bound, color='purple', linestyle='--',
-                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
-                label='Upper Bound (RMSE)')
-    plt.axhline(y=actual_price, color='green', linestyle='--',
-                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
-                label='Actual Price')
-
-    # Vertical reference line
-    plt.axvline(x=float(reqscore), color='green', linestyle='--',
-                ymin=0, ymax=(actual_price) / (max(prices) * 1.1))
-    plt.axvline(x=float(reqscore), color='purple', linestyle='--',
-                ymin=(actual_price) / (max(prices) * 1.1),
-                ymax=(upper_bound) / (max(prices) * 1.1))
-
-    # Mark specific points
-    plt.scatter(float(reqscore), actual_price, color='green', s=100)
-    plt.scatter(float(reqscore), predicted_price, color='orange', s=100)
-    plt.scatter(float(reqscore), upper_bound, color='purple', s=100)
-
-    # Add title and labels
-    plt.title('Predicted Prices')
-    plt.xlabel('Quality')
-    plt.ylabel('Price (£)')
-    plt.legend()
-
-    # Create a reverse mapping from number to quality text
-    number_to_quality = {v: k for k, v in quality_to_number.items()}
-
-    # Gets labels size
-    min_quality_label = int(min(min(qualities), reqscore) * 0.97)
-    max_quality_label = int(max(max(qualities), reqscore) * 1.03)
-
-    # Generate a list of all whole numbers within this range
-    all_quality_numbers = range(min_quality_label, max_quality_label + 1)
-
-    # Generate the corresponding text labels for all whole numbers
-    all_quality_labels = [number_to_quality.get(q, str(q)) for q in all_quality_numbers]
-
-    # Set the x-axis ticks and labels
-    plt.xticks(all_quality_numbers, all_quality_labels, rotation=15, ha='right')
-    plt.tight_layout()  # Adjust layout to prevent labels from overlapping
-
-    plt.savefig('static/chart.png')  # Save as PNG
+    # calls the function to plot the chart and saves it
+    plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, predicted_price, upper_bound, actual_price)
 
     # output for sending to flask
     print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")
