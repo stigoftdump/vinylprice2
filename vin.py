@@ -1,5 +1,6 @@
 import pyperclip
 import sys
+from datetime import datetime
 from functions import *
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
@@ -32,10 +33,14 @@ def main():
     # Save processed grid to file
     save_processed_grid(processed_grid)
 
+    # adjusts the value for inflation
+    #processed_grid_adjusted = adjust_price_for_uk_inflation_annual(processed_grid)
+    #print(processed_grid_adjusted)
+
     qualities = []
     prices = []
 
-    for row in processed_grid:
+    for row in processed_grid_adjusted:
         if len(row) >= 5:  # Ensure there are at least 5 elements
             qualities.append(row[4])  # Quality column (score)
             prices.append(row[3])  # Price column

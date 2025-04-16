@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import pickle
 import numpy as np
+import datetime
 from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
@@ -43,6 +44,37 @@ real_prices =[
     34.99,
     39.99
 ]
+
+# UK inflation
+ANNUAL_CPI_DATA_1974_BASE = {
+    "2000": 671.8,
+    "2001": 683.7,
+    "2002": 695.1,
+    "2003": 715.2,
+    "2004": 736.5,
+    "2005": 757.3,
+    "2006": 781.5,
+    "2007": 815.0,
+    "2008": 847.5,
+    "2009": 843.0,
+    "2010": 881.9,
+    "2011": 927.8,
+    "2012": 957.6,
+    "2013": 986.7,
+    "2014": 1010.0,
+    "2015": 1020.0,
+    "2016": 1037.7,
+    "2017": 1074.9,
+    "2018": 1110.8,
+    "2019": 1139.3,
+    "2020": 1156.4,
+    "2021": 1203.2,
+    "2022": 1342.6,
+    "2023": 1472.7,
+    "2024": 1525.5, # Latest data point in this set
+}
+
+
 
 # function to save processed grid to a file
 def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
@@ -238,3 +270,94 @@ def return_variables(argument):
         sys.exit(1)
 
     return reqscore, shop_var, start_date, add_data, max_price
+
+def adjust_price_for_uk_inflation_annual(processed_grid):
+    """
+    Adjusts a price within a tuple based on ANNUAL UK inflation index data
+    (1974=100 base) to its equivalent value relative to the latest year
+    available in the dataset (2024).
+
+    Args:
+        processed_grid (tuple): A tuple where the first element (index 0) is a
+                               date string ('YYYY-MM-DD') and the fourth element
+                               (index 3) is the original price (numeric type like
+                               int or float).
+
+    Returns:
+        tuple: A new tuple with the price at index 3 adjusted for inflation,
+               rounded to 2 decimal places. Returns the original tuple if
+               the date is invalid, falls outside the data range (2000-2024),
+               price is invalid, or CPI data for the original year is missing
+               (though the provided dict is complete for 2000-2024).
+        None: Returns None if the input tuple structure is incorrect (e.g.,
+              less than 4 elements).
+
+    Notes:
+        - Uses the specific annual index data provided (2000-2024, 1974=100).
+        - Adjustment is based on annual average index values.
+        - The adjustment reflects the equivalent value as of the average price
+          level in the year LATEST_CPI_YEAR_STR (currently 2024), not today's date.
+    """
+    try:
+        # Ensure tuple has enough elements before accessing them
+        if len(processed_grid) < 4:
+             raise IndexError("Input tuple requires at least 4 elements.")
+
+        LATEST_CPI_YEAR_STR="2024"
+        LATEST_CPI_VALUE = 1525.5
+        date_str = processed_grid[0]
+        original_price = processed_grid[3]
+        # We don't strictly need today's date for calculation here, but can keep it for validation context
+        today = datetime.date.today()
+
+        # --- Validate and parse date ---
+        try:
+            original_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            original_year = original_date.year # Extract the year
+        except ValueError:
+            print(f"Warning: Invalid date format '{date_str}'. Expected YYYY-MM-DD. Returning original tuple.")
+            return processed_grid
+        except TypeError:
+             print(f"Warning: Date element is not a string ('{date_str}'). Returning original tuple.")
+             return processed_grid
+
+        # --- Validate price ---
+        try:
+            if not isinstance(original_price, (int, float)):
+                 raise TypeError("Price must be a numeric type (int or float).")
+            original_price = float(original_price)
+            if original_price < 0:
+                print(f"Warning: Original price {original_price} is negative. Proceeding with calculation.")
+        except (TypeError, ValueError) as e:
+            print(f"Warning: Invalid price '{original_price}' ({e}). Returning original tuple.")
+            return processed_grid
+
+        # --- Check if original year is within the data range ---
+        original_year_str = str(original_year)
+
+        # --- CPI Lookup ---
+        cpi_original = ANNUAL_CPI_DATA_1974_BASE[original_year_str]
+        cpi_latest = LATEST_CPI_VALUE # Use the defined latest value from the dataset
+
+        # Basic check for valid CPI values
+        if cpi_original <= 0:
+             print(f"Warning: Invalid historical CPI value ({cpi_original}) found for {original_year_str}. Returning original tuple.")
+             return processed_grid
+
+        # --- Inflation Calculation ---
+        inflation_multiplier = cpi_latest / cpi_original
+        adjusted_price = round(original_price * inflation_multiplier, 2)
+
+        # --- Create the new tuple ---
+        grid_list = list(processed_grid)
+        grid_list[3] = adjusted_price
+        new_processed_grid = tuple(grid_list)
+
+        return new_processed_grid
+
+    except IndexError:
+        print(f"Error: Input tuple structure is incorrect or has too few elements. Expected at least 4 elements.")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return processed_grid
