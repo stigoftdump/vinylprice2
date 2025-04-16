@@ -4,31 +4,15 @@ from functions import *
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 
-# at the moment, we only have runtype = 1 for a full run
-runtype = 1
-
 def main():
-    # only import the args as variables if we need to, we won't need to on recalcs.
-    if runtype==1:
-        # gets the inputs from the sys arguments
-        if len(sys.argv) < 4:
-            print("Error: data is missing.")
-            sys.exit(1)
-        try:
-            reqscore = float(sys.argv[1])  # Read the first argument as reqscore
-            shop_var = float(sys.argv[2])  # Read the second argument as shop_var
-            start_date = sys.argv[3] # read the third argument as start_date
-            add_data = sys.argv[4] # gets the add_data flag
-            max_price = sys.argv[5] # gets the max_price
-        except ValueError:
-            print("Error: Both reqscore and shop_var must be numbers.")
-            sys.exit(1)
+    # gets the inputs from the sys arguments
+    reqscore, shop_var, start_date, add_data, max_price = return_variables(sys.argv)
 
-        # Ensure max_price is either an integer or None
-        if max_price and max_price.isdigit():  # Check if it's not empty and is a number
-            max_price = int(max_price)
-        else:
-            max_price = None  # Set to None explicitly if it's empty or invalid
+    # Ensure max_price is either an integer or None
+    if max_price and max_price.isdigit():  # Check if it's not empty and is a number
+        max_price = int(max_price)
+    else:
+        max_price = None  # Set to None explicitly if it's empty or invalid
 
     # Gets the processed_grid from the clipboard
     processed_grid = make_processed_grid(pyperclip.paste(), start_date)
