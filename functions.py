@@ -187,10 +187,10 @@ def plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, pre
 
     # Vertical reference line
     plt.axvline(x=float(reqscore), color='green', linestyle='--',
-                ymin=0, ymax=(actual_price) / (max(prices) * 1.1))
+                ymin=0, ymax=actual_price / (max(prices) * 1.1))
     plt.axvline(x=float(reqscore), color='purple', linestyle='--',
-                ymin=(actual_price) / (max(prices) * 1.1),
-                ymax=(upper_bound) / (max(prices) * 1.1))
+                ymin=actual_price / (max(prices) * 1.1),
+                ymax=upper_bound / (max(prices) * 1.1))
 
     # Mark specific points
     plt.scatter(float(reqscore), actual_price, color='green', s=100)
@@ -221,3 +221,20 @@ def plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, pre
     plt.tight_layout()  # Adjust layout to prevent labels from overlapping
 
     plt.savefig('static/chart.png')  # Save as PNG
+
+def return_variables(argument):
+    # returns the variables from the argument sent in sys
+    if len(argument) < 4:
+        print("Error: data is missing.")
+        sys.exit(1)
+    try:
+        reqscore = float(argument[1])  # Read the first argument as reqscore
+        shop_var = float(argument[2])  # Read the second argument as shop_var
+        start_date = argument[3] # read the third argument as start_date
+        add_data = argument[4] # gets the add_data flag
+        max_price = argument[5] # gets the max_price
+    except ValueError:
+        print("Error: Both reqscore and shop_var must be numbers.")
+        sys.exit(1)
+
+    return reqscore, shop_var, start_date, add_data, max_price
