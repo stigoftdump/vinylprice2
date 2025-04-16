@@ -48,37 +48,63 @@ def main():
     # with turning point at quality 6
     initial_guess = [
         max(y) * 0.4,  # a1: first rise contribution (40% of price range)
-        1.5,  # b1: steepness of first rise
-        3.0,  # c1: midpoint of first rise (before the turning point at 6)
-        max(y) * 0.5,  # a2: second rise contribution (50% of price range)
-        0.8,  # b2: steepness of second rise
-        7.5,  # c2: midpoint of second rise (after the turning point at 6)
-        min(y)  # d: base price
+        1.5,           # b1: steepness of first rise
+        3.0,           # c1: midpoint of first rise (e.g., < 6)
+        max(y) * 0.05, # a_exp: scaling for exponential (start smaller)
+        0.5,           # b_exp: exponential growth rate (moderate guess)
+        7.0,           # c_exp: onset point for exponential (e.g., > 6)
+        min(y) if y.size > 0 else 0 # d: base price
     ]
 
     # Add bounds to ensure monotonicity and reasonable parameters
-    bounds = (
-        [0, 0.1, 1, 0, 0.1, 6, 0],  # Lower bounds - c1 ≥ 1, c2 ≥ 6
-        [np.inf, 5, 6, np.inf, 5, 9, np.inf]  # Upper bounds - c1 ≤ 6, c2 ≤ 9
-    )
+    # --- Adjust Bounds for Sigmoid + Exponential ---
+    # Ensure bounds match the order: [a1, b1, c1, a_exp, b_exp, c_exp, d]
+    # Constraint ideas: c1 < 6, c_exp > 6, b_exp > 0
+    lower_bounds = [
+        0,      # a1 >= 0
+        0.1,    # b1 >= 0.1 (avoid zero steepness)
+        1,      # c1 >= 1 (within quality range)
+        0,      # a_exp >= 0
+        0.01,   # b_exp > 0 (ensure growth)
+        6,      # c_exp >= 6 (start exponential after sigmoid midpoint)
+        0       # d >= 0
+    ]
+    upper_bounds = [
+        np.inf, # a1
+        5,      # b1 (limit steepness)
+        6,      # c1 <= 6 (sigmoid midpoint before threshold)
+        np.inf, # a_exp
+        5,      # b_exp (limit growth rate)
+        9,      # c_exp <= 9 (within quality range)
+        np.inf  # d
+    ]
+    bounds = (lower_bounds, upper_bounds)
 
     # Fit the double sigmoid model
-    params, _ = curve_fit(double_sigmoid, X.flatten(), y, p0=initial_guess, bounds=bounds, maxfev=100000)
+    params, _ = curve_fit(
+        sigmoid_plus_exponential,  # Use the new function
+        X.flatten(),
+        y,
+        p0=initial_guess,
+        bounds=bounds,
+        maxfev=100000  # Keep high max iterations, might be needed
+    )
 
     # Extract parameters for readability
-    a1, b1, c1, a2, b2, c2, d = params
+    a1, b1, c1, a_exp, b_exp, c_exp, d = params
 
-    def predict_price(quality_value):
-        return double_sigmoid(quality_value, *params)
+    def predict_price_exp(quality_value):
+        # Ensure it calls the correct function with the fitted params
+        return sigmoid_plus_exponential(quality_value, *params)
 
     # Calculate predictions for all data points
-    y_pred = predict_price(X.flatten())
+    y_pred = predict_price_exp(X.flatten())
 
     # Calculate RMSE
     rmse = np.sqrt(mean_squared_error(y, y_pred))
 
     # Predict price for the requested quality score
-    predicted_price = predict_price(reqscore)
+    predicted_price = predict_price_exp(reqscore)
 
     #' new definition of upper bound'
     upper_bound = predicted_price+rmse
@@ -89,9 +115,9 @@ def main():
     # gets the actual price
     actual_price = realprice(adjusted_price)
 
-    # Generate smooth data points for plotting the sigmoid curve
-    quality_range = np.linspace(1, 9, 100)  # Quality range from 1 to 9
-    predicted_prices = predict_price(quality_range)
+    # Create a smooth curve for plotting the fitted function
+    X_smooth = np.linspace(min(X.flatten()), max(X.flatten()), 200)
+    y_smooth_pred = predict_price_exp(X_smooth)
 
     # calls the function to plot the chart and saves it
     plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, predicted_price, upper_bound, actual_price)

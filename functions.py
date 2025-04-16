@@ -83,17 +83,17 @@ def realprice(pred_price):
         foundprice = nearest_divisible_by_10
     return foundprice
 
-def double_sigmoid(x, a1, b1, c1, a2, b2, c2, d):
+def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """
-    Sum of two sigmoid functions plus a constant:
-    - a1, a2: heights of each sigmoid
-    - b1, b2: steepness factors
-    - c1, c2: midpoints of each transition
-    - d: base price level
+    Combines a sigmoid function with an exponential increase, plus a constant.
+    - a1, b1, c1: Parameters for the initial sigmoid rise
+    - a_exp, b_exp, c_exp: Parameters for the exponential component
+    - d: Base level offset
     """
+    x = np.asarray(x)
     first_rise = a1 / (1 + np.exp(-b1 * (x - c1)))
-    second_rise = a2 / (1 + np.exp(-b2 * (x - c2)))
-    return first_rise + second_rise + d
+    exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
+    return first_rise + exponential_increase + d
 
 # creates the processed grid data from clipboard data
 def make_processed_grid(clipboard_content, start_date):
