@@ -120,7 +120,7 @@ def main():
     y_smooth_pred = predict_price_exp(X_smooth)
 
     # calls the function to plot the chart and saves it
-    plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, predicted_price, upper_bound, actual_price)
+    plot_chart(qualities, prices, x_smooth, predicted_prices, reqscore, predicted_price, upper_bound, actual_price)
 
     # output for sending to flask
     print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}")
