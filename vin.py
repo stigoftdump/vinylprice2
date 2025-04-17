@@ -1,4 +1,3 @@
-import pyperclip
 from functions import *
 
 def main():
