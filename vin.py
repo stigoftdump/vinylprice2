@@ -43,6 +43,7 @@ def main():
             "labels": [str(q) for q in qualities],  # Convert qualities to strings for labels
             "prices": prices,
             "predicted_prices": list(y_smooth_pred),  # Convert numpy array to list
+            "predicted_qualities": list(X_smooth),  # Add predicted qualities
             "reqscore": reqscore,
             "predicted_price": predicted_price,
             "upper_bound": upper_bound,
