@@ -1,5 +1,3 @@
-import tkinter as tk
-from tkinter import messagebox
 import pickle
 import numpy as np
 from datetime import datetime
@@ -58,12 +56,6 @@ def load_processed_grid(filename='processed_grid.pkl'):
             return pickle.load(f)
     except FileNotFoundError:
         return []  # Return an empty list if the file doesn't exist
-
-def show_error_message(message):
-    root = tk.Tk()  # Initialize Tkinter root
-    root.withdraw()  # Hide the root window
-    messagebox.showerror("Clipboard Error", message)  # Show the error message
-    root.destroy()  # Destroy the root window after the message is closed
 
 # converts the record quality and sleeve quality into a score'
 def calculate_score(record_quality, sleeve_quality):
