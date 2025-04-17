@@ -89,7 +89,7 @@ def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
     return first_rise + exponential_increase + d
 
-# creates the processed grid data from clipboard data
+# creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
 
     # status_message is blank for now
@@ -157,69 +157,6 @@ def make_processed_grid(clipboard_content, start_date):
 
     return processed_grid, status_message
 
-# writes the chart
-def plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, predicted_price, upper_bound, actual_price):
-    # Plot the scatter points and curve
-    plt.scatter(qualities, prices, color='red', label='Items Sold')
-    plt.plot(quality_range, predicted_prices, color='blue', linestyle='-', label='Best Fit')
-
-    # Set y-axis limits
-    plt.ylim(0, max(prices) * 1.1)
-
-    # Set x-axis limits to the quality range
-    plt.xlim(min(min(qualities), reqscore) * 0.97, max(max(qualities), reqscore) * 1.03)
-
-    # Add grid for easier reading
-    plt.grid(True, linestyle='--', alpha=0.7)
-
-    # Horizontal reference lines
-    plt.axhline(y=predicted_price, color='orange', linestyle='--',
-                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
-                label='Predicted Price')
-    plt.axhline(y=upper_bound, color='purple', linestyle='--',
-                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
-                label='Upper Bound (RMSE)')
-    plt.axhline(y=actual_price, color='green', linestyle='--',
-                xmin=0, xmax=(float(reqscore) - 1) / 8,  # Adjusted for 1-9 range
-                label='Actual Price')
-
-    # Vertical reference line
-    plt.axvline(x=float(reqscore), color='green', linestyle='--',
-                ymin=0, ymax=actual_price / (max(prices) * 1.1))
-    plt.axvline(x=float(reqscore), color='purple', linestyle='--',
-                ymin=actual_price / (max(prices) * 1.1),
-                ymax=upper_bound / (max(prices) * 1.1))
-
-    # Mark specific points
-    plt.scatter(float(reqscore), actual_price, color='green', s=100)
-    plt.scatter(float(reqscore), predicted_price, color='orange', s=100)
-    plt.scatter(float(reqscore), upper_bound, color='purple', s=100)
-
-    # Add title and labels
-    plt.title('Predicted Prices')
-    plt.xlabel('Quality')
-    plt.ylabel('Price (£)')
-    plt.legend()
-
-    # Create a reverse mapping from number to quality text
-    number_to_quality = {v: k for k, v in quality_to_number.items()}
-
-    # Gets labels size
-    min_quality_label = int(min(min(qualities), reqscore) * 0.97)
-    max_quality_label = int(max(max(qualities), reqscore) * 1.03)
-
-    # Generate a list of all whole numbers within this range
-    all_quality_numbers = range(min_quality_label, max_quality_label + 1)
-
-    # Generate the corresponding text labels for all whole numbers
-    all_quality_labels = [number_to_quality.get(q, str(q)) for q in all_quality_numbers]
-
-    # Set the x-axis ticks and labels
-    plt.xticks(all_quality_numbers, all_quality_labels, rotation=15, ha='right')
-    plt.tight_layout()  # Adjust layout to prevent labels from overlapping
-
-    plt.savefig('static/chart.png')  # Save as PNG
-
 def return_variables(argument):
     # returns the variables from the argument sent in sys
     if len(argument) < 4:
@@ -241,8 +178,6 @@ def return_variables(argument):
 
 def graph_logic(reqscore, shop_var, processed_grid):
     # function that returns everything needed to make a chart
-    # needs to return:
-    # qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound
 
     qualities = []
     prices = []
