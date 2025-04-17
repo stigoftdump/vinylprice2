@@ -1,12 +1,9 @@
 import pyperclip
-import sys
 from functions import *
-from scipy.optimize import curve_fit
-from sklearn.metrics import mean_squared_error
 
 def main():
     # gets the inputs from the sys arguments
-    reqscore, shop_var, start_date, add_data, max_price = return_variables(sys.argv)
+    reqscore, shop_var, start_date, add_data, max_price, discogs_data = return_variables(sys.argv)
 
     # Ensure max_price is either an integer or None
     if max_price and max_price.isdigit():  # Check if it's not empty and is a number
@@ -15,7 +12,7 @@ def main():
         max_price = None  # Set to None explicitly if it's empty or invalid
 
     # Gets the processed_grid from the clipboard
-    processed_grid = make_processed_grid(pyperclip.paste(), start_date)
+    processed_grid = make_processed_grid(discogs_data, start_date)
 
     # adds in the maxprice and deletes if anything is above it.
     if max_price is not None:

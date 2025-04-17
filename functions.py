@@ -235,11 +235,13 @@ def return_variables(argument):
         start_date = argument[3] # read the third argument as start_date
         add_data = argument[4] # gets the add_data flag
         max_price = argument[5] # gets the max_price
+        discogs_data = argument[6]
+
     except ValueError:
         print("Error: Both reqscore and shop_var must be numbers.")
         sys.exit(1)
 
-    return reqscore, shop_var, start_date, add_data, max_price
+    return reqscore, shop_var, start_date, add_data, max_price, discogs_data
 
 
 def graph_logic(reqscore, shop_var, processed_grid):

@@ -1,10 +1,3 @@
-#import vin
-#from functions import * # While not ideal for best practice, for this debugging it's okay
-#import sklearn
-#import scipy
-#import numpy
-#import matplotlib
-#import pyperclip
 from flask import Flask, render_template, request, send_from_directory
 import subprocess
 import os
@@ -46,6 +39,10 @@ def index():
     shop_var = read_save_value()
 
     if request.method == "POST":
+
+        # gets the discogs data
+        discogs_data = request.form.get('pasted_discogs_data')
+
         # Get the quality input from the form
         media = int(request.form["media"])
         sleeve = int(request.form["sleeve"])
@@ -68,7 +65,7 @@ def index():
         code_path = project_path + 'vin.py'
 
         # Run the Python script with the input
-        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date, str(add_data_flag), str(max_price)], capture_output=True, text=True)
+        result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date, str(add_data_flag), str(max_price), discogs_data], capture_output=True, text=True)
 
         # Capture and debug the output
         output = result.stdout.strip()

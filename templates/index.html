@@ -14,6 +14,21 @@
             text-align: center;
             margin-top: 20px;
         }
+        .paste-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        textarea {
+            width: 80%;
+            height: 150px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-family: monospace; /* Good for pasted data */
+        }
         .container {
             display: flex;
             justify-content: space-between;
@@ -95,11 +110,14 @@
 
     <h1>Price Calculator</h1>
 
+    <div class="paste-container">
+        <label for="discogs_data">Paste Discogs data here:</label><br>
+        <textarea id="discogs_data" name="discogs_data"></textarea>
+    </div>
+
     <div class="container">
-        <!-- Left Column: Form Inputs -->
         <div class="left-column">
             <form method="POST">
-                <!-- Media Dropdown -->
                 <div class="form-group">
                     <label for="media">Media:</label>
                     <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
@@ -121,7 +139,6 @@
                     </select>
                 </div>
 
-                <!-- Sleeve Dropdown -->
                 <div class="form-group">
                     <label for="sleeve">Sleeve:</label>
                     <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
@@ -143,7 +160,6 @@
                     </select>
                 </div>
 
-                <!-- Shop Variable -->
                 <div class="form-group">
                     <label for="shop_var">Shop Variable:</label>
                     <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
@@ -153,12 +169,10 @@
                     <input type="number" id="shop_var" name="shop_var" style="width: 122px;" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
                 </div>
 
-                <!-- Start Date and Add Data Checkbox -->
                 <div class="form-group" style="display: flex; align-items: center;">
                     <div style="flex-grow: 1;">
                         <label for="start_date" style="display: flex; align-items: center;">
                             Start Date of data:
-                            <!-- Info icon with tooltip -->
                             <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
                                 <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
                                 <div class="tooltip-text">Select the start date for the data you want to include.</div>
@@ -187,12 +201,12 @@
                     <input type="number" id="max_price" name="max_price" value="{{ max_price }}">
                 </div>
 
-                <!-- Submit Button -->
+                <input type="hidden" id="pasted_discogs_data" name="pasted_discogs_data">
+
                 <button type="submit">Calculate</button>
             </form>
         </div>
 
-        <!-- Right Column: Chart -->
         <div class="right-column">
             {% if calculated_price %}
                 <h2>Results:</h2>
@@ -203,6 +217,13 @@
             {% endif %}
         </div>
     </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function(event) {
+            const discogsData = document.getElementById('discogs_data').value;
+            document.getElementById('pasted_discogs_data').value = discogsData;
+        });
+    </script>
 
 </body>
 </html>
