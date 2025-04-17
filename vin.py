@@ -1,4 +1,5 @@
-import functions
+from functions import return_variables, graph_logic
+from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid
 import sys
 import json
 
@@ -6,7 +7,7 @@ def main():
     status_message = None
 
     # gets the inputs from the sys arguments
-    reqscore, shop_var, start_date, add_data, max_price, discogs_data = functions.return_variables(sys.argv)
+    reqscore, shop_var, start_date, add_data, max_price, discogs_data = return_variables(sys.argv)
 
     # Ensure max_price is either an integer or None
     if max_price and max_price.isdigit():  # Check if it's not empty and is a number
@@ -15,7 +16,7 @@ def main():
         max_price = None  # Set to None explicitly if it's empty or invalid
 
     # Gets the processed_grid from the clipboard
-    processed_grid, status_message = functions.make_processed_grid(discogs_data, start_date)
+    processed_grid, status_message = make_processed_grid(discogs_data, start_date)
     # if there was no discogs data, return the status_message and exit
     if status_message is not None:
         print(f"0,0,0,{status_message}")
@@ -30,14 +31,14 @@ def main():
 
         # If add_data is True, load the previously saved processed_grid and add it to the current one
         if add_data == "True":
-            saved_processed_grid = functions.load_processed_grid()
+            saved_processed_grid = load_processed_grid()
             processed_grid.extend(saved_processed_grid)
 
         # Save processed grid to file
-        functions.save_processed_grid(processed_grid)
+        save_processed_grid(processed_grid)
 
         # graph logic to get the variables for the output
-        qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound = functions.graph_logic(reqscore, shop_var, processed_grid)
+        qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound = graph_logic(reqscore, shop_var, processed_grid)
 
         # Create chart data in JSON format
         chart_data = {
