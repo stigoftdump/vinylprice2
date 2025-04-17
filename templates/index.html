@@ -154,6 +154,7 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 </head>
 
 <body>
@@ -304,8 +305,8 @@ height: 16px;">
             const labels = chartData.labels;
             const prices = chartData.prices;
             const predictedPrices = chartData.predicted_prices;
-            const predictedQualities = chartData.predicted_qualities; // Get predicted qualities
-            const reqscore = chartData.reqscore;
+            const predictedQualities = chartData.predicted_qualities;
+            const reqscore = parseFloat(chartData.reqscore); // Ensure reqscore is a number
             const predictedPrice = chartData.predicted_price;
             const upperBound = chartData.upper_bound;
             const actualPrice = chartData.actual_price;
@@ -339,6 +340,61 @@ height: 16px;">
                                 return label;
                             }
                         }
+                    },
+                    annotation: { // Enable the annotation plugin
+                        annotations: [
+                            {
+                                type: 'line',
+                                mode: 'horizontal',
+                                scaleID: 'y',
+                                value: predictedPrice,
+                                borderColor: 'orange',
+                                borderDash: [5, 5],
+                                borderWidth: 1,
+                                xMin: 0,
+                                xMax: reqscore - 0.05 // Extend to reqscore
+                            },
+                            {
+                                type: 'line',
+                                mode: 'horizontal',
+                                scaleID: 'y',
+                                value: upperBound,
+                                borderColor: 'purple',
+                                borderDash: [5, 5],
+                                borderWidth: 1,
+                                xMin: 0,
+                                xMax: reqscore - 0.05// Extend to reqscore
+                            },
+                            {
+                                type: 'line',
+                                mode: 'horizontal',
+                                scaleID: 'y',
+                                value: actualPrice,
+                                borderColor: 'green',
+                                borderDash: [5, 5],
+                                borderWidth: 1,
+                                xMin: 0,
+                                xMax: reqscore - 0.05 // Extend to reqscore
+                            },
+                            {
+                                type: 'line',
+                                mode: 'vertical',
+                                scaleID: 'x',
+                                value: reqscore,
+                                borderColor: 'green',
+                                borderDash: [5, 5],
+                                borderWidth: 1,
+                                yMin: actualPrice + 0.05,
+                                yMax: upperBound - 0.05 // Extend to upperBound
+                            },
+                            { // Added point at intersection
+                                type: 'point',
+                                xValue: reqscore,
+                                yValue: actualPrice,
+                                backgroundColor: 'green',
+                                radius: 5
+                            }
+                        ]
                     }
                 },
                 scales: {
@@ -409,7 +465,7 @@ height: 16px;">
                         },
                         {
                             label: 'Best Fit',
-                            data: predictedPrices.map((price, index) => ({ x: parseFloat(predictedQualities[index]), y: price })), // Use predictedQualities
+                            data: predictedPrices.map((price, index) => ({ x: parseFloat(predictedQualities[index]), y: price })),
                             borderColor: 'blue',
                             borderWidth: 2,
                             pointRadius: 0,
@@ -417,64 +473,11 @@ height: 16px;">
                             tension: 0.4,
                             type: 'line',
                             showLine: true
-                        },
-                        {
-                            label: 'Predicted Price',
-                            data: [{ x: parseFloat(labels[0]), y: predictedPrice }, { x: parseFloat(labels[labels.length - 1]), y: predictedPrice }],
-                            borderColor: 'orange',
-                            borderDash: [5, 5],
-                            borderWidth: 1,
-                            pointRadius: 0,
-                            fill: false,
-                            type: 'line',
-                            showLine: true
-                        },
-                        {
-                            label: 'Upper Bound (RMSE)',
-                            data: [{ x: parseFloat(labels[0]), y: upperBound }, { x: parseFloat(labels[labels.length - 1]), y: upperBound }],
-                            borderColor: 'purple',
-                            borderDash: [5, 5],
-                            borderWidth: 1,
-                            pointRadius: 0,
-                            fill: false,
-                            type: 'line',
-                            showLine: true
-                        },
-                        {
-                            label: 'Actual Price',
-                            data: [{ x: parseFloat(labels[0]), y: actualPrice }, { x: parseFloat(labels[labels.length - 1]), y: actualPrice }],
-                            borderColor: 'green',
-                            borderDash: [5, 5],
-                            borderWidth: 1,
-                            pointRadius: 0,
-                            fill: false,
-                            type: 'line',
-                            showLine: true
                         }
                     ]
                 },
                 options: chartOptions
             });
-
-            // Add vertical lines (Annotations)
-            myChart.options.plugins.annotation = {
-                annotations: [{
-                    type: 'line',
-                    scaleID: 'x',
-                    value: reqscore,
-                    borderColor: 'green',
-                    borderDash: [5, 5],
-                    borderWidth: 1
-                }, {
-                    type: 'line',
-                    scaleID: 'x',
-                    value: reqscore,
-                    borderColor: 'purple',
-                    borderDash: [5, 5],
-                    borderWidth: 1
-                }]
-            };
-            myChart.update();
         </script>
             {% endif %}
         </div>
