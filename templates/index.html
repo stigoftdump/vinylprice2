@@ -294,7 +294,7 @@ height: 16px;">
             <p style="color: purple;"><strong>Upper Bound of Price:</strong> £{{ adjusted_price }}</p>
             <p style="color: green;"><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
             <canvas id="myChart"></canvas>
-        <script>
+         <script>
             // Get the canvas element
             const ctx = document.getElementById('myChart').getContext('2d');
 
@@ -310,6 +310,10 @@ height: 16px;">
             const predictedPrice = chartData.predicted_price;
             const upperBound = chartData.upper_bound;
             const actualPrice = chartData.actual_price;
+
+            // Determine the minimum quality for the x-axis
+            const minQuality = Math.min(...predictedQualities);
+            const xAxisMin = Math.floor(minQuality);
 
             // Chart configuration options
             const chartOptions = {
@@ -343,56 +347,48 @@ height: 16px;">
                     },
                     annotation: { // Enable the annotation plugin
                         annotations: [
-                            {
-                                type: 'line',
-                                mode: 'horizontal',
-                                scaleID: 'y',
-                                value: predictedPrice,
+                            { // Predicted Price as a horizontal box
+                                type: 'box',
+                                xMin: 0,
+                                xMax: reqscore,
+                                yMin: predictedPrice - 0.1,
+                                yMax: predictedPrice + 0.1,
                                 borderColor: 'orange',
-                                borderDash: [5, 5],
-                                borderWidth: 1,
-                                xMin: 0,
-                                xMax: reqscore - 0.05 // Extend to reqscore
+                                backgroundColor: 'orange'
                             },
-                            {
-                                type: 'line',
-                                mode: 'horizontal',
-                                scaleID: 'y',
-                                value: upperBound,
+                            { // Upper Bound as a horizontal box
+                                type: 'box',
+                                xMin: 0,
+                                xMax: reqscore,
+                                yMin: upperBound - 0.1,
+                                yMax: upperBound + 0.1,
                                 borderColor: 'purple',
-                                borderDash: [5, 5],
-                                borderWidth: 1,
-                                xMin: 0,
-                                xMax: reqscore - 0.05// Extend to reqscore
+                                backgroundColor: 'purple'
                             },
-                            {
-                                type: 'line',
-                                mode: 'horizontal',
-                                scaleID: 'y',
-                                value: actualPrice,
-                                borderColor: 'green',
-                                borderDash: [5, 5],
-                                borderWidth: 1,
+                            { // Actual Price as a horizontal box
+                                type: 'box',
                                 xMin: 0,
-                                xMax: reqscore - 0.05 // Extend to reqscore
-                            },
-                            {
-                                type: 'line',
-                                mode: 'vertical',
-                                scaleID: 'x',
-                                value: reqscore,
+                                xMax: reqscore,
+                                yMin: actualPrice - 0.1,
+                                yMax: actualPrice + 0.1,
                                 borderColor: 'green',
-                                borderDash: [5, 5],
-                                borderWidth: 1,
-                                yMin: actualPrice + 0.05,
-                                yMax: upperBound - 0.05 // Extend to upperBound
+                                backgroundColor: 'green'
+                            },
+                            { // Vertical line from axis to actual price
+                                type: 'box',
+                                xMin: reqscore - 0.005,
+                                xMax: reqscore + 0.005,
+                                yMin: 0,
+                                yMax: actualPrice,
+                                borderColor: 'green',
+                                backgroundColor: 'green'
                             },
                             { // Added point at intersection
                                 type: 'point',
                                 xValue: reqscore,
                                 yValue: actualPrice,
                                 backgroundColor: 'green',
-                                radius: 5
+                                radius: 10
                             }
                         ]
                     }
@@ -425,7 +421,8 @@ height: 16px;">
                             drawBorder: true,
                             color: '#ccc',
                             borderDash: [2, 2]
-                        }
+                        },
+                        min: xAxisMin   // <----  Added x-axis minimum
                     },
                     y: {
                         title: {
@@ -467,12 +464,46 @@ height: 16px;">
                             label: 'Best Fit',
                             data: predictedPrices.map((price, index) => ({ x: parseFloat(predictedQualities[index]), y: price })),
                             borderColor: 'blue',
+                            backgroundColor: 'blue',
                             borderWidth: 2,
                             pointRadius: 0,
                             fill: false,
                             tension: 0.4,
                             type: 'line',
                             showLine: true
+                        },
+                        {  // Predicted Price Line for Legend
+                            label: 'Predicted Price',
+                            data: [{ x: xAxisMin, y: predictedPrice }, { x: reqscore, y: predictedPrice }],
+                            borderColor: 'orange',
+                            backgroundColor: 'orange',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            type: 'line',
+                            fill: false
+                        },
+                        {  // Upper Bound Line for Legend
+                            label: 'Upper Bound (RMSE)',
+                            data: [{ x: xAxisMin, y: upperBound }, { x: reqscore, y: upperBound }],
+                            borderColor: 'purple',
+                            backgroundColor: 'purple',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            type: 'line',
+                            fill: false
+                        },
+                        {  // Actual Price Line for Legend
+                            label: 'Actual Price',
+                            data: [{ x: xAxisMin, y: actualPrice }, { x: reqscore, y: actualPrice }],
+                            borderColor: 'green',
+                            backgroundColor: 'green',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            type: 'line',
+                            fill: false
                         }
                     ]
                 },
