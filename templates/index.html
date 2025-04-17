@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,36 +11,44 @@
             margin: 0;
             padding: 0;
         }
+
         h1 {
             text-align: center;
             margin-top: 20px;
             margin-bottom: 20px;
         }
+
         .separator {
             width: 80%;
             margin: 0 auto 20px;
             border-top: 1px solid #ccc;
         }
+
         .container {
             display: flex;
             justify-content: space-between;
             padding: 20px;
         }
+
         .left-column {
             width: 30%;
         }
+
         .paste-container {
             margin-bottom: 20px;
         }
+
         .paste-label-container {
             display: flex;
             align-items: center;
             margin-bottom: 5px;
         }
+
         .paste-label {
             font-weight: bold;
             margin-right: 5px;
         }
+
         textarea {
             width: 100%;
             height: 150px;
@@ -49,39 +58,51 @@
             font-family: monospace;
             text-align: left;
         }
+
         .form-group {
             margin-bottom: 15px;
             display: flex;
             align-items: center;
         }
+
         .form-group label {
             font-weight: bold;
             width: 160px;
             text-align: left;
             margin-right: 10px;
-            display: flex; /* For aligning text and icon */
+            display: flex;
+            /* For aligning text and icon */
             align-items: center;
         }
+
         .form-group label .tooltip-container {
-            margin-left: 5px; /* Space between text and icon */
+            margin-left: 5px;
+            /* Space between text and icon */
         }
+
         .form-group input[type="number"],
         .form-group select {
-            width: calc(100% - 170px); /* Adjusted width */
+            width: calc(100% - 170px);
+            /* Adjusted width */
             padding: 8px;
             margin-top: 0;
         }
+
         .right-column {
             width: 45%;
             text-align: left;
             padding-left: 20px
         }
+
         label {
             font-weight: bold;
         }
-        select, input[type="number"] {
+
+        select,
+        input[type="number"] {
             padding: 8px;
         }
+
         button {
             padding: 10px 20px;
             background-color: #4CAF50;
@@ -89,9 +110,11 @@
             border: none;
             cursor: pointer;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         .output {
             margin-top: 20px;
         }
@@ -111,7 +134,6 @@
             padding: 5px;
             border-radius: 4px;
             font-size: 12px;
-
             /* Positioning */
             position: absolute;
             z-index: 1;
@@ -131,7 +153,9 @@
             opacity: 1;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
     <h1>Price Calculator</h1>
@@ -158,7 +182,8 @@
                     <label for="media">
                         Media:
                         <div class="tooltip-container" style="cursor: pointer;">
-                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px;
+height: 16px;">
                             <div class="tooltip-text">The grading of the media.</div>
                         </div>
                     </label>
@@ -181,13 +206,14 @@
                     <label for="sleeve">
                         Sleeve:
                         <div class="tooltip-container" style="cursor: pointer;">
-                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px;
+height: 16px;">
                             <div class="tooltip-text">The grading of the sleeve.</div>
                         </div>
                     </label>
                     <select id="sleeve" name="sleeve">
                         <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
-                        <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
+                        <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-</option>
                         <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
                         <option value="6" {% if sleeve == 6 %}selected{% endif %}>Very Good (VG)</option>
                         <option value="5" {% if sleeve == 5 %}selected{% endif %}>Good Plus (G+)</option>
@@ -204,19 +230,24 @@
                     <label for="shop_var">
                         Shop Variable:
                         <div class="tooltip-container" style="cursor: pointer;">
-                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px;
+height: 16px;">
                             <div class="tooltip-text">How much of the price variance you should be applied to the calculated price.</div>
                         </div>
                     </label>
-                    <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
+                    <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1"
+                        max="2">
                 </div>
 
-                <div class="form-group" style="display: flex; align-items: center;">
+                <div class="form-group" style="display: flex;
+align-items: center;">
                     <div style="flex-grow: 1;">
-                        <label for="start_date" style="display: flex; align-items: center;">
+                        <label for="start_date" style="display: flex;
+align-items: center;">
                             Start Date of data:
                             <div class="tooltip-container" style="cursor: pointer;">
-                                <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                                <img src="/static/images/info.svg" alt="Info" style="width: 16px;
+height: 16px;">
                                 <div class="tooltip-text">Select the start date for the data you want to include.</div>
                             </div>
                         </label>
@@ -227,8 +258,10 @@
                             <input type="checkbox" id="add_data" name="add_data">
                             Add Data
                             <div class="tooltip-container" style="cursor: pointer;">
-                                <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
-                                <div class="tooltip-text">This will add the current data to the previous run's data rather than replacing it.</div>
+                                <img src="/static/images/info.svg" alt="Info" style="width: 16px;
+height: 16px;">
+                                <div class="tooltip-text">This will add the current data to the previous run's data rather than
+                                    replacing it.</div>
                             </div>
                         </label>
                     </div>
@@ -236,9 +269,11 @@
 
                 <div class="form-group">
                     <label for="max_price">
-                        Max Price (Optional):
+                        Max Price
+                        (Optional):
                         <div class="tooltip-container" style="cursor: pointer;">
-                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px;
+height: 16px;">
                             <div class="tooltip-text">Adds in a maximum price allowed, useful for getting rid of outliers.</div>
                         </div>
                     </label>
@@ -253,11 +288,106 @@
 
         <div class="right-column">
             {% if calculated_price %}
-                <h2>Results:</h2>
-                <p style="color: orange;"><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
-                <p style="color: purple;"><strong>Upper Bound of Price:</strong> £{{ adjusted_price }}</p>
-                <p style="color: green;"><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
-                <img src="{{ chart_url }}" alt="Price Chart">
+            <h2>Results:</h2>
+            <p style="color: orange;"><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
+            <p style="color: purple;"><strong>Upper Bound of Price:</strong> £{{ adjusted_price }}</p>
+            <p style="color: green;"><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
+            <canvas id="myChart"></canvas>
+            <script>
+                // Get the canvas element
+                const ctx = document.getElementById('myChart').getContext('2d');
+
+                // Parse the chart data from the template
+                const chartData = JSON.parse('{{ chart_data | tojson }}');
+
+                // Extract data for Chart.js
+                const labels = chartData.labels;
+                const prices = chartData.prices;
+                const predictedPrices = chartData.predicted_prices;
+                const reqscore = chartData.reqscore;
+                const predictedPrice = chartData.predicted_price;
+                const upperBound = chartData.upper_bound;
+                const actualPrice = chartData.actual_price;
+
+                // Chart configuration options
+                const chartOptions = {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Price (£)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Quality'
+                            },
+                            ticks: {
+                                autoSkip: false //keep all labels
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                usePointStyle: true,
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 4,
+                            backgroundColor: 'red'
+                        }
+                    }
+                };
+
+                // Create the chart
+                const myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Items Sold',
+                                data: prices,
+                                borderColor: 'red',
+                                borderWidth: 1,
+                                pointRadius: 4,
+                                pointBackgroundColor: 'red'
+                            },
+                            {
+                                label: 'Best Fit',
+                                data: predictedPrices,
+                                borderColor: 'blue',
+                                borderWidth: 1,
+                                pointRadius: 0,
+                                pointBackgroundColor: 'blue',
+                                tension: 0.4 //smoother line
+                            }
+                        ]
+                    },
+                    options: chartOptions
+                });
+            </script>
             {% endif %}
         </div>
     </div>
@@ -270,4 +400,5 @@
     </script>
 
 </body>
+
 </html>

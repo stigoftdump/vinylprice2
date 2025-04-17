@@ -35,6 +35,7 @@ def index():
     actual_price = None
     max_price = None
     status_message = ""
+    chart_data = {}  # Initialize chart_data
 
     # Load shop_var from saved file or use default 0.8
     shop_var = read_save_value()
@@ -83,11 +84,13 @@ def index():
             calculated_price = adjusted_price = actual_price = "Error"
         else:
             try:
-                parts = output.split(",")
-                calculated_price = float(parts[0])
-                adjusted_price = float(parts[1])
-                actual_price = float(parts[2])
-                status_message = parts[3].strip()
+                # Load the JSON output
+                output_data = json.loads(output)
+                calculated_price = output_data["calculated_price"]
+                adjusted_price = output_data["upper_bound"]
+                actual_price = output_data["actual_price"]
+                status_message = output_data["status_message"]
+                chart_data = output_data["chart_data"]  # Extract chart data
             except ValueError:
                 # Handle cases where the script output is invalid
                 print("Error parsing the output.")
@@ -100,7 +103,7 @@ def index():
                                actual_price=actual_price,
                                media=media,
                                sleeve=sleeve,
-                               chart_url="static/chart.png",
+                               chart_data=chart_data,  # Pass chart_data
                                shop_var=shop_var,
                                max_price = max_price,
                                status_message = status_message)
@@ -112,7 +115,7 @@ def index():
                            actual_price=actual_price,
                            media=6,
                            sleeve=6,
-                           chart_url=None,
+                           chart_data={},  # Pass empty chart_data
                            shop_var = shop_var,
                            status_message = "")
 

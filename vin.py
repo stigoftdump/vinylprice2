@@ -1,4 +1,5 @@
 from functions import *
+import json
 
 def main():
     status_message = None
@@ -37,15 +38,31 @@ def main():
         # graph logic to get the variables for the output
         qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound = graph_logic(reqscore, shop_var, processed_grid)
 
-        # calls the function to plot the chart and saves it
-        plot_chart(qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price)
+        # Create chart data in JSON format
+        chart_data = {
+            "labels": [str(q) for q in qualities],  # Convert qualities to strings for labels
+            "prices": prices,
+            "predicted_prices": list(y_smooth_pred),  # Convert numpy array to list
+            "reqscore": reqscore,
+            "predicted_price": predicted_price,
+            "upper_bound": upper_bound,
+            "actual_price": actual_price
+        }
 
         # make status "Okay" if there are no problems
         if status_message is None:
             status_message = "Completed"
 
         # output for sending to flask
-        print(f"{round(predicted_price,2)},{round(upper_bound,2)},{round(actual_price,2)}, {status_message}")
+        output_data = {
+            "calculated_price": round(predicted_price, 2),
+            "upper_bound": round(upper_bound, 2),
+            "actual_price": round(actual_price, 2),
+            "status_message": status_message,
+            "chart_data": chart_data  # Include chart data in the output
+        }
+
+        print(json.dumps(output_data))  # Print the JSON string
 
 if __name__ == "__main__":
     main()
