@@ -34,6 +34,7 @@ def index():
     adjusted_price = None
     actual_price = None
     max_price = None
+    status_message = ""
 
     # Load shop_var from saved file or use default 0.8
     shop_var = read_save_value()
@@ -82,8 +83,11 @@ def index():
             calculated_price = adjusted_price = actual_price = "Error"
         else:
             try:
-                # Debugging split and float conversion
-                calculated_price, adjusted_price, actual_price = map(float, output.split(","))
+                parts = output.split(",")
+                calculated_price = float(parts[0])
+                adjusted_price = float(parts[1])
+                actual_price = float(parts[2])
+                status_message = parts[3].strip()
             except ValueError:
                 # Handle cases where the script output is invalid
                 print("Error parsing the output.")
@@ -98,7 +102,8 @@ def index():
                                sleeve=sleeve,
                                chart_url="static/chart.png",
                                shop_var=shop_var,
-                               max_price = max_price)
+                               max_price = max_price,
+                               status_message = status_message)
 
     # this is loaded on first run (GET) rather than POST
     return render_template("index.html",
@@ -108,7 +113,8 @@ def index():
                            media=6,
                            sleeve=6,
                            chart_url=None,
-                           shop_var = shop_var)
+                           shop_var = shop_var,
+                           status_message = "")
 
 # To serve the image properly from the static folder
 @app.route("/static/images/<filename>")

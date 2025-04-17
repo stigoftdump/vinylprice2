@@ -100,66 +100,70 @@ def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
 # creates the processed grid data from clipboard data
 def make_processed_grid(clipboard_content, start_date):
 
+    # status_message is blank for now
+    status_message = None
+    processed_grid = None
+
     # Check for the presence of "Order Date" and "Change Currency" in the clipboard content
     if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
-        # Show error message box
-        show_error_message("No Discogs data in clipboard. Go to the Discogs Sales History, CTRL-A to select all, CTRL-C to copy, then come back and re-run")
-        sys.exit(0)  # Exit the script
+        # return status that no data is there
+        return None, "No Discogs Data in text box"
+    else:
+        # Split content into rows based on newlines
+        rows = clipboard_content.splitlines()  # 'rows' is defined here
 
-    # Split content into rows based on newlines
-    rows = clipboard_content.splitlines()  # 'rows' is defined here
+        # Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
+        start_index = None
+        end_index = None
 
-    # Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
-    start_index = None
-    end_index = None
+        for i, row in enumerate(rows):
+            if "Order Date" in row:
+                start_index = i
+            if "Change Currency" in row and start_index is not None:
+                end_index = i
+                break
 
-    for i, row in enumerate(rows):
-        if "Order Date" in row:
-            start_index = i
-        if "Change Currency" in row and start_index is not None:
-            end_index = i
-            break
+        # Ensure valid indices are found
+        if start_index is not None and end_index is not None:
+            rows = rows[start_index:end_index]
 
-    # Ensure valid indices are found
-    if start_index is not None and end_index is not None:
-        rows = rows[start_index:end_index]
+        # Split each row into cells based on tabs ('\t') and convert to tuples
+        grid = [tuple(row.split('\t')) for row in rows]
 
-    # Split each row into cells based on tabs ('\t') and convert to tuples
-    grid = [tuple(row.split('\t')) for row in rows]
+        # Exclude header row by skipping the first row (assuming it's the header)
+        # also removes any purchases from before the start date
+        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+        filtered_grid = [
+            row for row in grid[1:]
+            if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
+            ]
 
-    # Exclude header row by skipping the first row (assuming it's the header)
-    # also removes any purchases from before the start date
-    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-    filtered_grid = [
-        row for row in grid[1:]
-        if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
-        ]
+        # Convert the fourth element (index 3) from a string with '£' to a number
+        for i in range(len(filtered_grid)):
+            if len(filtered_grid[i]) > 3:  # Ensure there is a fourth element
+                price_str = filtered_grid[i][3]
+                if price_str.startswith('£'):  # Check if the string starts with '£'
+                    try:
+                        # Remove '£' and commas, then convert to a float
+                        clean_price = price_str[1:].replace(',', '')
+                        filtered_grid[i] = filtered_grid[i][:3] + (float(clean_price),)
+                    except ValueError:
+                        print(f"Error converting {price_str} to a number.")
 
-    # Convert the fourth element (index 3) from a string with '£' to a number
-    for i in range(len(filtered_grid)):
-        if len(filtered_grid[i]) > 3:  # Ensure there is a fourth element
-            price_str = filtered_grid[i][3]
-            if price_str.startswith('£'):  # Check if the string starts with '£'
-                try:
-                    # Remove '£' and commas, then convert to a float
-                    clean_price = price_str[1:].replace(',', '')
-                    filtered_grid[i] = filtered_grid[i][:3] + (float(clean_price),)
-                except ValueError:
-                    print(f"Error converting {price_str} to a number.")
+        # Process each row to calculate the score for the record and sleeve qualities
+        processed_grid = []
+        for row in filtered_grid:
+            if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
+                record_quality = row[1]  # Second element (record quality)
+                sleeve_quality = row[2]  # Third element (sleeve quality)
+                score = calculate_score(record_quality, sleeve_quality)
+                # Add the score as the last element in the tuple
+                processed_grid.append(row + (score,))
+            else:
+                # In case there are rows with missing data
+                processed_grid.append(row + (None,))
 
-    # Process each row to calculate the score for the record and sleeve qualities
-    processed_grid = []
-    for row in filtered_grid:
-        if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
-            record_quality = row[1]  # Second element (record quality)
-            sleeve_quality = row[2]  # Third element (sleeve quality)
-            score = calculate_score(record_quality, sleeve_quality)
-            # Add the score as the last element in the tuple
-            processed_grid.append(row + (score,))
-        else:
-            # In case there are rows with missing data
-            processed_grid.append(row + (None,))
-    return processed_grid
+    return processed_grid, status_message
 
 # writes the chart
 def plot_chart(qualities, prices, quality_range, predicted_prices, reqscore, predicted_price, upper_bound, actual_price):
@@ -243,7 +247,6 @@ def return_variables(argument):
 
     return reqscore, shop_var, start_date, add_data, max_price, discogs_data
 
-
 def graph_logic(reqscore, shop_var, processed_grid):
     # function that returns everything needed to make a chart
     # needs to return:
@@ -308,7 +311,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
     )
 
     # Extract parameters for readability
-    a1, b1, c1, a_exp, b_exp, c_exp, d = params
+    #a1, b1, c1, a_exp, b_exp, c_exp, d = params
 
     def predict_price_exp(quality_value):
         # Ensure it calls the correct function with the fitted params
@@ -337,5 +340,3 @@ def graph_logic(reqscore, shop_var, processed_grid):
     y_smooth_pred = predict_price_exp(X_smooth)
 
     return qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound
-
-
