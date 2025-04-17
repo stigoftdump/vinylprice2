@@ -13,11 +13,11 @@
         h1 {
             text-align: center;
             margin-top: 20px;
-            margin-bottom: 20px; /* Add some space below the title */
+            margin-bottom: 20px;
         }
         .separator {
             width: 80%;
-            margin: 0 auto 20px; /* Center and add space below */
+            margin: 0 auto 20px;
             border-top: 1px solid #ccc;
         }
         .container {
@@ -41,29 +41,46 @@
             margin-right: 5px;
         }
         textarea {
-            width: 100%; /* Make it fill the left column */
+            width: 100%;
             height: 150px;
             padding: 10px;
             border: 1px solid #ccc;
             box-sizing: border-box;
             font-family: monospace;
-            text-align: left; /* Left justify the text */
+            text-align: left;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .form-group label {
+            font-weight: bold;
+            width: 160px;
+            text-align: left;
+            margin-right: 10px;
+            display: flex; /* For aligning text and icon */
+            align-items: center;
+        }
+        .form-group label .tooltip-container {
+            margin-left: 5px; /* Space between text and icon */
+        }
+        .form-group input[type="number"],
+        .form-group select {
+            width: calc(100% - 170px); /* Adjusted width */
+            padding: 8px;
+            margin-top: 0;
         }
         .right-column {
             width: 45%;
             text-align: left;
             padding-left: 20px
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
         label {
             font-weight: bold;
         }
         select, input[type="number"] {
-            width: 100%;
             padding: 8px;
-            margin-top: 5px;
         }
         button {
             padding: 10px 20px;
@@ -77,9 +94,6 @@
         }
         .output {
             margin-top: 20px;
-        }
-        .form-group {
-            margin-bottom: 20px;
         }
 
         /* Tooltip container */
@@ -101,7 +115,7 @@
             /* Positioning */
             position: absolute;
             z-index: 1;
-            bottom: 125%; /* Position above the icon */
+            bottom: 125%;
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;
@@ -127,23 +141,27 @@
         <div class="left-column">
             <div class="paste-container">
                 <div class="paste-label-container">
-                    <label for="discogs_data" class="paste-label">Paste Discogs data here:</label>
-                    <div class="tooltip-container" style="cursor: pointer;">
-                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
-                        <div class="tooltip-text">Paste discogs data here for the engine to pick up and use</div>
-                    </div>
+                    <label for="discogs_data" class="paste-label">
+                        Paste Discogs data here:
+                        <div class="tooltip-container" style="cursor: pointer;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <div class="tooltip-text">Paste discogs data here for the engine to pick up and use</div>
+                        </div>
+                    </label>
                 </div>
                 <textarea id="discogs_data" name="discogs_data"></textarea>
             </div>
 
             <form method="POST">
                 <div class="form-group">
-                    <label for="media">Media:</label>
-                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
-                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
-                        <div class="tooltip-text">The grading of the media.</div>
-                    </div>
-                    <select id="media" name="media" style="width: 200px;">
+                    <label for="media">
+                        Media:
+                        <div class="tooltip-container" style="cursor: pointer;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <div class="tooltip-text">The grading of the media.</div>
+                        </div>
+                    </label>
+                    <select id="media" name="media">
                         <option value="9" {% if media == 9 %}selected{% endif %}>Mint (M)</option>
                         <option value="8" {% if media == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
                         <option value="7" {% if media == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
@@ -159,12 +177,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="sleeve">Sleeve:</label>
-                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
-                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
-                        <div class="tooltip-text">The grading of the sleeve.</div>
-                    </div>
-                    <select id="sleeve" name="sleeve" style="width: 195px;">
+                    <label for="sleeve">
+                        Sleeve:
+                        <div class="tooltip-container" style="cursor: pointer;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <div class="tooltip-text">The grading of the sleeve.</div>
+                        </div>
+                    </label>
+                    <select id="sleeve" name="sleeve">
                         <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
                         <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
                         <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
@@ -180,19 +200,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="shop_var">Shop Variable:</label>
-                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
-                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
-                        <div class="tooltip-text">How much of the price variance you should be applied to the calculated price.</div>
-                    </div>
-                    <input type="number" id="shop_var" name="shop_var" style="width: 122px;" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
+                    <label for="shop_var">
+                        Shop Variable:
+                        <div class="tooltip-container" style="cursor: pointer;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <div class="tooltip-text">How much of the price variance you should be applied to the calculated price.</div>
+                        </div>
+                    </label>
+                    <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
                 </div>
 
                 <div class="form-group" style="display: flex; align-items: center;">
                     <div style="flex-grow: 1;">
                         <label for="start_date" style="display: flex; align-items: center;">
                             Start Date of data:
-                            <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                            <div class="tooltip-container" style="cursor: pointer;">
                                 <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
                                 <div class="tooltip-text">Select the start date for the data you want to include.</div>
                             </div>
@@ -203,7 +225,7 @@
                         <label for="add_data">
                             <input type="checkbox" id="add_data" name="add_data">
                             Add Data
-                            <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
+                            <div class="tooltip-container" style="cursor: pointer;">
                                 <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
                                 <div class="tooltip-text">This will add the current data to the previous run's data rather than replacing it.</div>
                             </div>
@@ -211,12 +233,14 @@
                     </div>
                 </div>
 
-                <div style="margin-left: 10px;">
-                    <label for="max_price">Max Price (Optional):</label>
-                    <div class="tooltip-container" style="margin-left: 5px; cursor: pointer;">
-                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
-                        <div class="tooltip-text">Adds in a maximum price allowed, useful for getting rid of outliers.</div>
-                    </div>
+                <div class="form-group">
+                    <label for="max_price">
+                        Max Price (Optional):
+                        <div class="tooltip-container" style="cursor: pointer;">
+                            <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                            <div class="tooltip-text">Adds in a maximum price allowed, useful for getting rid of outliers.</div>
+                        </div>
+                    </label>
                     <input type="number" id="max_price" name="max_price" value="{{ max_price }}">
                 </div>
 
