@@ -13,21 +13,12 @@
         h1 {
             text-align: center;
             margin-top: 20px;
+            margin-bottom: 20px; /* Add some space below the title */
         }
-        .paste-container {
-            text-align: center;
-            margin-top: 20px;
-            padding: 10px;
-            border-bottom: 1px solid #ccc;
-        }
-        textarea {
+        .separator {
             width: 80%;
-            height: 150px;
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            font-family: monospace; /* Good for pasted data */
+            margin: 0 auto 20px; /* Center and add space below */
+            border-top: 1px solid #ccc;
         }
         .container {
             display: flex;
@@ -36,6 +27,27 @@
         }
         .left-column {
             width: 30%;
+        }
+        .paste-container {
+            margin-bottom: 20px;
+        }
+        .paste-label-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .paste-label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        textarea {
+            width: 100%; /* Make it fill the left column */
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-family: monospace;
+            text-align: left; /* Left justify the text */
         }
         .right-column {
             width: 45%;
@@ -109,14 +121,21 @@
 <body>
 
     <h1>Price Calculator</h1>
-
-    <div class="paste-container">
-        <label for="discogs_data">Paste Discogs data here:</label><br>
-        <textarea id="discogs_data" name="discogs_data"></textarea>
-    </div>
+    <div class="separator"></div>
 
     <div class="container">
         <div class="left-column">
+            <div class="paste-container">
+                <div class="paste-label-container">
+                    <label for="discogs_data" class="paste-label">Paste Discogs data here:</label>
+                    <div class="tooltip-container" style="cursor: pointer;">
+                        <img src="/static/images/info.svg" alt="Info" style="width: 16px; height: 16px;">
+                        <div class="tooltip-text">Paste discogs data here for the engine to pick up and use</div>
+                    </div>
+                </div>
+                <textarea id="discogs_data" name="discogs_data"></textarea>
+            </div>
+
             <form method="POST">
                 <div class="form-group">
                     <label for="media">Media:</label>
