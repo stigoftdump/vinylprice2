@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 from datetime import datetime
 import sys
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 
