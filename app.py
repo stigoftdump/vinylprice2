@@ -61,10 +61,13 @@ def index():
         # gets the max price
         max_price = request.form.get("max_price","").strip()
 
-        # Use the full path to the Python interpreter in your virtual environment
-        project_path = '/home/stigoftdump/PycharmProjects/PythonProject/vinylprice/'
-        python_path = project_path + '.venv/bin/python'  # Correct path
-        code_path = project_path + 'vin.py'
+        # Get the directory of the current script (this file)
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+
+        # Construct the relative paths
+        project_path = script_directory
+        python_path = os.path.join(script_directory, '.venv', 'bin', 'python')
+        code_path = os.path.join(script_directory, 'vin.py')
 
         # Run the Python script with the input
         result = subprocess.run([python_path, code_path, str(quality), str(shop_var), start_date, str(add_data_flag), str(max_price), discogs_data], capture_output=True, text=True)
