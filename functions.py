@@ -43,7 +43,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
 
     for row in processed_grid:
         if len(row) >= 5:  # Ensure there are at least 5 elements
-            qualities.append(row[4])  # Quality column (score)
+            qualities.append(row[5])  # Quality column (score)
             prices.append(row[3])  # Price column
 
     # Convert to numpy arrays for regression

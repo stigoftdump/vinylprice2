@@ -1,4 +1,5 @@
 import pickle
+import re
 from datetime import datetime
 
 # Mapping of quality to numeric value
@@ -38,6 +39,14 @@ real_prices =[
     34.99,
     39.99
 ]
+
+def delete_above_max_price(processed_grid, max_price):
+    # deletes above the max price
+    processed_grid = [
+        row for row in processed_grid
+        if len(row) > 3 and isinstance(row[3], (int, float)) and row[3] < max_price
+    ]
+    return processed_grid
 
 # function to save processed grid to a file
 def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
@@ -102,40 +111,100 @@ def make_processed_grid(clipboard_content, start_date):
         if start_index is not None and end_index is not None:
             rows = rows[start_index:end_index]
 
-        # Split each row into cells based on tabs ('\t') and convert to tuples
-        grid = [tuple(row.split('\t')) for row in rows]
+        # Get the relevant rows (excluding header, up to before "Change Currency")
+        relevant_rows = rows[start_index + 1: end_index]
 
-        # Exclude header row by skipping the first row (assuming it's the header)
-        # also removes any purchases from before the start date
-        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
-        filtered_grid = [
-            row for row in grid[1:]
-            if row[0].strip() and datetime.strptime(row[0].strip(), '%Y-%m-%d').date() >= start_date_obj
-            ]
+        # --- MODIFICATION START ---
 
-        # Convert the fourth element (index 3) from a string with '£' to a number
-        for i in range(len(filtered_grid)):
-            if len(filtered_grid[i]) > 3:  # Ensure there is a fourth element
-                price_str = filtered_grid[i][3]
-                if price_str.startswith('£'):  # Check if the string starts with '£'
-                    try:
-                        # Remove '£' and commas, then convert to a float
-                        clean_price = price_str[1:].replace(',', '')
-                        filtered_grid[i] = filtered_grid[i][:3] + (float(clean_price),)
-                    except ValueError:
-                        print(f"Error converting {price_str} to a number.")
+        intermediate_grid = []  # Build the grid row by row here
+        try:
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+        except ValueError:
+            return None, "Invalid start_date format. Please use YYYY-MM-DD."
 
-        # Process each row to calculate the score for the record and sleeve qualities
-        processed_grid = []
-        for row in filtered_grid:
-            if len(row) > 2:  # Ensure there are enough elements (record and sleeve qualities)
-                record_quality = row[1]  # Second element (record quality)
-                sleeve_quality = row[2]  # Third element (sleeve quality)
-                score = calculate_score(record_quality, sleeve_quality)
-                # Add the score as the last element in the tuple
-                processed_grid.append(row + (score,))
-            else:
-                # In case there are rows with missing data
-                processed_grid.append(row + (None,))
+        # Compile regex for matching the date at the start of a line
+        # Allows for potential whitespace before the date
+        date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
 
-    return processed_grid, status_message
+        i = 0
+        while i < len(relevant_rows):
+            row = relevant_rows[i]
+            match = date_pattern.match(row)
+
+            # Check if the current line is a data line (starts with a date)
+            if match:
+                try:
+                    # Split the data row by tabs
+                    data_parts = row.split('\t')
+
+                    # Ensure enough parts for basic processing (Date, Q1, Q2, Price)
+                    if len(data_parts) < 4:
+                        print(f"Warning: Skipping malformed data row (too few columns): {row}")
+                        i += 1
+                        continue
+
+                    # --- 1. Date Filtering ---
+                    row_date_str = data_parts[0].strip()  # Get date string
+                    current_date = datetime.strptime(row_date_str, '%Y-%m-%d').date()
+
+                    if current_date >= start_date_obj:
+                        # Convert tuple to list for modification
+                        current_row_list = list(data_parts)
+
+                        # --- 2. Price Conversion ---
+                        # Check index 3 exists and is a string starting with '£'
+                        if len(current_row_list) > 3 and isinstance(current_row_list[3], str) and current_row_list[
+                            3].startswith('£'):
+                            price_str = current_row_list[3]
+                            try:
+                                # Remove '£' and commas, then convert to a float
+                                clean_price = price_str[1:].replace(',', '')
+                                current_row_list[3] = float(clean_price)
+                            except ValueError:
+                                # Keep original string if conversion fails, maybe log it
+                                print(f"Warning: Could not convert price '{price_str}' to number in row: {row}")
+                                pass  # Keep original price string
+
+                        # --- 3. Score Calculation ---
+                        score = None  # Default score if calculation fails or not enough data
+                        # Check indices 1 and 2 exist
+                        if len(current_row_list) > 2:
+                            record_quality = current_row_list[1]
+                            sleeve_quality = current_row_list[2]
+                            score = calculate_score(record_quality, sleeve_quality)
+                        # Append score to the end of the *current* data elements
+                        current_row_list.append(score)
+
+                        # --- 4. Check for Comment on NEXT line ---
+                        comment = None
+                        # Check if there *is* a next line
+                        if i + 1 < len(relevant_rows):
+                            next_row = relevant_rows[i + 1]
+                            # Check if it starts specifically with TAB then "Comments:"
+                            if next_row.startswith('\tComments:'):
+                                # Extract the comment text
+                                comment_text = next_row.strip()  # Strip whitespace around comment line
+                                # Remove "Comments:" prefix and strip again
+                                comment = comment_text[len("Comments:"):].strip()
+                                # Append the extracted comment to the row list
+                                current_row_list.append(comment)
+                                # We've processed the comment line, so skip it in the next iteration
+                                i += 1
+
+                        # Add the fully processed row (with potential score and comment)
+                        intermediate_grid.append(current_row_list)
+
+                except ValueError as ve:
+                    # Handle potential errors during date parsing or float conversion within the loop
+                    print(f"Warning: Skipping row due to data conversion error: {row} | Error: {ve}")
+                except IndexError as ie:
+                    # Handle potential errors if a row has fewer columns than expected
+                    print(f"Warning: Skipping row due to missing columns: {row} | Error: {ie}")
+
+            # Move to the next line (or the line after the comment if one was processed)
+            i += 1
+
+        # Convert the list of lists back to a list of tuples for the final output
+        processed_grid_final = [tuple(item) for item in intermediate_grid]
+
+    return processed_grid_final, status_message
