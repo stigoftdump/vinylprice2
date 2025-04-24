@@ -36,6 +36,21 @@ def main():
             saved_processed_grid = load_processed_grid()
             processed_grid.extend(saved_processed_grid)
 
+        # gets dates and comments from the processed_Grid to go in the json
+        dates = []
+        comments = []
+
+        # gets dates and comments from the processed_Grid to go in the json
+        dates = []
+        comments = []
+        for row in processed_grid:
+            if len(row) > 6:  # Ensure there are at least 5 elements
+                dates.append(row[0])
+                comments.append(row[6])
+            else:
+                dates.append(row[0])
+                comments.append("")
+
         # Save processed grid to file
         save_processed_grid(processed_grid)
 
