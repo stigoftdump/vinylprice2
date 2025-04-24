@@ -39,10 +39,6 @@ def main():
         # gets dates and comments from the processed_Grid to go in the json
         dates = []
         comments = []
-
-        # gets dates and comments from the processed_Grid to go in the json
-        dates = []
-        comments = []
         for row in processed_grid:
             if len(row) > 6:  # Ensure there are at least 5 elements
                 dates.append(row[0])
@@ -64,6 +60,8 @@ def main():
             "predicted_prices": list(y_smooth_pred),  # Convert numpy array to list
             "predicted_qualities": list(X_smooth),  # Add predicted qualities
             "reqscore": reqscore,
+            "dates": dates,
+            "comments": comments,
             "predicted_price": predicted_price,
             "upper_bound": upper_bound,
             "actual_price": actual_price
