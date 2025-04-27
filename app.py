@@ -107,27 +107,6 @@ def index():
             process_discogs_data = discogs_data # Use form data for calculate
             pasted_discogs_data_display = discogs_data # Keep it in the textarea after calc
             status_message = "Calculating"
-        elif action == "rerun":
-            print("Rerun button clicked. Using saved processed data.")
-            # process_discogs_data remains ""
-            # pasted_discogs_data_display keeps its value (last used data)
-            status_message = "Rerunning with saved data."
-        else:
-            # Should not happen with button names, but good fallback
-            status_message = "Unknown action."
-            print(f"Unknown action: {action}")
-            # Render template with current form values and error message
-            return render_template("index.html",
-                       pasted_discogs_data=discogs_data, # Keep the discogs data in the textarea
-                       media=media_display,
-                       sleeve=sleeve_display,
-                       shop_var=shop_var_display,
-                       start_date=start_date_display,
-                       add_data=add_data_display, # Pass boolean
-                       max_price=max_price_display,
-                       status_message=status_message,
-                       calculated_price=None, adjusted_price=None, actual_price=None, chart_data={})
-
 
         # Get the directory of the current script (this file)
         script_directory = os.path.dirname(os.path.abspath(__file__))
