@@ -9,8 +9,6 @@ def main():
     # gets the inputs from the sys arguments
     reqscore, shop_var, start_date, add_data, max_price, discogs_data = return_variables(sys.argv)
 
-    #print(discogs_data)
-
     # Ensure max_price is either an integer or None
     if max_price and max_price.isdigit():  # Check if it's not empty and is a number
         max_price = int(max_price)
@@ -51,7 +49,7 @@ def main():
         save_processed_grid(processed_grid)
 
         # graph logic to get the variables for the output
-        qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound = graph_logic(reqscore, shop_var, processed_grid)
+        qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price = graph_logic(reqscore, shop_var, processed_grid)
 
         # Create chart data in JSON format
         chart_data = {

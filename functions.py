@@ -125,4 +125,4 @@ def graph_logic(reqscore, shop_var, processed_grid):
     X_smooth = np.linspace(min(X.flatten()), max(X.flatten()), 200)
     y_smooth_pred = predict_price_exp(X_smooth)
 
-    return qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price, upper_bound
+    return qualities, prices, X_smooth, y_smooth_pred, reqscore, predicted_price, upper_bound, actual_price
