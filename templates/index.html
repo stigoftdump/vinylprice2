@@ -68,7 +68,8 @@
 
         .form-group label {
             font-weight: bold;
-            width: 160px; /* Adjusted width */
+            width: 160px;
+            /* Adjusted width */
             text-align: left;
             margin-right: 10px;
             display: flex;
@@ -76,9 +77,10 @@
             align-items: center;
         }
 
-         /* Style for the checkbox label to align it better */
+        /* Style for the checkbox label to align it better */
         .form-group label input[type="checkbox"] {
-             margin-right: 5px; /* Space between checkbox and text */
+            margin-right: 5px;
+            /* Space between checkbox and text */
         }
 
 
@@ -89,17 +91,22 @@
 
         .form-group input[type="number"],
         .form-group select,
-        .form-group input[type="date"] { /* Added date input */
+        .form-group input[type="date"] {
+            /* Added date input */
             width: calc(100% - 170px);
             /* Adjusted width */
             padding: 8px;
             margin-top: 0;
         }
-         /* Specific style for the date input to allow full width */
+
+        /* Specific style for the date input to allow full width */
         .form-group input[type="date"] {
-             width: auto; /* Let the browser decide based on content */
-             flex-grow: 1; /* Allow it to take available space in its flex container */
-             margin-right: 0; /* Remove margin right if inside a flex container */
+            width: auto;
+            /* Let the browser decide based on content */
+            flex-grow: 1;
+            /* Allow it to take available space in its flex container */
+            margin-right: 0;
+            /* Remove margin right if inside a flex container */
         }
 
 
@@ -121,8 +128,10 @@
         /* Style for button container */
         .button-container {
             margin-top: 20px;
-            display: flex; /* Use flexbox */
-            gap: 10px; /* Add space between buttons */
+            display: flex;
+            /* Use flexbox */
+            gap: 10px;
+            /* Add space between buttons */
         }
 
         button {
@@ -130,24 +139,29 @@
             color: white;
             border: none;
             cursor: pointer;
-            flex-grow: 1; /* Make buttons grow to fill space */
+            flex-grow: 1;
+            /* Make buttons grow to fill space */
             text-align: center;
         }
 
         /* Style for Calculate button */
         button[name="action"][value="calculate"] {
-             background-color: #4CAF50; /* Green */
+            background-color: #4CAF50;
+            /* Green */
         }
-         button[name="action"][value="calculate"]:hover {
-             background-color: #45a049;
+
+        button[name="action"][value="calculate"]:hover {
+            background-color: #45a049;
         }
 
         /* Style for Rerun button */
         button[name="action"][value="rerun"] {
-             background-color: #008CBA; /* Blue */
+            background-color: #008CBA;
+            /* Blue */
         }
+
         button[name="action"][value="rerun"]:hover {
-             background-color: #007b9e;
+            background-color: #007b9e;
         }
 
 
@@ -219,7 +233,7 @@
                     <label for="media">
                         Media:
                         <div class="tooltip-container" style="cursor: pointer;">
-                             <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
+                            <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
                             <div class="tooltip-text">The grading of the media.</div>
                         </div>
                     </label>
@@ -308,110 +322,144 @@
                  <input type="hidden" id="pasted_discogs_data" name="pasted_discogs_data">
 
                 <div class="button-container">
-                    <button type="submit" name="action" value="calculate">Calculate</button>
-                     <!-- <button type="submit" name="action" value="rerun">Rerun with Saved Data</button> -->
+                    <button type="submit">Calculate</button>
                 </div>
 
             </form>
         </div>
 
         <div class="right-column">
-             {% if calculated_price is not none %} <h2>Results:</h2>
+             {% if calculated_price is not none %}
+            <h2>Results:</h2>
             {% if calculated_price == 'Error' %}
-                 <p style="color: red;"><strong>Calculation Error:</strong> {{ status_message }}</p>
+            <p style="color: red;"><strong>Calculation Error:</strong> {{ status_message }}</p>
             {% else %}
-                <p style="color: orange;"><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
-                <p style="color: purple;"><strong>Upper Bound of Price:</strong> £{{ adjusted_price }}</p>
-                <p style="color: green;"><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
+            <p style="color: orange;"><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
+            <p style="color: purple;"><strong>Upper Bound of Price:</strong> £{{ adjusted_price }}</p>
+            <p style="color: green;"><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
             {% endif %}
 
              {% if chart_data %}
-                 <canvas id="myChart"></canvas>
+            <canvas id="myChart"></canvas>
             {% endif %}
 
             <script id="chart-data-json" type="application/json">
-            {{ chart_data | tojson }}
+                {{ chart_data | tojson }}
             </script>
             {% if chart_data %}
-             <script>
-                // ... (Your existing Chart.js script remains the same) ...
+            <script>
                 // Get the canvas element
                 const ctx = document.getElementById('myChart').getContext('2d');
 
-                // --- Modify this part ---
-                // Get the JSON string from the script tag
+                // --- Get the JSON string from the script tag ---
                 const jsonScriptTag = document.getElementById('chart-data-json');
-                const jsonString = jsonScriptTag.textContent; // Get the text content
-                const chartData = JSON.parse(jsonString); // Parse the JSON string
-                // -----------------------
+                const jsonString = jsonScriptTag.textContent;
+                const chartData = JSON.parse(jsonString);
+                // -----------------------------------------------
 
                 // Extract data for Chart.js
-                const labels = chartData.labels;
-                const prices = chartData.prices;
-                const predictedPrices = chartData.predicted_prices;
-                const predictedQualities = chartData.predicted_qualities;
-                const reqscore = parseFloat(chartData.reqscore); // Ensure reqscore is a number
-                const predictedPrice = chartData.predicted_price;
-                const upperBound = chartData.upper_bound;
-                const actualPrice = chartData.actual_price;
+                const labels = chartData.labels; // Quality labels (strings)
+                const prices = chartData.prices; // Price values
+                const predictedPrices = chartData.predicted_prices; // Best fit line prices
+                const predictedQualities = chartData.predicted_qualities; // Best fit line qualities
+                const reqscore = parseFloat(chartData.reqscore); // Requested quality score
+                const predictedPrice = chartData.predicted_price; // Predicted price at reqscore
+                const upperBound = chartData.upper_bound; // Upper bound at reqscore
+                const actualPrice = chartData.actual_price; // Actual price at reqscore
 
-                // Extract the new data
+                // Extract additional data (dates and comments) - Ensure these are present in your chart_data JSON from Flask
                 const dates = chartData.dates;
                 const comments = chartData.comments;
 
                 // Determine the minimum quality for the x-axis
-                const minQuality = Math.min(...predictedQualities);
+                // Ensure predictedQualities is not empty before using Math.min/max
+                const minQuality = predictedQualities && predictedQualities.length > 0 ? Math.min(...predictedQualities) : 1; // Default to 1 if empty
                 const xAxisMin = Math.floor(minQuality);
 
-                // --- Helper function to wrap text ---
-                function wrapText(text, maxLen) {
-                    if (!text) return [];
-                    const words = text.split(/\s+/); // Split by one or more whitespace characters
-                    const lines = [];
-                    let currentLine = '';
 
-                    words.forEach((word) => {
-                        // If a single word is longer than the max length, split it
-                        if (word.length > maxLen) {
-                            if (currentLine.length > 0) {
-                                lines.push(currentLine);
-                                currentLine = '';
-                            }
-                            let remainingWord = word;
-                            while (remainingWord.length > maxLen) {
-                                lines.push(remainingWord.substring(0, maxLen));
-                                remainingWord = remainingWord.substring(maxLen);
-                            }
-                            currentLine = remainingWord;
-                        }
-                        // Check if adding the word (and a space if not the first word on the line) exceeds max length
-                        else if (currentLine.length + word.length + (currentLine.length > 0 ? 1 : 0) > maxLen) {
-                            // If adding the word with a space exceeds max length, push current line and start new
-                            lines.push(currentLine);
-                            currentLine = word;
-                        } else {
-                            // Otherwise, add the word to the current line
-                            if (currentLine.length > 0) {
-                                currentLine += ' ' + word;
-                            } else {
-                                currentLine = word;
-                            }
-                        }
-                    });
+                // --- Array to hold data of selected points (using more attributes) ---
+                // This array will store the data of points the user clicks
+                let selectedPoints = [];
+                // --------------------------------------------------------------------
 
-                    // Add the last line if not empty
-                    if (currentLine.length > 0) {
-                        lines.push(currentLine);
-                    }
-
-                    return lines;
+                // --- Helper function to check if two points match by data ---
+                // Used to find a point in selectedPoints array based on its properties
+                function doPointsMatch(point1, point2) {
+                    // Use a small tolerance for float comparisons (quality and price)
+                    const tolerance = 0.0001;
+                     return (
+                        Math.abs(point1.quality - point2.quality) < tolerance &&
+                        Math.abs(point1.price - point2.price) < tolerance &&
+                        point1.date === point2.date &&
+                        (point1.comment || "") === (point2.comment || "") // Treat null/undefined/empty string comments the same
+                    );
                 }
-                // -----------------------------------
+                // ----------------------------------------------------
 
 
-                // Chart configuration options
+                // --- Function to handle point click ---
+                // This function is called by Chart.js when a point on the chart is clicked
+                 function handlePointClick(event) {
+                    const activeElements = myChart.getElementsAtEventForMode(event, 'nearest', {
+                         intersect: true
+                    }, false);
+
+
+                     if (activeElements.length > 0) {
+                         const clickedElement = activeElements[0];
+                         const datasetIndex = clickedElement.datasetIndex;
+                         const dataIndex = clickedElement.index;
+
+                         // Only interact with the 'Items Sold' dataset (assuming it's the first one, index 0)
+                         if (datasetIndex === 0) {
+                             // Get the full data for the clicked point from your original data arrays
+                             const clickedPointData = {
+                                 quality: parseFloat(labels[dataIndex]), // Use the quality label (converted to number)
+                                 price: prices[dataIndex], // Use the price from the prices array
+                                 date: dates[dataIndex], // Use the date
+                                 comment: comments[dataIndex] // Use the comment
+                             };
+
+                             // Check if the point is already in the selectedPoints array
+                             const selectedIndex = selectedPoints.findIndex(p => doPointsMatch(p, clickedPointData));
+
+
+                             if (selectedIndex > -1) {
+                                 // Point is already selected (black), deselect it (turn back to red)
+                                 console.log('Point found in selectedPoints. Deselecting...');
+                                 // Remove the point from the selectedPoints array
+                                 selectedPoints.splice(selectedIndex, 1);
+                                 // Change the point's color back to red in the chart data
+                                 myChart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'red'; // Explicitly set to red
+                                 console.log('Point deselected. New color: red');
+
+                             } else {
+                                 // Point is not selected (red), select it (turn black)
+                                 console.log('Point NOT found in selectedPoints. Selecting...');
+                                 // Add the point data to the selectedPoints array
+                                 selectedPoints.push(clickedPointData); // Store the point data
+                                 // Change the point's color to black in the chart data
+                                 myChart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'black';
+                                 console.log('Point selected. New color: black');
+                             }
+
+                             console.log('Selected Points AFTER change:', selectedPoints);
+
+                             // Update the chart to visually show the color change
+                             myChart.update();
+                             console.log('Chart update called.');
+                         }
+                     } else {
+                         console.log('No active elements found at click location.');
+                     }
+                 }
+                 // ------------------------------------
+
+
+                // Chart configuration options - Add the onClick handler here
                 const chartOptions = {
                     responsive: true,
+                    onClick: handlePointClick, // Add the click handler to make points clickable
                     plugins: {
                         title: {
                             display: true,
@@ -451,22 +499,31 @@
                                         }
 
                                         // --- Use the wrapText function for comments ---
+                                        // wrapText function needs to be defined elsewhere if not already
+                                        // (Assuming it's available from your previous code)
                                         if (comment && comment !== 'No comment') {
                                             // Define the maximum length for comment lines
-                                            const maxCommentLineLength = 50;
-                                            const commentLines = wrapText(comment, maxCommentLineLength); // Split the comment
+                                            const maxCommentLineLength = 50; // Adjust as needed
+                                             // Ensure wrapText function is defined before use
+                                            if (typeof wrapText === "function") {
+                                                 const commentLines = wrapText(comment, maxCommentLineLength); // Split the comment
 
-                                            if (commentLines.length > 0) {
-                                                // Add the first line prefixed with "Comment:"
-                                                tooltipLines.push(`Comment: ${commentLines[0]}`);
-                                                // Add subsequent lines with indentation
-                                                for (let i = 1; i < commentLines.length; i++) {
-                                                    tooltipLines.push(`  ${commentLines[i]}`); // Add indentation for wrapping lines
-                                                }
-                                            } else if (comment.length > 0) {
-                                                // Fallback in case wrapText returns empty for a non-empty comment
-                                                tooltipLines.push('Comment: ' + comment);
+                                                 if (commentLines.length > 0) {
+                                                     // Add the first line prefixed with "Comment:"
+                                                     tooltipLines.push(`Comment: ${commentLines[0]}`);
+                                                     // Add subsequent lines with indentation
+                                                     for (let i = 1; i < commentLines.length; i++) {
+                                                         tooltipLines.push(`  ${commentLines[i]}`); // Add indentation for wrapping lines
+                                                     }
+                                                 } else if (comment.length > 0) {
+                                                     // Fallback in case wrapText returns empty for a non-empty comment
+                                                     tooltipLines.push('Comment: ' + comment);
+                                                 }
+                                            } else {
+                                                 // Fallback if wrapText is not defined
+                                                 tooltipLines.push('Comment: ' + comment);
                                             }
+
                                         } else if (comment === 'No comment') {
                                             tooltipLines.push(`Comment: ${comment}`); // Still show "No comment" if that's the case
                                         }
@@ -569,7 +626,7 @@
                                 color: '#ccc',
                                 borderDash: [2, 2]
                             },
-                            min: xAxisMin   // <----  Added x-axis minimum
+                            min: xAxisMin // <----  Added x-axis minimum
                         },
                         y: {
                             title: {
@@ -584,32 +641,39 @@
                                 borderDash: [2, 2]
                             }
                         }
-                    },
-                    elements: {
-                        point: {
-                            radius: 5,
-                            backgroundColor: 'red'
-                        }
                     }
+                    // Note: elements point style is now handled dynamically by the click handler below
+                    // elements: {
+                    //     point: {
+                    //         radius: 5,
+                    //         backgroundColor: 'red' // Default color
+                    //     }
+                    // }
                 };
 
                 // Create the chart
                 const myChart = new Chart(ctx, {
                     type: 'scatter',
                     data: {
-                        labels: labels,
-                        datasets: [
-                            {
+                        labels: labels, // Quality values as strings
+                        datasets: [{
                                 label: 'Items Sold',
-                                data: labels.map((label, index) => ({ x: parseFloat(label), y: prices[index] })),
+                                data: labels.map((label, index) => ({
+                                    x: parseFloat(label),
+                                    y: prices[index]
+                                })),
                                 borderColor: 'red',
-                                backgroundColor: 'red',
+                                // Use an array for background colors so we can change individual points
+                                backgroundColor: Array(prices.length).fill('red'), // Start all points as red
                                 pointRadius: 5,
                                 pointHoverRadius: 7,
                             },
                             {
                                 label: 'Best Fit',
-                                data: predictedPrices.map((price, index) => ({ x: parseFloat(predictedQualities[index]), y: price })),
+                                data: predictedPrices.map((price, index) => ({
+                                    x: parseFloat(predictedQualities[index]),
+                                    y: price
+                                })),
                                 borderColor: 'blue',
                                 backgroundColor: 'blue',
                                 borderWidth: 2,
@@ -618,10 +682,15 @@
                                 tension: 0.4,
                                 type: 'line',
                                 showLine: true
-                            },
-                            {  // Predicted Price Line for Legend
+                            }, { // Predicted Price Line for Legend
                                 label: 'Predicted Price',
-                                data: [{ x: xAxisMin, y: predictedPrice }, { x: reqscore, y: predictedPrice }],
+                                data: [{
+                                    x: xAxisMin,
+                                    y: predictedPrice
+                                }, {
+                                    x: reqscore,
+                                    y: predictedPrice
+                                }],
                                 borderColor: 'orange',
                                 backgroundColor: 'orange',
                                 borderDash: [5, 5],
@@ -629,10 +698,15 @@
                                 pointRadius: 0,
                                 type: 'line',
                                 fill: false
-                            },
-                            {  // Upper Bound Line for Legend
+                            }, { // Upper Bound Line for Legend
                                 label: 'Upper Bound (RMSE)',
-                                data: [{ x: xAxisMin, y: upperBound }, { x: reqscore, y: upperBound }],
+                                data: [{
+                                    x: xAxisMin,
+                                    y: upperBound
+                                }, {
+                                    x: reqscore,
+                                    y: upperBound
+                                }],
                                 borderColor: 'purple',
                                 backgroundColor: 'purple',
                                 borderDash: [5, 5],
@@ -640,10 +714,15 @@
                                 pointRadius: 0,
                                 type: 'line',
                                 fill: false
-                            },
-                            {  // Actual Price Line for Legend
+                            }, { // Actual Price Line for Legend
                                 label: 'Actual Price',
-                                data: [{ x: xAxisMin, y: actualPrice }, { x: reqscore, y: actualPrice }],
+                                data: [{
+                                    x: xAxisMin,
+                                    y: actualPrice
+                                }, {
+                                    x: reqscore,
+                                    y: actualPrice
+                                }],
                                 borderColor: 'green',
                                 backgroundColor: 'green',
                                 borderDash: [5, 5],
@@ -654,21 +733,42 @@
                             }
                         ]
                     },
-                    options: chartOptions
+                    options: chartOptions // Use the options object defined above
                 });
+
+                // --- Add a hidden input field to the form to store selected points ---
+                // Find the form
+                const form = document.querySelector('form');
+                // Create the hidden input element
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_points_to_delete'; // Name for Flask to receive
+                hiddenInput.id = 'selected_points_to_delete';
+                // Append the hidden input to the form
+                form.appendChild(hiddenInput);
+                // ------------------------------------------
+
+                // --- Modify the existing form submit listener ---
+                 document.querySelector('form').addEventListener('submit', function(event) {
+                    // Existing logic to copy textarea to hidden input
+                    const discogsData = document.getElementById('discogs_data').value;
+                    document.getElementById('pasted_discogs_data').value = discogsData; // This line copies to hidden input
+
+                    // --- New logic to serialize selected points data ---
+                    // Get the hidden input for selected points (created above)
+                    const selectedPointsInput = document.getElementById('selected_points_to_delete');
+                    // Set its value to the JSON string representation of the selectedPoints array
+                    selectedPointsInput.value = JSON.stringify(selectedPoints);
+                    // --------------------------------------------------
+
+                    // Form will now submit with the hidden input values (pasted_discogs_data and selected_points_to_delete)
+                });
+
             </script>
-           {% endif %} {% endif %}
+            {% endif %} {% endif %}
         </div>
     </div>
 
-    <script>
-        // This script remains the same, copying textarea to hidden input
-        document.querySelector('form').addEventListener('submit', function(event) {
-            const discogsData = document.getElementById('discogs_data').value;
-            document.getElementById('pasted_discogs_data').value = discogsData;
-        });
-    </script>
-
-</body>
+    </body>
 
 </html>
