@@ -101,12 +101,12 @@ def index():
 
 
         # --- Prepare vin.py arguments based on action ---
-        process_discogs_data = "" # Default to empty for rerun
-        if action == "calculate":
-            print("Calculate button clicked. Using Discogs data from form.")
-            process_discogs_data = discogs_data # Use form data for calculate
-            pasted_discogs_data_display = discogs_data # Keep it in the textarea after calc
-            status_message = "Calculating"
+        #process_discogs_data = "" # Default to empty for rerun
+        #if action == "calculate":
+        print("Calculate button clicked. Using Discogs data from form.")
+        process_discogs_data = discogs_data # Use form data for calculate
+        pasted_discogs_data_display = discogs_data # Keep it in the textarea after calc
+        status_message = "Calculating"
 
         # Get the directory of the current script (this file)
         script_directory = os.path.dirname(os.path.abspath(__file__))
