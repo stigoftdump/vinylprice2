@@ -6,8 +6,23 @@ import webbrowser
 import threading
 import time
 from datetime import datetime # Import datetime
+import sys
 
-app = Flask(__name__)
+# Handle file paths differently when running as executable
+if getattr(sys, 'frozen', False):
+    # Running as executable
+    base_dir = sys._MEIPASS
+else:
+    # Running as script
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Set template and static folders with proper paths
+template_folder = os.path.join(base_dir, 'templates')
+static_folder = os.path.join(base_dir, 'static')
+
+app = Flask(__name__,
+            template_folder=template_folder,
+            static_folder=static_folder)
 
 # File to store saved shop_var
 SAVE_FILE = "save_data.json"
