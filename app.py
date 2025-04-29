@@ -49,7 +49,6 @@ def index():
     shop_var_display = read_save_value() # Load initial shop_var for GET
     start_date_display = "2020-01-01"
     add_data_display = False
-    max_price_display = ""
 
 
     if request.method == "POST":
@@ -63,7 +62,6 @@ def index():
         start_date = request.form.get("start_Date", "2020-01-01") # Provide default
         add_data = request.form.get("add_data", "off")
         add_data_flag = True if add_data == "on" else False
-        max_price = request.form.get("max_price", "").strip()
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
         discogs_data = request.form.get('pasted_discogs_data', '') # Always get from form
 
@@ -73,7 +71,6 @@ def index():
         shop_var_display = shop_var
         start_date_display = start_date
         add_data_display = add_data_flag
-        max_price_display = max_price
         # pasted_discogs_data_display is handled below based on action
 
 
@@ -96,7 +93,6 @@ def index():
                        shop_var=shop_var_display,
                        start_date=start_date_display,
                        add_data=add_data_display, # Pass boolean
-                       max_price=max_price_display,
                        status_message=status_message,
                        calculated_price=None, adjusted_price=None, actual_price=None, chart_data={})
 
@@ -126,7 +122,6 @@ def index():
             str(shop_var),
             start_date,
             str(add_data_flag), # Pass boolean as string
-            str(max_price),
             process_discogs_data, # This will be empty string for rerun
             points_to_delete_json
         ]
@@ -192,7 +187,6 @@ def index():
                                shop_var=shop_var_display,
                                start_date=start_date_display,
                                add_data=add_data_display, # Pass boolean
-                               max_price=max_price_display,
                                calculated_price=calculated_price,
                                adjusted_price=adjusted_price,
                                actual_price=actual_price,
@@ -213,7 +207,6 @@ def index():
                            shop_var=shop_var_display, # Loaded from file
                            start_date=start_date_display, # Default
                            add_data=add_data_display, # Default False
-                           max_price=max_price_display, # Default empty
                            status_message="", # No status on initial load
                            calculated_price=None,
                            adjusted_price=None,

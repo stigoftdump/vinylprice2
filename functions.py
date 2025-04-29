@@ -3,6 +3,7 @@ import sys
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 from grid_functions import realprice
+import json
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """
@@ -19,7 +20,7 @@ def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
 def return_variables(argument):
     # returns the variables from the argument sent in sys
     # --- MODIFY Check ---
-    if len(argument) < 8: # Now expect at least 8 arguments (script name + 7 data args)
+    if len(argument) < 7: # Now expect at least 8 arguments (script name + 6 data args)
     # --- END MODIFY ---
         print("Error: data is missing.")
         # Output JSON error for Flask to potentially catch
@@ -30,10 +31,9 @@ def return_variables(argument):
         shop_var = float(argument[2])
         start_date = argument[3]
         add_data = argument[4]
-        max_price = argument[5]
-        discogs_data = argument[6]
+        discogs_data = argument[5]
         # --- ADD THIS ---
-        points_to_delete_json = argument[7] # Get the new argument
+        points_to_delete_json = argument[6] # Get the new argument
         # --- END ADD ---
 
     except ValueError:
@@ -49,7 +49,7 @@ def return_variables(argument):
 
 
     # --- MODIFY Return ---
-    return reqscore, shop_var, start_date, add_data, max_price, discogs_data, points_to_delete_json # Return the new variable
+    return reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json # Return the new variable
     # --- END MODIFY ---
 
 def graph_logic(reqscore, shop_var, processed_grid):

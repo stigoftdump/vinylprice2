@@ -40,14 +40,6 @@ real_prices =[
     39.99
 ]
 
-def delete_above_max_price(processed_grid, max_price):
-    # deletes above the max price
-    processed_grid = [
-        row for row in processed_grid
-        if len(row) > 3 and isinstance(row[3], (int, float)) and row[3] < max_price
-    ]
-    return processed_grid
-
 # function to save processed grid to a file
 def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
     with open(filename, 'wb') as f:

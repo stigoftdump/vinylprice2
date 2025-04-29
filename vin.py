@@ -1,5 +1,5 @@
 from functions import return_variables, graph_logic
-from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, delete_above_max_price
+from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid
 import sys
 import json
 import math
@@ -45,13 +45,7 @@ def main():
     status_message = None
 
     # gets the inputs from the sys arguments
-    reqscore, shop_var, start_date, add_data, max_price, discogs_data, points_to_delete_json = return_variables(sys.argv)
-
-    # Ensure max_price is either an integer or None
-    if max_price and max_price.isdigit():  # Check if it's not empty and is a number
-        max_price = int(max_price)
-    else:
-        max_price = None  # Set to None explicitly if it's empty or invalid
+    reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json = return_variables(sys.argv)
 
     # Gets the processed_grid from the discogs_data sent over
     processed_grid, status_message = make_processed_grid(discogs_data, start_date)
@@ -90,12 +84,6 @@ def main():
 
         processed_grid = filtered_grid # Replace the grid with the filtered version
     # --- END Deletion Logic ---
-
-    # adds in the maxprice and deletes if anything is above it.
-    if max_price is not None:
-        # Make sure delete_above_max_price can handle an empty grid gracefully
-        if processed_grid:
-            processed_grid=delete_above_max_price(processed_grid,max_price)
 
     # If add_data is True, load the previously saved processed_grid and add it to the current one
     if add_data == "True":
