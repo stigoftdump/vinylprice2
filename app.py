@@ -64,6 +64,7 @@ def index():
         add_data = request.form.get("add_data", "off")
         add_data_flag = True if add_data == "on" else False
         max_price = request.form.get("max_price", "").strip()
+        points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
         discogs_data = request.form.get('pasted_discogs_data', '') # Always get from form
 
         # Update display variables with submitted values for rendering
@@ -126,7 +127,8 @@ def index():
             start_date,
             str(add_data_flag), # Pass boolean as string
             str(max_price),
-            process_discogs_data # This will be empty string for rerun
+            process_discogs_data, # This will be empty string for rerun
+            points_to_delete_json
         ]
 
         print(f"Running vin.py with args: {vin_args}") # Debug print

@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Price Calculator</title>
     <style>
-        /* ... (Your existing CSS remains the same) ... */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -214,6 +213,7 @@
     <div class="separator"></div>
 
     <div class="container">
+        <form method="POST">
         <div class="left-column">
             <div class="paste-container">
                 <div class="paste-label-container">
@@ -227,8 +227,6 @@
                 </div>
                 <textarea id="discogs_data" name="discogs_data">{{ pasted_discogs_data }}</textarea>
             </div>
-
-            <form method="POST">
                 <div class="form-group">
                     <label for="media">
                         Media:
@@ -322,7 +320,7 @@
                  <input type="hidden" id="pasted_discogs_data" name="pasted_discogs_data">
 
                 <div class="button-container">
-                    <button type="submit">Calculate</button>
+                    <button type="submit" name="action" value="calculate">Calculate</button>
                 </div>
 
             </form>
