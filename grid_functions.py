@@ -1,6 +1,7 @@
 import pickle
 import re
 from datetime import datetime
+import math
 
 # Mapping of quality to numeric value
 quality_to_number = {
@@ -200,3 +201,38 @@ def make_processed_grid(clipboard_content, start_date):
         processed_grid_final = [tuple(item) for item in intermediate_grid]
 
     return processed_grid_final, status_message
+
+def points_match(grid_row, point_to_delete, tolerance=0.001):
+    """
+    Checks if a grid row matches a point to be deleted.
+    Handles float comparisons with tolerance and missing comments.
+    Assumes grid_row structure: (date, quality1, quality2, price, ..., score, optional_comment)
+    Assumes point_to_delete structure: {'quality': float, 'price': float, 'date': str, 'comment': str or None}
+    """
+    if len(grid_row) < 6: # Needs at least date, price, score
+        return False
+
+    grid_score = grid_row[5]
+    grid_price = grid_row[3]
+    grid_date = grid_row[0]
+    grid_comment = grid_row[6] if len(grid_row) > 6 else "" # Handle potential missing comment in grid
+
+    # Use get with defaults for the dictionary
+    delete_score = point_to_delete.get('quality')
+    delete_price = point_to_delete.get('price')
+    delete_date = point_to_delete.get('date')
+    delete_comment = point_to_delete.get('comment', "") # Default to empty string if missing
+
+    # Check types and existence before comparison
+    if delete_score is None or delete_price is None or delete_date is None:
+        return False # Cannot match if essential data is missing in point_to_delete
+
+    # Perform comparisons
+    # Use math.isclose for float comparison
+    score_match = math.isclose(grid_score, delete_score, rel_tol=tolerance)
+    price_match = math.isclose(grid_price, delete_price, rel_tol=tolerance)
+    date_match = (grid_date == delete_date)
+    # Treat None/empty string comments as the same
+    comment_match = ( (grid_comment or "") == (delete_comment or "") )
+
+    return score_match and price_match and date_match and comment_match
