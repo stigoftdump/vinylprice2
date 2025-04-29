@@ -451,7 +451,36 @@
                          console.log('No active elements found at click location.');
                      }
                  }
-                 // ------------------------------------
+
+                 // *** ADD: Function to wrap text ***
+                function wrapText(text, maxLength) {
+                    if (!text) return []; // Return empty array if no text
+                    const words = text.split(' ');
+                    let lines = [];
+                    let currentLine = '';
+
+                    words.forEach(word => {
+                        // Check if adding the next word exceeds the maxLength
+                        if ((currentLine + word).length > maxLength) {
+                            // If currentLine is not empty, push it to lines
+                            if (currentLine.length > 0) {
+                                lines.push(currentLine.trim());
+                            }
+                            // Start a new line with the current word
+                            currentLine = word + ' ';
+                        } else {
+                            // Otherwise, add the word to the current line
+                            currentLine += word + ' ';
+                        }
+                    });
+
+                    // Push the last remaining line
+                    if (currentLine.length > 0) {
+                        lines.push(currentLine.trim());
+                    }
+                    return lines;
+                }
+                // *** END ADD ***
 
 
                 // Chart configuration options - Add the onClick handler here
