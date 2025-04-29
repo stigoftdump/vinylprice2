@@ -2,6 +2,8 @@ import pickle
 import re
 from datetime import datetime
 import math
+import json
+import sys
 
 # Mapping of quality to numeric value
 quality_to_number = {
@@ -236,3 +238,34 @@ def points_match(grid_row, point_to_delete, tolerance=0.001):
     comment_match = ( (grid_comment or "") == (delete_comment or "") )
 
     return score_match and price_match and date_match and comment_match
+
+def delete_points(points_to_delete_json, processed_grid):
+    # --- ADD Deletion Logic ---
+    points_to_delete = []
+    if points_to_delete_json:
+        try:
+            points_to_delete = json.loads(points_to_delete_json)
+        except json.JSONDecodeError:
+            # Log error or set a status message if desired, but continue with empty list
+            print("Warning: Could not decode points_to_delete JSON. Proceeding without deleting points.", file=sys.stderr)
+            points_to_delete = [] # Ensure it's an empty list
+
+    if points_to_delete and processed_grid: # Only filter if there are points to delete and a grid exists
+        initial_count = len(processed_grid)
+        filtered_grid = []
+        for row in processed_grid:
+            should_delete = False
+            for point in points_to_delete:
+                if points_match(row, point):
+                    should_delete = True
+                    break # Found a match, no need to check other points_to_delete for this row
+            if not should_delete:
+                filtered_grid.append(row)
+
+        deleted_count = initial_count - len(filtered_grid)
+        if deleted_count > 0:
+             print(f"Info: Deleted {deleted_count} point(s) based on selection.", file=sys.stderr) # Optional info message
+
+        processed_grid = filtered_grid # Replace the grid with the filtered version
+
+    return processed_grid

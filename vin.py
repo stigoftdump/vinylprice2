@@ -1,7 +1,5 @@
 from functions import graph_logic
-from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, points_match
-import sys
-import json
+from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, delete_points
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     status_message = None
@@ -12,37 +10,11 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     if status_message is not None and not processed_grid: # Check if error occurred *and* grid is empty
         # Output JSON error message from make_processed_grid
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
-        print(json.dumps(output_data))
-        sys.exit(0)
+        return output_data
+        #sys.exit(0)
 
-    # --- ADD Deletion Logic ---
-    points_to_delete = []
-    if points_to_delete_json:
-        try:
-            points_to_delete = json.loads(points_to_delete_json)
-        except json.JSONDecodeError:
-            # Log error or set a status message if desired, but continue with empty list
-            print("Warning: Could not decode points_to_delete JSON. Proceeding without deleting points.", file=sys.stderr)
-            points_to_delete = [] # Ensure it's an empty list
-
-    if points_to_delete and processed_grid: # Only filter if there are points to delete and a grid exists
-        initial_count = len(processed_grid)
-        filtered_grid = []
-        for row in processed_grid:
-            should_delete = False
-            for point in points_to_delete:
-                if points_match(row, point):
-                    should_delete = True
-                    break # Found a match, no need to check other points_to_delete for this row
-            if not should_delete:
-                filtered_grid.append(row)
-
-        deleted_count = initial_count - len(filtered_grid)
-        if deleted_count > 0:
-             print(f"Info: Deleted {deleted_count} point(s) based on selection.", file=sys.stderr) # Optional info message
-
-        processed_grid = filtered_grid # Replace the grid with the filtered version
-    # --- END Deletion Logic ---
+    # deletes points if needed
+    processed_grid = delete_points(points_to_delete_json, processed_grid)
 
     # If add_data is True, load the previously saved processed_grid and add it to the current one
     if add_data == "True":
@@ -53,10 +25,10 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     if not processed_grid:
          status_message = "No data points available for analysis."
          output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
-         print(json.dumps(output_data))
-         sys.exit(0)
+         return output_data
+         #sys.exit(0)
 
-    # gets dates and comments from the PROCESSED_GRID to go in the json
+    # gets dates and comments from the PROCESSED_GRID to go in the output
     dates = []
     comments = []
     # Ensure the loop handles the structure correctly, especially after filtering
@@ -83,8 +55,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         status_message = f"Error during graph calculation: {e}"
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
-        print(json.dumps(output_data))
-        sys.exit(0)
+        return output_data
+        #sys.exit(0)
 
 
     # Create chart data in JSON format
