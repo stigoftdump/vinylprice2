@@ -31,7 +31,7 @@
         }
 
         .left-column {
-            width: 100%;
+            width: 30%;
         }
 
         .paste-container {
@@ -213,11 +213,11 @@
     <div class="separator"></div>
 
     <div class="container">
-        <form method="POST">
         <div class="left-column">
+            <form method="POST">
             <div class="paste-container">
                 <div class="paste-label-container">
-                    <label for="discogs_data" class="paste-label">
+                    <label for="pasted_discogs_data" class="paste-label">
                         Paste Discogs data here:
                         <div class="tooltip-container" style="cursor: pointer;">
                             <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
@@ -225,7 +225,7 @@
                         </div>
                     </label>
                 </div>
-                <textarea id="discogs_data" name="discogs_data">{{ pasted_discogs_data }}</textarea>
+                <textarea id="pasted_discogs_data" name="pasted_discogs_data">{{ pasted_discogs_data }}</textarea>
             </div>
                 <div class="form-group">
                     <label for="media">
@@ -317,13 +317,13 @@
                      <input type="number" id="max_price" name="max_price" value="{{ max_price }}">
                 </div>
 
-                 <input type="hidden" id="pasted_discogs_data" name="pasted_discogs_data">
+                 <input type="hidden" id="saved_discogs_data" name="saved_discogs_data">
 
                 <div class="button-container">
                     <button type="submit" name="action" value="calculate">Calculate</button>
                 </div>
 
-            </form>
+                </form>
         </div>
 
         <div class="right-column">
@@ -737,31 +737,36 @@
                 // --- Add a hidden input field to the form to store selected points ---
                 // Find the form
                 const form = document.querySelector('form');
-                // Create the hidden input element
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'selected_points_to_delete'; // Name for Flask to receive
-                hiddenInput.id = 'selected_points_to_delete';
+                // Create the hidden input element for selected points
+                const hiddenPointsInput = document.createElement('input');
+                hiddenPointsInput.type = 'hidden';
+                hiddenPointsInput.name = 'selected_points_to_delete'; // Name for Flask to receive
+                hiddenPointsInput.id = 'selected_points_to_delete';
                 // Append the hidden input to the form
-                form.appendChild(hiddenInput);
+                form.appendChild(hiddenPointsInput);
                 // ------------------------------------------
 
                 // --- Modify the existing form submit listener ---
                  document.querySelector('form').addEventListener('submit', function(event) {
-                    // Existing logic to copy textarea to hidden input
-                    const discogsData = document.getElementById('discogs_data').value;
-                    document.getElementById('pasted_discogs_data').value = discogsData; // This line copies to hidden input
+                    // *** MODIFICATION: Copy data from NEW textarea ID to NEW hidden input ID ***
+                    const discogsData = document.getElementById('pasted_discogs_data').value; // Get from the textarea
+                    const hiddenDiscogsInput = document.getElementById('saved_discogs_data'); // Find the hidden input
+                    if (hiddenDiscogsInput) { // Check if the hidden input exists
+                         hiddenDiscogsInput.value = discogsData; // Copy data to the hidden input
+                    } else {
+                         console.error("Hidden input 'saved_discogs_data' not found!");
+                    }
+                    // *** END MODIFICATION ***
 
-                    // --- New logic to serialize selected points data ---
-                    // Get the hidden input for selected points (created above)
+                    // --- Logic to serialize selected points data (remains the same) ---
                     const selectedPointsInput = document.getElementById('selected_points_to_delete');
-                    // Set its value to the JSON string representation of the selectedPoints array
+                    // Make sure selectedPoints variable is accessible here (should be if defined globally or in outer scope)
                     selectedPointsInput.value = JSON.stringify(selectedPoints);
                     // --------------------------------------------------
 
-                    // Form will now submit with the hidden input values (pasted_discogs_data and selected_points_to_delete)
+                    // Form will now submit with hidden inputs: saved_discogs_data and selected_points_to_delete
+                    // and the textarea value: pasted_discogs_data
                 });
-
             </script>
             {% endif %} {% endif %}
         </div>
