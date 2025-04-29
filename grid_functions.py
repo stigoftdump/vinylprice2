@@ -132,62 +132,100 @@ def make_processed_grid(clipboard_content, start_date):
                     # Split the data row by tabs
                     data_parts = row.split('\t')
 
+                    # --- MODIFIED: Price handling ---
+                    original_price_native = None  # To track if we split price (likely Windows format)
+                    price_in_user_currency_str = None
+
+                    if len(data_parts) > 3:
+                        price_cell_content = data_parts[3]
+                        if isinstance(price_cell_content, str):
+                            if '\n' in price_cell_content:
+                                prices = price_cell_content.split('\n', 1)
+                                price_in_user_currency_str = prices[0]
+                                if len(prices) > 1:
+                                    original_price_native = prices[1]  # Indicates potential Windows format
+                            else:
+                                price_in_user_currency_str = price_cell_content  # Linux format
+
                     # Ensure enough parts for basic processing (Date, Q1, Q2, Price)
-                    if len(data_parts) < 4:
-                        print(f"Warning: Skipping malformed data row (too few columns): {row}")
+                    # We need at least 4 parts based on the split of the *first* line
+                    if len(data_parts) < 4 or price_in_user_currency_str is None:
+                        print(f"Warning: Skipping malformed data row (missing columns or price): {row}")
                         i += 1
-                        continue
+                        continue  # Skip to next line
 
-                    # --- 1. Date Filtering ---
-                    row_date_str = data_parts[0].strip()  # Get date string
-                    current_date = datetime.strptime(row_date_str, '%Y-%m-%d').date()
+                    # Convert tuple to list for modification
+                    current_row_list = list(data_parts)  # Note: data_parts[3] might still contain the split string
 
-                    if current_date >= start_date_obj:
-                        # Convert tuple to list for modification
-                        current_row_list = list(data_parts)
+                    # --- Price Conversion (using extracted string) ---
+                    price_float = None
+                    if price_in_user_currency_str and price_in_user_currency_str.startswith('£'):
+                        try:
+                            clean_price = price_in_user_currency_str[1:].replace(',', '')
+                            price_float = float(clean_price)
+                        except ValueError:
+                            print(
+                                f"Warning: Could not convert price '{price_in_user_currency_str}' to number in row: {row}")
+                            # Keep price_float as None
+                    elif price_in_user_currency_str:
+                        # Attempt conversion even if no '£', useful if currency changes
+                        try:
+                            price_float = float(price_in_user_currency_str.replace(',', ''))
+                        except ValueError:
+                            print(
+                                f"Warning: Could not convert non-£ price '{price_in_user_currency_str}' to number in row: {row}")
+                            # Keep price_float as None
 
-                        # --- 2. Price Conversion ---
-                        # Check index 3 exists and is a string starting with '£'
-                        if len(current_row_list) > 3 and isinstance(current_row_list[3], str) and current_row_list[
-                            3].startswith('£'):
-                            price_str = current_row_list[3]
-                            try:
-                                # Remove '£' and commas, then convert to a float
-                                clean_price = price_str[1:].replace(',', '')
-                                current_row_list[3] = float(clean_price)
-                            except ValueError:
-                                # Keep original string if conversion fails, maybe log it
-                                print(f"Warning: Could not convert price '{price_str}' to number in row: {row}")
-                                pass  # Keep original price string
+                    # Replace the original price cell (or split string) with the float or None
+                    current_row_list[3] = price_float
 
-                        # --- 3. Score Calculation ---
-                        score = None  # Default score if calculation fails or not enough data
-                        # Check indices 1 and 2 exist
-                        if len(current_row_list) > 2:
-                            record_quality = current_row_list[1]
-                            sleeve_quality = current_row_list[2]
-                            score = calculate_score(record_quality, sleeve_quality)
-                        # Append score to the end of the *current* data elements
-                        current_row_list.append(score)
+                    # --- Score Calculation ---
+                    score = None
+                    if len(current_row_list) > 2:
+                        record_quality = current_row_list[1]
+                        sleeve_quality = current_row_list[2]
+                        # Add strip() here in case qualities have leading/trailing spaces
+                        score = calculate_score(record_quality.strip(), sleeve_quality.strip())
+                    # Append score (even if None) - ensure it's always the 6th element (index 5) if price is index 3
+                    # Need to handle cases where original data had more/fewer tabs carefully.
+                    # Let's assume the structure is consistent enough for now and append score.
+                    # If the original data had more than 4 tabs, this needs adjustment.
+                    # For safety, let's ensure the list has enough elements first.
+                    while len(current_row_list) < 5:
+                        current_row_list.append(None)  # Pad if needed before score
+                    current_row_list = current_row_list[:5]  # Trim excess if > 5 before score
+                    current_row_list.append(score)  # Score becomes index 5
 
-                        # --- 4. Check for Comment on NEXT line ---
-                        comment = None
-                        # Check if there *is* a next line
-                        if i + 1 < len(relevant_rows):
-                            next_row = relevant_rows[i + 1]
-                            # Check if it starts specifically with TAB then "Comments:"
-                            if next_row.startswith('\tComments:'):
-                                # Extract the comment text
-                                comment_text = next_row.strip()  # Strip whitespace around comment line
-                                # Remove "Comments:" prefix and strip again
+                    # --- REVISED: Check for Comment on NEXT line(s) ---
+                    comment = None
+                    lines_to_skip_ahead = 0  # How many EXTRA lines to advance 'i' by
+
+                    # Check line i+1
+                    if i + 1 < len(relevant_rows):
+                        next_row_1 = relevant_rows[i + 1]
+                        # Scenario 1: Comment is on the next line (Linux style)
+                        if next_row_1.strip().startswith('Comments:'):
+                            comment_text = next_row_1.strip()
+                            comment = comment_text[len("Comments:"):].strip()
+                            lines_to_skip_ahead = 1  # Skip this comment line
+                        # Scenario 2: Check line i+2 if line i+1 was likely native price (Windows style)
+                        elif original_price_native is not None and i + 2 < len(relevant_rows):
+                            next_row_2 = relevant_rows[i + 2]
+                            if next_row_2.strip().startswith('Comments:'):
+                                comment_text = next_row_2.strip()
                                 comment = comment_text[len("Comments:"):].strip()
-                                # Append the extracted comment to the row list
-                                current_row_list.append(comment)
-                                # We've processed the comment line, so skip it in the next iteration
-                                i += 1
+                                lines_to_skip_ahead = 2  # Skip native price line AND comment line
 
-                        # Add the fully processed row (with potential score and comment)
-                        intermediate_grid.append(current_row_list)
+                    if comment is not None:
+                        # Append comment - becomes 7th element (index 6)
+                        current_row_list.append(comment)
+
+                    # Add the fully processed row
+                    intermediate_grid.append(current_row_list)
+
+                    # Advance 'i' past the current line PLUS any consumed comment/price lines
+                    i += (1 + lines_to_skip_ahead)
+                    continue  # Continue to next iteration of while loop
 
                 except ValueError as ve:
                     # Handle potential errors during date parsing or float conversion within the loop
@@ -196,8 +234,16 @@ def make_processed_grid(clipboard_content, start_date):
                     # Handle potential errors if a row has fewer columns than expected
                     print(f"Warning: Skipping row due to missing columns: {row} | Error: {ie}")
 
-            # Move to the next line (or the line after the comment if one was processed)
-            i += 1
+            # If the line didn't start with a date, or after handling exceptions/skips,
+            # ensure we always advance 'i' if it wasn't advanced by 'continue' above.
+            # This check handles lines that are not data lines (like the native price or comments
+            # that weren't consumed, or blank lines).
+            if not match or 'lines_to_skip_ahead' not in locals() or lines_to_skip_ahead == 0:
+                i += 1
+                # Reset lines_to_skip_ahead if it exists from a previous iteration that failed
+                # This part might be redundant if the continue statement handles all successful cases
+                if 'lines_to_skip_ahead' in locals():
+                    del lines_to_skip_ahead
 
         # Convert the list of lists back to a list of tuples for the final output
         processed_grid_final = [tuple(item) for item in intermediate_grid]

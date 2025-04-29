@@ -7,6 +7,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # Gets the processed_grid from the discogs_data sent over
     processed_grid, status_message = make_processed_grid(discogs_data, start_date)
 
+    print(processed_grid)
+
     if status_message is not None and not processed_grid: # Check if error occurred *and* grid is empty
         # Output JSON error message from make_processed_grid
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
