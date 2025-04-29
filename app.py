@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, send_from_directory
-import subprocess
 import os
 import json
 import webbrowser
 import threading
 import time
 from datetime import datetime # Import datetime
+from vin import calculate_vin_data
 
 app = Flask(__name__)
 
@@ -114,68 +114,28 @@ def index():
         python_path = os.path.join(script_directory, '.venv', 'bin', 'python')
         code_path = os.path.join(script_directory, 'vin.py')
 
-        # Construct vin.py arguments as strings
-        vin_args = [
-            python_path,
-            code_path,
-            str(quality),
-            str(shop_var),
-            start_date,
-            str(add_data_flag), # Pass boolean as string
-            process_discogs_data, # This will be empty string for rerun
-            points_to_delete_json
-        ]
+        # --- Call the function directly ---
+        try:
+            output_data = calculate_vin_data(
+                quality,
+                shop_var,
+                start_date,
+                str(add_data_flag), # Pass boolean as string as it was expected by the original logic
+                process_discogs_data,
+                points_to_delete_json
+            )
+            calculated_price = output_data.get("calculated_price")
+            adjusted_price = output_data.get("upper_bound")
+            actual_price = output_data.get("actual_price")
+            status_message = output_data.get("status_message", status_message)
+            chart_data = output_data.get("chart_data", {})
 
-        print(f"Running vin.py with args: {vin_args}") # Debug print
-
-        # Run the Python script with the input
-        result = subprocess.run(vin_args, capture_output=True, text=True)
-
-        # Capture and debug the output
-        output = result.stdout.strip()
-        error_output = result.stderr.strip()
-
-        # Print raw output and error output for debugging
-        print(f"Raw output from script: '{output}'")
-        print(f"Error output from script: '{error_output}'")
-        print(f"Return code: {result.returncode}")
-
-        if result.returncode != 0:
-            # Handle failure
-            print(f"Script failed with error code {result.returncode}")
-            status_message = f"Error: Script failed with exit code {result.returncode}. Check server logs."
+        except Exception as e:
+            print(f"Error calling vin.py function: {e}")
+            status_message = f"Error: An unexpected error occurred during calculation: {e}"
             calculated_price = adjusted_price = actual_price = "Error"
             chart_data = {} # Ensure empty chart data on error
-        else:
-            try:
-                # Load the JSON output
-                output_data = json.loads(output)
-                calculated_price = output_data.get("calculated_price")
-                adjusted_price = output_data.get("upper_bound")
-                actual_price = output_data.get("actual_price")
-                # Prefer status message from script if available, otherwise use ours
-                status_message = output_data.get("status_message", status_message) # Keep the rerun status message if no script error
-                chart_data = output_data.get("chart_data", {})  # Extract chart data, default to empty dict
-
-                # If script returned an error status message but didn't crash
-                if output_data.get("status_message") and output_data.get("status_message") != "Completed":
-                     status_message = output_data.get("status_message")
-                     # Optionally clear results if the script indicated an issue
-                     # calculated_price = adjusted_price = actual_price = None # Or "N/A"
-                     # chart_data = {}
-
-            except json.JSONDecodeError:
-                # Handle cases where the script output is invalid JSON
-                print(f"Error parsing JSON output from script: {output}")
-                status_message = "Error: Could not parse script output."
-                calculated_price = adjusted_price = actual_price = "Error"
-                chart_data = {} # Ensure empty chart data on error
-            except Exception as e:
-                 # Catch any other potential errors during processing output
-                 print(f"An unexpected error occurred processing script output: {e}")
-                 status_message = f"Error: An unexpected error occurred: {e}"
-                 calculated_price = adjusted_price = actual_price = "Error"
-                 chart_data = {} # Ensure empty chart data on error
+        # --- End of direct function call ---
 
 
         # Render template with results and the inputs that were used

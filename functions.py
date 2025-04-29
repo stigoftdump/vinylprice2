@@ -1,9 +1,7 @@
 import numpy as np
-import sys
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 from grid_functions import realprice
-import json
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """
@@ -16,41 +14,6 @@ def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     first_rise = a1 / (1 + np.exp(-b1 * (x - c1)))
     exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
     return first_rise + exponential_increase + d
-
-def return_variables(argument):
-    # returns the variables from the argument sent in sys
-    # --- MODIFY Check ---
-    if len(argument) < 7: # Now expect at least 8 arguments (script name + 6 data args)
-    # --- END MODIFY ---
-        print("Error: data is missing.")
-        # Output JSON error for Flask to potentially catch
-        print(json.dumps({"status_message": "Error: Missing arguments for script."}))
-        sys.exit(1) # Still exit, but Flask might see the JSON message now
-    try:
-        reqscore = float(argument[1])
-        shop_var = float(argument[2])
-        start_date = argument[3]
-        add_data = argument[4]
-        discogs_data = argument[5]
-        # --- ADD THIS ---
-        points_to_delete_json = argument[6] # Get the new argument
-        # --- END ADD ---
-
-    except ValueError:
-        print("Error: Both reqscore and shop_var must be numbers.")
-         # Output JSON error
-        print(json.dumps({"status_message": "Error: reqscore and shop_var must be numbers."}))
-        sys.exit(1)
-    except IndexError:
-         print("Error: Not enough arguments provided.")
-         # Output JSON error
-         print(json.dumps({"status_message": "Error: Not enough arguments provided to script."}))
-         sys.exit(1)
-
-
-    # --- MODIFY Return ---
-    return reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json # Return the new variable
-    # --- END MODIFY ---
 
 def graph_logic(reqscore, shop_var, processed_grid):
     # function that returns everything needed to make a chart

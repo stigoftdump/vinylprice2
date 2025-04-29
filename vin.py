@@ -1,13 +1,10 @@
-from functions import return_variables, graph_logic
+from functions import graph_logic
 from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, points_match
 import sys
 import json
 
-def main():
+def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     status_message = None
-
-    # gets the inputs from the sys arguments
-    reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json = return_variables(sys.argv)
 
     # Gets the processed_grid from the discogs_data sent over
     processed_grid, status_message = make_processed_grid(discogs_data, start_date)
@@ -117,7 +114,4 @@ def main():
         "chart_data": chart_data  # Include chart data in the output
     }
 
-    print(json.dumps(output_data))  # Print the JSON string
-
-if __name__ == "__main__":
-    main()
+    return output_data
