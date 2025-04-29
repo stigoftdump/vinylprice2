@@ -77,8 +77,9 @@ def realprice(pred_price):
     return foundprice
 
 # creates the processed grid data from imported data
+# creates the processed grid data from imported data
+# creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
-
     # status_message is blank for now
     status_message = None
     processed_grid = None
@@ -88,8 +89,11 @@ def make_processed_grid(clipboard_content, start_date):
         # return status that no data is there
         return None, "No Discogs Data in text box"
     else:
+        # Normalize line endings (convert \r\n to \n)
+        clipboard_content = clipboard_content.replace('\r\n', '\n')
+
         # Split content into rows based on newlines
-        rows = clipboard_content.splitlines()  # 'rows' is defined here
+        rows = clipboard_content.splitlines()
 
         # Extract the portion of the clipboard content starting from "Order Date" and stopping before "Change Currency"
         start_index = None
@@ -103,13 +107,11 @@ def make_processed_grid(clipboard_content, start_date):
                 break
 
         # Ensure valid indices are found
-        if start_index is not None and end_index is not None:
-            rows = rows[start_index:end_index]
+        if start_index is None or end_index is None:
+            return None, "Could not find 'Order Date' or 'Change Currency' markers in the input"
 
         # Get the relevant rows (excluding header, up to before "Change Currency")
         relevant_rows = rows[start_index + 1: end_index]
-
-        # --- MODIFICATION START ---
 
         intermediate_grid = []  # Build the grid row by row here
         try:
@@ -118,7 +120,7 @@ def make_processed_grid(clipboard_content, start_date):
             return None, "Invalid start_date format. Please use YYYY-MM-DD."
 
         # Compile regex for matching the date at the start of a line
-        # Allows for potential whitespace before the date
+        # More flexible date pattern that allows for potential whitespace and handles Windows line endings
         date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
 
         i = 0
@@ -131,6 +133,9 @@ def make_processed_grid(clipboard_content, start_date):
                 try:
                     # Split the data row by tabs
                     data_parts = row.split('\t')
+
+                    # Clean up each part (strip whitespace)
+                    data_parts = [part.strip() if isinstance(part, str) else part for part in data_parts]
 
                     # Ensure enough parts for basic processing (Date, Q1, Q2, Price)
                     if len(data_parts) < 4:
@@ -147,14 +152,21 @@ def make_processed_grid(clipboard_content, start_date):
                         current_row_list = list(data_parts)
 
                         # --- 2. Price Conversion ---
-                        # Check index 3 exists and is a string starting with '£'
-                        if len(current_row_list) > 3 and isinstance(current_row_list[3], str) and current_row_list[
-                            3].startswith('£'):
-                            price_str = current_row_list[3]
+                        # Windows format might have the price in a different index or format
+                        price_index = 3  # Default index
+
+                        # Look for the price field that starts with £
+                        for idx, field in enumerate(current_row_list):
+                            if isinstance(field, str) and field.startswith('£'):
+                                price_index = idx
+                                break
+
+                        if price_index < len(current_row_list):
+                            price_str = current_row_list[price_index]
                             try:
                                 # Remove '£' and commas, then convert to a float
                                 clean_price = price_str[1:].replace(',', '')
-                                current_row_list[3] = float(clean_price)
+                                current_row_list[price_index] = float(clean_price)
                             except ValueError:
                                 # Keep original string if conversion fails, maybe log it
                                 print(f"Warning: Could not convert price '{price_str}' to number in row: {row}")
@@ -175,12 +187,18 @@ def make_processed_grid(clipboard_content, start_date):
                         # Check if there *is* a next line
                         if i + 1 < len(relevant_rows):
                             next_row = relevant_rows[i + 1]
-                            # Check if it starts specifically with TAB then "Comments:"
-                            if next_row.startswith('\tComments:'):
+                            # Check if it starts with "Comments:" (more flexible matching)
+                            if "Comments:" in next_row:
                                 # Extract the comment text
                                 comment_text = next_row.strip()  # Strip whitespace around comment line
-                                # Remove "Comments:" prefix and strip again
-                                comment = comment_text[len("Comments:"):].strip()
+
+                                # Extract the comment text after "Comments:"
+                                comment_parts = comment_text.split("Comments:", 1)
+                                if len(comment_parts) > 1:
+                                    comment = comment_parts[1].strip()
+                                else:
+                                    comment = ""
+
                                 # Append the extracted comment to the row list
                                 current_row_list.append(comment)
                                 # We've processed the comment line, so skip it in the next iteration
