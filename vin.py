@@ -50,7 +50,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # graph logic to get the variables for the output
     # Make sure graph_logic handles potentially empty lists gracefully if grid becomes empty
     try:
-        qualities, prices, X_smooth, y_smooth_pred, reqscore_out, predicted_price, upper_bound, actual_price = graph_logic(reqscore, shop_var, processed_grid)
+        qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price = graph_logic(reqscore, shop_var, processed_grid)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         status_message = f"Error during graph calculation: {e}"
