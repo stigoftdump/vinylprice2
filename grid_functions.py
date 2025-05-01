@@ -43,6 +43,38 @@ real_prices =[
     39.99
 ]
 
+# Inflation rates (Year: Rate as decimal) - Assuming rates are for the year ending in that year
+INFLATION_RATES = {
+    2020: 0.0099,
+    2021: 0.0252,
+    2022: 0.0792,
+    2023: 0.0679,
+    2024: 0.025,
+}
+
+TARGET_INFLATION_YEAR = 2024 # Adjust all prices to 2024 values
+
+def adjust_for_inflation(price, sale_year):
+    """
+    Adjusts a price from a sale year to the target inflation year.
+    """
+    if sale_year >= TARGET_INFLATION_YEAR:
+        return price # No adjustment needed for sales in or after the target year
+
+    adjustment_factor = 1.0
+    # Iterate through years from sale_year + 1 up to the target year
+    for year in range(sale_year + 1, TARGET_INFLATION_YEAR + 1):
+        if year in INFLATION_RATES:
+            adjustment_factor *= (1 + INFLATION_RATES[year])
+        else:
+            # If inflation rate for a year is missing, we cannot adjust accurately
+            # For simplicity, we'll stop adjusting if a rate is missing.
+            # A more robust approach might estimate or use a default rate.
+            print(f"Warning: Missing inflation rate for year {year}. Inflation adjustment stopped at previous year.", file=sys.stderr)
+            break # Stop adjustment if rate is missing
+
+    return price * adjustment_factor
+
 # function to save processed grid to a file
 def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
     with open(filename, 'wb') as f:
@@ -161,10 +193,15 @@ def make_processed_grid(clipboard_content, start_date):
                 if price_user_str:
                     try:
                         cleaned_price = re.sub(r'[£$€,]','', price_user_str)
-                        price_float_out = float(cleaned_price)
+                        original_price = float(cleaned_price)
+                        sale_year = date_obj.year # Get the year from the sale date
+                        price_float_out = adjust_for_inflation(original_price, sale_year) # Adjust the price for inflation
                     except ValueError:
                         print(f"Warning: Could not convert user price '{price_user_str}' to float.")
                         price_float_out = None
+                    except Exception as e:
+                        print(f"Warning: Error during inflation adjustment for price '{price_user_str}' (year {date_obj.year}): {e}", file=sys.stderr)
+                        price_float_out = None # Set price to None if adjustment fails
                 else:
                      price_float_out = None
 
