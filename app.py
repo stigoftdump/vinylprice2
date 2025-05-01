@@ -35,7 +35,7 @@ def write_save_value(value):
         print(f"Error writing to {SAVE_FILE}: {e}")
 
 # Add a shutdown route
-@app.route('/shutdown')
+@app.route('/shutdown', methods=['POST'])
 def shutdown():
     os._exit(0)
 
@@ -165,8 +165,8 @@ def index():
                            chart_data={})
 
 if __name__ == "__main__":
-    from werkzeug.serving import is_running_from_reloader
+    #from werkzeug.serving import is_running_from_reloader
 
-    if not is_running_from_reloader():
-        threading.Thread(target=open_browser_once).start()
-    app.run(debug=True, port=5002)
+    #if not is_running_from_reloader():
+    threading.Thread(target=open_browser_once).start()
+    app.run(debug=False, port=5002)
