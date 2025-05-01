@@ -507,9 +507,18 @@
                                             tooltipLines.push(`Date: ${date}`);
                                         }
 
+                                       // Determine the price label based on the year
+                                        let priceLabel = 'Price';
+                                        if (date !== 'N/A') {
+                                            const saleYear = new Date(date).getFullYear();
+                                            if (saleYear < 2025) {
+                                                priceLabel = 'Inflation-adjusted Price';
+                                            }
+                                        }
+
                                         // Add Price line if available
                                         if (price !== 'N/A') {
-                                            tooltipLines.push(`Price: ${new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price)}`);
+                                            tooltipLines.push(`${priceLabel}: ${new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price)}`);
                                         }
 
                                         // --- Use the wrapText function for comments ---
