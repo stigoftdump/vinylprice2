@@ -797,6 +797,13 @@
         </div>
     </div>
 
+    // shutdown code
+    <script>
+    window.addEventListener('beforeunload', function (e) {
+        navigator.sendBeacon('/shutdown');
+    });
+    </script>
+
     </body>
 
 </html>
