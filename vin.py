@@ -58,7 +58,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         return output_data
         #sys.exit(0)
 
-
     # Create chart data in JSON format
     chart_data = {
         "labels": [str(q) for q in qualities],  # Convert qualities to strings for labels
