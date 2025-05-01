@@ -87,6 +87,30 @@ def graph_logic(reqscore, shop_var, processed_grid):
     # Calculate predictions for all data points
     y_pred = predict_price_exp(X.flatten())
 
+    # gets local std dev
+    local_std_dev = get_stdev(y, y_pred, X, reqscore)
+
+    # calculates prices
+    predicted_price = predict_price_exp(reqscore)
+    upper_bound = predicted_price + local_std_dev # Upper bound using local error estimate
+    adjusted_price = predicted_price + (local_std_dev * shop_var) # Adjusted price using local error
+    actual_price = realprice(adjusted_price)
+
+    # Create a smooth curve for plotting the fitted function
+    # Determine the minimum x-value for the smooth curve
+    min_x_for_smooth = min(min(X.flatten()), reqscore) if X.size > 0 else reqscore
+
+    # Determine the maximum x-value for the smooth curve
+    max_x_for_smooth = max(max(X.flatten()), reqscore) if X.size > 0 else reqscore
+
+    # Create a smooth curve for plotting the fitted function, extending to reqscore if necessary
+    X_smooth = np.linspace(min_x_for_smooth, max_x_for_smooth, 200)
+
+    y_smooth_pred = predict_price_exp(X_smooth)
+
+    return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price
+
+def get_stdev(y, y_pred, X, reqscore):
     # --- Calculate Local Standard Deviation instead of Global RMSE ---
     residuals = y - y_pred
     global_rmse = np.sqrt(mean_squared_error(y, y_pred))  # Keep global RMSE as a fallback
@@ -135,24 +159,4 @@ def graph_logic(reqscore, shop_var, processed_grid):
                 print(
                     f"Warning: Insufficient points in tiered bins for reqscore {reqscore}. Falling back to global RMSE ({global_rmse:.2f}).")
                 local_std_dev = global_rmse
-
-    # --- Use local_std_dev instead of rmse ---
-    predicted_price = predict_price_exp(reqscore)
-    upper_bound = predicted_price + local_std_dev # Upper bound using local error estimate
-    adjusted_price = predicted_price + (local_std_dev * shop_var) # Adjusted price using local error
-    actual_price = realprice(adjusted_price)
-
-
-    # Create a smooth curve for plotting the fitted function
-    # Determine the minimum x-value for the smooth curve
-    min_x_for_smooth = min(min(X.flatten()), reqscore) if X.size > 0 else reqscore
-
-    # Determine the maximum x-value for the smooth curve
-    max_x_for_smooth = max(max(X.flatten()), reqscore) if X.size > 0 else reqscore
-
-    # Create a smooth curve for plotting the fitted function, extending to reqscore if necessary
-    X_smooth = np.linspace(min_x_for_smooth, max_x_for_smooth, 200)
-
-    y_smooth_pred = predict_price_exp(X_smooth)
-
-    return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price
+    return local_std_dev
