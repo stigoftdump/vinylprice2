@@ -44,12 +44,13 @@ real_prices =[
 ]
 
 # Inflation rates (Year: Rate as decimal) - Assuming rates are for the year ending in that year
+# These are based off the RPI for "Entertainment and other recreations", the category which includes vinyl
 INFLATION_RATES = {
-    2020: 0.0099,
-    2021: 0.0252,
-    2022: 0.0792,
-    2023: 0.0679,
-    2024: 0.025,
+    2020: 0.02,
+    2021: 0.025,
+    2022: 0.061,
+    2023: 0.044,
+    2024: 0.06,
 }
 
 TARGET_INFLATION_YEAR = 2024 # Adjust all prices to 2024 values
