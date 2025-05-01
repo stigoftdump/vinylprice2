@@ -5,6 +5,7 @@ import threading
 import time
 from datetime import datetime # Import datetime
 from vin import calculate_vin_data
+import os
 
 app = Flask(__name__)
 
@@ -32,6 +33,10 @@ def write_save_value(value):
     except IOError as e:
         print(f"Error writing to {SAVE_FILE}: {e}")
 
+@app.route('/shutdown', methods=["GET", "POST"])
+def shutdown():
+    print("it runs when shutdown")
+    os._exit(0)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -163,4 +168,4 @@ if __name__ == "__main__":
 
     if not is_running_from_reloader():
         threading.Thread(target=open_browser_once).start()
-    app.run(debug=True, port=5002)
+    app.run(debug=False, port=5002)

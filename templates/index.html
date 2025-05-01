@@ -799,8 +799,18 @@
 
     // shutdown code
     <script>
+    let formSubmitted = false;
+
+    // Set a flag when the form is submitted
+    document.querySelector('form').addEventListener('submit', function() {
+        formSubmitted = true;
+    });
+
+    // Send the beacon only if the page is not being unloaded due to a form submission
     window.addEventListener('beforeunload', function (e) {
-        navigator.sendBeacon('/shutdown');
+        if (!formSubmitted) {
+            navigator.sendBeacon('/shutdown');
+        }
     });
     </script>
 
