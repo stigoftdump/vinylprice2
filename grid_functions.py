@@ -300,6 +300,8 @@ def delete_points(points_to_delete_json, processed_grid):
             print("Warning: Could not decode points_to_delete JSON. Proceeding without deleting points.", file=sys.stderr)
             points_to_delete = [] # Ensure it's an empty list
 
+    deleted_count = 0 # Initialize deleted_count before the conditional block
+
     if points_to_delete and processed_grid: # Only filter if there are points to delete and a grid exists
         initial_count = len(processed_grid)
         filtered_grid = []
@@ -318,4 +320,5 @@ def delete_points(points_to_delete_json, processed_grid):
 
         processed_grid = filtered_grid # Replace the grid with the filtered version
 
-    return processed_grid
+    # Modified line: Return deleted_count as well
+    return processed_grid, deleted_count

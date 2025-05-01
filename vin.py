@@ -3,6 +3,7 @@ from grid_functions import make_processed_grid, load_processed_grid, save_proces
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     status_message = None
+    deleted_count = 0
 
     # Gets the processed_grid from the discogs_data sent over
     processed_grid, status_message = make_processed_grid(discogs_data, start_date)
@@ -14,7 +15,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         #sys.exit(0)
 
     # deletes points if needed
-    processed_grid = delete_points(points_to_delete_json, processed_grid)
+    processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
 
     # If add_data is True, load the previously saved processed_grid and add it to the current one
     if add_data == "True":
@@ -75,6 +76,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # make status "Okay" if there are no problems
     if status_message is None:
         status_message = "Completed"
+        if deleted_count > 0:
+            status_message += f". {deleted_count} points deleted"
 
     # output for sending to flask
     output_data = {
