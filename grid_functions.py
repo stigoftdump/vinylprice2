@@ -53,18 +53,16 @@ INFLATION_RATES = {
     2024: 0.06,
 }
 
-TARGET_INFLATION_YEAR = 2024 # Adjust all prices to 2024 values
+TARGET_INFLATION_YEAR = 2024 # Adjust all prices to 2025 values
 
 def adjust_for_inflation(price, sale_year):
     """
     Adjusts a price from a sale year to the target inflation year.
     """
-    if sale_year >= TARGET_INFLATION_YEAR:
-        return price # No adjustment needed for sales in or after the target year
 
     adjustment_factor = 1.0
-    # Iterate through years from sale_year + 1 up to the target year
-    for year in range(sale_year + 1, TARGET_INFLATION_YEAR + 1):
+    # Iterate through years from sale_year up to the target year
+    for year in range(sale_year, TARGET_INFLATION_YEAR + 1):
         if year in INFLATION_RATES:
             adjustment_factor *= (1 + INFLATION_RATES[year])
         else:
@@ -74,7 +72,9 @@ def adjust_for_inflation(price, sale_year):
             print(f"Warning: Missing inflation rate for year {year}. Inflation adjustment stopped at previous year.", file=sys.stderr)
             break # Stop adjustment if rate is missing
 
-    return price * adjustment_factor
+    new_price = round(price * adjustment_factor,2)
+
+    return new_price
 
 # function to save processed grid to a file
 def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
@@ -231,6 +231,10 @@ def make_processed_grid(clipboard_content, start_date):
                 # --- Calculate Score ---
                 # Pass raw quality strings; calculate_score will strip them for lookup
                 score_out = calculate_score(quality1_str_raw, quality2_str_raw)
+
+                # Adjusts the price for inflation
+
+
 
                 # --- Assemble Final Tuple ---
                 # Store the STRIPPED quality strings in the output tuple
