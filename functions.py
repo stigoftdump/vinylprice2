@@ -102,7 +102,15 @@ def graph_logic(reqscore, shop_var, processed_grid):
     actual_price = realprice(adjusted_price)
 
     # Create a smooth curve for plotting the fitted function
-    X_smooth = np.linspace(min(X.flatten()), max(X.flatten()), 200)
+    # Determine the minimum x-value for the smooth curve
+    min_x_for_smooth = min(min(X.flatten()), reqscore) if X.size > 0 else reqscore
+
+    # Determine the maximum x-value for the smooth curve
+    max_x_for_smooth = max(max(X.flatten()), reqscore) if X.size > 0 else reqscore
+
+    # Create a smooth curve for plotting the fitted function, extending to reqscore if necessary
+    X_smooth = np.linspace(min_x_for_smooth, max_x_for_smooth, 200)
+
     y_smooth_pred = predict_price_exp(X_smooth)
 
     return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price
