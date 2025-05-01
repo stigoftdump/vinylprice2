@@ -45,7 +45,7 @@ real_prices =[
 
 # Inflation rates (Year: Rate as decimal) - Assuming rates are for the year ending in that year
 # These are based off the RPI for "Entertainment and other recreations", the category which includes vinyl
-INFLATION_RATES = {
+inflation_rates = {
     2020: 0.02,
     2021: 0.025,
     2022: 0.061,
@@ -53,22 +53,20 @@ INFLATION_RATES = {
     2024: 0.06,
 }
 
-TARGET_INFLATION_YEAR = 2024 # Adjust all prices to 2025 values
-
 def adjust_for_inflation(price, sale_year):
     """
     Adjusts a price from a sale year to the target inflation year.
     """
 
+    target_inflation_year = 2024  # Adjust all prices to 2025 values
     adjustment_factor = 1.0
+
     # Iterate through years from sale_year up to the target year
-    for year in range(sale_year, TARGET_INFLATION_YEAR + 1):
-        if year in INFLATION_RATES:
-            adjustment_factor *= (1 + INFLATION_RATES[year])
+    for year in range(sale_year, target_inflation_year + 1):
+        if year in inflation_rates:
+            adjustment_factor *= (1 + inflation_rates[year])
         else:
             # If inflation rate for a year is missing, we cannot adjust accurately
-            # For simplicity, we'll stop adjusting if a rate is missing.
-            # A more robust approach might estimate or use a default rate.
             print(f"Warning: Missing inflation rate for year {year}. Inflation adjustment stopped at previous year.", file=sys.stderr)
             break # Stop adjustment if rate is missing
 
