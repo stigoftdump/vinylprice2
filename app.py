@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, send_from_directory
-import os
 import json
 import webbrowser
 import threading
