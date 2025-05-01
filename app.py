@@ -100,15 +100,6 @@ def index():
         pasted_discogs_data_display = discogs_data # Keep it in the textarea after calc
         status_message = "Calculating"
 
-        # Get the directory of the current script (this file)
-        script_directory = os.path.dirname(os.path.abspath(__file__))
-
-        # Construct the relative paths
-        project_path = script_directory
-        # Assuming .venv path is correct
-        python_path = os.path.join(script_directory, '.venv', 'bin', 'python')
-        code_path = os.path.join(script_directory, 'vin.py')
-
         # --- Call the function directly ---
         try:
             output_data = calculate_vin_data(
