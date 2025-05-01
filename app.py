@@ -50,7 +50,6 @@ def index():
     start_date_display = "2020-01-01"
     add_data_display = False
 
-
     if request.method == "POST":
         # Determine which button was clicked
         action = request.form.get('action')
@@ -71,8 +70,6 @@ def index():
         shop_var_display = shop_var
         start_date_display = start_date
         add_data_display = add_data_flag
-        # pasted_discogs_data_display is handled below based on action
-
 
         # Calculate quality from media and sleeve
         quality = media - ((media - sleeve) / 3)
@@ -98,8 +95,6 @@ def index():
 
 
         # --- Prepare vin.py arguments based on action ---
-        #process_discogs_data = "" # Default to empty for rerun
-        #if action == "calculate":
         print("Calculate button clicked. Using Discogs data from form.")
         process_discogs_data = discogs_data # Use form data for calculate
         pasted_discogs_data_display = discogs_data # Keep it in the textarea after calc
@@ -172,12 +167,6 @@ def index():
                            adjusted_price=None,
                            actual_price=None,
                            chart_data={})
-
-# To serve the image properly from the static folder
-@app.route("/static/images/<filename>")
-def send_image(filename):
-    return send_from_directory(os.path.join(app.root_path, "static/images"), filename)
-
 
 if __name__ == "__main__":
     from werkzeug.serving import is_running_from_reloader

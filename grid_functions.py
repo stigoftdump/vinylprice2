@@ -62,11 +62,6 @@ def calculate_score(record_quality, sleeve_quality):
     record_value = quality_to_number.get(record_quality.strip(), 0)
     sleeve_value = quality_to_number.get(sleeve_quality.strip(), 0)
 
-    # Optional: Add a warning if lookup fails for debugging
-    # if record_value == 0:
-    #    print(f"Debug: Record quality lookup failed for '{record_quality.strip()}'")
-    # if sleeve_value == 0:
-    #      print(f"Debug: Sleeve quality lookup failed for '{sleeve_quality.strip()}'")
 
     if record_value == 0: # If record quality is unknown/unmapped, score is 0
         return 0.0
