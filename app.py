@@ -5,6 +5,7 @@ import threading
 import time
 from datetime import datetime # Import datetime
 from vin import calculate_vin_data
+import os
 
 
 app = Flask(__name__)
@@ -36,14 +37,7 @@ def write_save_value(value):
 # Add a shutdown route
 @app.route('/shutdown')
 def shutdown():
-    # This will only work if the server is running with Werkzeug's development server
-    # and the request is coming from the local machine.
-    if request.environ.get('werkzeug.server.shutdown'):
-        print('Shutting down server...')
-        request.environ.get('werkzeug.server.shutdown')()
-    else:
-        print('Could not shut down server: Not running with Werkzeug or not from local machine.')
-    return 'Server shutting down...'
+    os._exit(0)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
