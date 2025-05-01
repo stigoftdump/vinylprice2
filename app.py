@@ -6,6 +6,7 @@ import time
 from datetime import datetime # Import datetime
 from vin import calculate_vin_data
 
+
 app = Flask(__name__)
 
 # File to store saved shop_var
@@ -32,6 +33,17 @@ def write_save_value(value):
     except IOError as e:
         print(f"Error writing to {SAVE_FILE}: {e}")
 
+# Add a shutdown route
+@app.route('/shutdown')
+def shutdown():
+    # This will only work if the server is running with Werkzeug's development server
+    # and the request is coming from the local machine.
+    if request.environ.get('werkzeug.server.shutdown'):
+        print('Shutting down server...')
+        request.environ.get('werkzeug.server.shutdown')()
+    else:
+        print('Could not shut down server: Not running with Werkzeug or not from local machine.')
+    return 'Server shutting down...'
 
 @app.route("/", methods=["GET", "POST"])
 def index():
