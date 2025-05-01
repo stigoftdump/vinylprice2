@@ -89,7 +89,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
 
     # --- Calculate Local Standard Deviation instead of Global RMSE ---
     residuals = y - y_pred
-    global_rmse = np.sqrt(mean_squared_error(y, y_pred)) # Keep global RMSE as a fallback
+    global_rmse = np.sqrt(mean_squared_error(y, y_pred))  # Keep global RMSE as a fallback
 
     # Define bins (e.g., by integer quality score)
     # Bins: [1, 2), [2, 3), ..., [8, 9], [9, 9+] handle edge cases
@@ -97,23 +97,44 @@ def graph_logic(reqscore, shop_var, processed_grid):
     quality_floors = np.floor(X.flatten())
     req_score_floor = math.floor(reqscore)
 
-    local_std_dev = global_rmse # Default to global RMSE
-    min_points_in_bin = 3 # Minimum points needed in a bin to calculate local std dev
+    local_std_dev = global_rmse  # Default to global RMSE
+    min_points_in_bin = 3  # Minimum points needed in a bin to calculate local std dev
 
-    # Find residuals in the bin corresponding to reqscore's floor
-    indices_in_bin = np.where(quality_floors == req_score_floor)[0]
+    # Tier 1: Exact reqscore
+    indices_in_bin_tier1 = np.where(np.isclose(X.flatten(), reqscore))[0]
 
-    if len(indices_in_bin) >= min_points_in_bin:
-        residuals_in_bin = residuals[indices_in_bin]
+    if len(indices_in_bin_tier1) >= min_points_in_bin:
+        residuals_in_bin = residuals[indices_in_bin_tier1]
         local_std_dev = np.std(residuals_in_bin)
-        print(f"Using local std dev ({local_std_dev:.2f}) for quality bin {req_score_floor} based on {len(indices_in_bin)} points.")
+        print(
+            f"Using local std dev ({local_std_dev:.2f}) for exact quality score {reqscore} based on {len(indices_in_bin_tier1)} points.")
     else:
-        # Fallback if bin has too few points (or is empty)
-        # Option 1: Use global RMSE (as implemented here)
-        # Option 2: Try adjacent bins
-        # Option 3: Use a wider bin around reqscore
-        print(f"Warning: Bin {req_score_floor} has only {len(indices_in_bin)} points (< {min_points_in_bin}). Falling back to global RMSE ({global_rmse:.2f}).")
-        local_std_dev = global_rmse
+        # Tier 2: 0.5 either side of reqscore
+        lower_bound_tier2 = reqscore - 0.5
+        upper_bound_tier2 = reqscore + 0.5
+        indices_in_bin_tier2 = np.where((X.flatten() >= lower_bound_tier2) & (X.flatten() <= upper_bound_tier2))[0]
+
+        if len(indices_in_bin_tier2) >= min_points_in_bin:
+            residuals_in_bin = residuals[indices_in_bin_tier2]
+            local_std_dev = np.std(residuals_in_bin)
+            print(
+                f"Using local std dev ({local_std_dev:.2f}) for quality range [{lower_bound_tier2:.2f}, {upper_bound_tier2:.2f}] based on {len(indices_in_bin_tier2)} points.")
+        else:
+            # Tier 3: 1.0 either side of reqscore
+            lower_bound_tier3 = reqscore - 1.0
+            upper_bound_tier3 = reqscore + 1.0
+            indices_in_bin_tier3 = np.where((X.flatten() >= lower_bound_tier3) & (X.flatten() <= upper_bound_tier3))[0]
+
+            if len(indices_in_bin_tier3) >= min_points_in_bin:
+                residuals_in_bin = residuals[indices_in_bin_tier3]
+                local_std_dev = np.std(residuals_in_bin)
+                print(
+                    f"Using local std dev ({local_std_dev:.2f}) for quality range [{lower_bound_tier3:.2f}, {upper_bound_tier3:.2f}] based on {len(indices_in_bin_tier3)} points.")
+            else:
+                # Tier 4: Fallback to global RMSE
+                print(
+                    f"Warning: Insufficient points in tiered bins for reqscore {reqscore}. Falling back to global RMSE ({global_rmse:.2f}).")
+                local_std_dev = global_rmse
 
     # --- Use local_std_dev instead of rmse ---
     predicted_price = predict_price_exp(reqscore)
