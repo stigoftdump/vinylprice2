@@ -5,12 +5,6 @@ from grid_functions import realprice
 import math
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
-    """
-    Combines a sigmoid function with an exponential increase, plus a constant.
-    - a1, b1, c1: Parameters for the initial sigmoid rise
-    - a_exp, b_exp, c_exp: Parameters for the exponential component
-    - d: Base level offset
-    """
     x = np.asarray(x)
     first_rise = a1 / (1 + np.exp(-b1 * (x - c1)))
     exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
@@ -115,9 +109,6 @@ def get_stdev(y, y_pred, X, reqscore):
     residuals = y - y_pred
     global_rmse = np.sqrt(mean_squared_error(y, y_pred))  # Keep global RMSE as a fallback
 
-    # Define bins (e.g., by integer quality score)
-    # Bins: [1, 2), [2, 3), ..., [8, 9], [9, 9+] handle edge cases
-    # Or simpler: bin based on floor(quality)
     quality_floors = np.floor(X.flatten())
     req_score_floor = math.floor(reqscore)
 

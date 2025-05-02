@@ -12,7 +12,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         # Output JSON error message from make_processed_grid
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
         return output_data
-        #sys.exit(0)
 
     # deletes points if needed
     processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
@@ -27,7 +26,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
          status_message = "No data points available for analysis."
          output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
          return output_data
-         #sys.exit(0)
 
     # gets dates and comments from the PROCESSED_GRID to go in the output
     dates = []
@@ -57,7 +55,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         status_message = f"Error during graph calculation: {e}"
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
         return output_data
-        #sys.exit(0)
 
     # Create chart data in JSON format
     chart_data = {

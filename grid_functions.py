@@ -226,15 +226,9 @@ def make_processed_grid(clipboard_content, start_date):
                     else:
                         print(f"Warning: Windows format, line i+1 missing: {row}")
 
-                # --- Calculate Score ---
                 # Pass raw quality strings; calculate_score will strip them for lookup
                 score_out = calculate_score(quality1_str_raw, quality2_str_raw)
 
-                # Adjusts the price for inflation
-
-
-
-                # --- Assemble Final Tuple ---
                 # Store the STRIPPED quality strings in the output tuple
                 processed_row_tuple = (
                     date_str_out,
@@ -258,12 +252,6 @@ def make_processed_grid(clipboard_content, start_date):
     return processed_grid, status_message
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
-    """
-    Checks if a grid row matches a point to be deleted.
-    Handles float comparisons with tolerance and missing comments.
-    Assumes grid_row structure: (date, quality1, quality2, price, ..., score, optional_comment)
-    Assumes point_to_delete structure: {'quality': float, 'price': float, 'date': str, 'comment': str or None}
-    """
     if len(grid_row) < 6: # Needs at least date, price, score
         return False
 
