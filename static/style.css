@@ -1,0 +1,382 @@
+/* static/style.css */
+
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+/* Define CSS Variables for Colors and Styles */
+:root {
+    --primary-color: #4a90e2; /* A nice blue */
+    --primary-hover-color: #357abd;
+    --secondary-color: #f4f7f6; /* Light background */
+    --text-color: #333;
+    --label-color: #555;
+    --border-color: #ccc;
+    --input-bg-color: #fff;
+    --error-color: #d9534f;
+    --success-color: #5cb85c;
+    --warning-color: #f0ad4e;
+    --info-color: #5bc0de;
+    --chart-predicted-color: orange;
+    --chart-upper-bound-color: purple;
+    --chart-actual-color: green;
+    --chart-point-color: red;
+    --chart-point-selected-color: black;
+    --chart-fit-color: var(--primary-color);
+
+    --border-radius: 6px;
+    --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --spacing-unit: 1rem; /* approx 16px */
+}
+
+/* General Body Styles */
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* Main Container */
+.main-container {
+    max-width: 1400px;
+    margin: calc(var(--spacing-unit) * 1.5) auto;
+    padding: var(--spacing-unit);
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: var(--spacing-unit);
+    padding-bottom: var(--spacing-unit);
+    border-bottom: 1px solid #eee;
+}
+
+header h1 {
+    margin: 0;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.status-message {
+    text-align: center;
+    font-weight: 500;
+    padding: calc(var(--spacing-unit) * 0.75);
+    margin: var(--spacing-unit) 0;
+    border-radius: var(--border-radius);
+    display: none; /* Hidden by default, shown if message exists */
+}
+.status-message.show {
+    display: block;
+}
+.status-message.error {
+    background-color: #fdd;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+.status-message.success {
+    background-color: #dfd;
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+.status-message.info {
+    background-color: #eef;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+
+/* Content Layout (Flexbox) */
+.content-wrapper {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 2);
+    margin-top: var(--spacing-unit);
+}
+
+.left-column {
+    flex: 1; /* Takes up 1 part of the space */
+    min-width: 300px; /* Minimum width before wrapping */
+}
+
+.right-column {
+    flex: 2; /* Takes up 2 parts of the space */
+    padding-left: var(--spacing-unit);
+    border-left: 1px solid #eee;
+}
+
+/* Form Styling */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit);
+}
+
+.form-group, .paste-container {
+    margin-bottom: calc(var(--spacing-unit) * 0.5);
+}
+
+/* Labels */
+label, .paste-label {
+    font-weight: 500;
+    color: var(--label-color);
+    margin-bottom: calc(var(--spacing-unit) * 0.3);
+    display: block; /* Ensure label takes its own line */
+    font-size: 0.9rem;
+}
+
+.label-with-tooltip {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Space between label text and icon */
+}
+
+/* Input Fields (Textarea, Select, Number, Date) */
+textarea,
+select,
+input[type="number"],
+input[type="date"] {
+    width: 100%;
+    padding: calc(var(--spacing-unit) * 0.6) calc(var(--spacing-unit) * 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 1rem;
+    background-color: var(--input-bg-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+textarea {
+    min-height: 150px;
+    resize: vertical; /* Allow vertical resize */
+    font-family: monospace;
+}
+
+select {
+    appearance: none; /* Remove default arrow */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right calc(var(--spacing-unit) * 0.75) center;
+    background-size: 0.65em auto;
+    padding-right: calc(var(--spacing-unit) * 2.5); /* Space for arrow */
+}
+
+/* Focus Styles */
+textarea:focus,
+select:focus,
+input[type="number"]:focus,
+input[type="date"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+}
+
+/* Specific Group Layouts (Date and Add Data) */
+.date-add-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-unit);
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+}
+
+.date-group {
+    flex: 1; /* Take available space */
+    min-width: 150px; /* Prevent excessive shrinking */
+}
+
+.add-data-group {
+    display: flex;
+    align-items: center;
+    white-space: nowrap; /* Keep checkbox and label together */
+}
+
+.add-data-group input[type="checkbox"] {
+    margin-right: calc(var(--spacing-unit) * 0.4);
+    accent-color: var(--primary-color); /* Modern way to style checkbox */
+    width: 1.1em;
+    height: 1.1em;
+    cursor: pointer;
+}
+
+.add-data-group label {
+    margin-bottom: 0; /* Reset default bottom margin */
+    font-weight: 400; /* Normal weight for checkbox label */
+    cursor: pointer;
+}
+
+/* Button Styling */
+button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+    padding: calc(var(--spacing-unit) * 0.8) var(--spacing-unit);
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    width: 100%;
+    margin-top: var(--spacing-unit); /* Add space above button */
+}
+
+button[type="submit"]:hover {
+    background-color: var(--primary-hover-color);
+}
+
+button[type="submit"]:active {
+    transform: scale(0.98);
+}
+
+
+/* Right Column Results */
+.right-column h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+    font-weight: 500;
+    border-bottom: 1px solid #eee;
+    padding-bottom: calc(var(--spacing-unit) * 0.5);
+}
+
+.results-container p {
+    margin: calc(var(--spacing-unit) * 0.5) 0;
+    font-size: 1.1rem;
+}
+
+.results-container strong {
+    display: inline-block;
+    min-width: 180px; /* Align values */
+}
+
+/* Specific Result Colors */
+.price-calculated { color: var(--chart-predicted-color); }
+.price-upper-bound { color: var(--chart-upper-bound-color); }
+.price-actual { color: var(--chart-actual-color); font-weight: 500; }
+.price-error { color: var(--error-color); font-weight: 500; }
+
+
+/* Chart Container */
+#myChart {
+    margin-top: calc(var(--spacing-unit) * 1.5);
+    max-width: 100%; /* Ensure chart doesn't overflow */
+}
+
+/* Tooltip Styling */
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    line-height: 1; /* Prevent icon from affecting line height */
+}
+
+.tooltip-container img {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle; /* Align icon better with text */
+}
+
+.tooltip-text {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    font-size: 0.8rem;
+    font-weight: 400; /* Normal weight for tooltip */
+    line-height: 1.4;
+    /* Positioning */
+    position: absolute;
+    z-index: 10;
+    bottom: 130%; /* Position above the icon */
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    /* Fade-in effect */
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Small arrow for the tooltip */
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* At the bottom of the tooltip */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Show tooltip on hover */
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+
+/* Responsive Design */
+@media (max-width: 900px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+
+    .right-column {
+        padding-left: 0;
+        border-left: none;
+        margin-top: calc(var(--spacing-unit) * 1.5);
+        padding-top: calc(var(--spacing-unit) * 1.5);
+        border-top: 1px solid #eee;
+    }
+}
+
+@media (max-width: 500px) {
+    .main-container {
+        margin: var(--spacing-unit) auto;
+        padding: calc(var(--spacing-unit) * 0.8);
+    }
+
+    .date-add-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .add-data-group {
+        width: 100%; /* Make checkbox group take full width */
+        margin-top: calc(var(--spacing-unit) * 0.5);
+    }
+
+     header h1 {
+        font-size: 1.5rem;
+    }
+
+     .results-container strong {
+        min-width: 150px; /* Adjust alignment for smaller screens */
+    }
+}
+
+.chart-container {
+    position: relative; /* Required for Chart.js responsiveness within */
+    height: 500px;      /* Define a specific height */
+    width: 100%;        /* Take full width of the parent column */
+    margin-top: calc(var(--spacing-unit) * 1.5); /* Keep the margin */
+    max-width: 100%;    /* Ensure it doesn't overflow horizontally */
+}
+
+/* Optional: Adjust canvas style if needed */
+#myChart {
+    /* max-width: 100%; */ /* No longer needed directly on canvas if container handles width */
+    margin-top: 0; /* Reset margin if container has it */
+}
+
+/* Adjustments for smaller screens if needed */
+@media (max-width: 600px) {
+    .chart-container {
+        height: 400px; /* Maybe make it shorter on small screens */
+    }
+}

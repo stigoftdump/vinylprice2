@@ -4,814 +4,523 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Price Calculator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        h1 {
-            text-align: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-
-        .separator {
-            width: 80%;
-            margin: 0 auto 20px;
-            border-top: 1px solid #ccc;
-        }
-
-        .container {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px;
-        }
-
-        .left-column {
-            width: 30%;
-        }
-
-        .paste-container {
-            margin-bottom: 20px;
-        }
-
-        .paste-label-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-
-        .paste-label {
-            font-weight: bold;
-            margin-right: 5px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            font-family: monospace;
-            text-align: left;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .form-group label {
-            font-weight: bold;
-            width: 160px;
-            /* Adjusted width */
-            text-align: left;
-            margin-right: 10px;
-            display: flex;
-            /* For aligning text and icon */
-            align-items: center;
-        }
-
-        /* Style for the checkbox label to align it better */
-        .form-group label input[type="checkbox"] {
-            margin-right: 5px;
-            /* Space between checkbox and text */
-        }
-
-
-        .form-group label .tooltip-container {
-            margin-left: 5px;
-            /* Space between text and icon */
-        }
-
-        .form-group input[type="number"],
-        .form-group select,
-        .form-group input[type="date"] {
-            /* Added date input */
-            width: calc(100% - 170px);
-            /* Adjusted width */
-            padding: 8px;
-            margin-top: 0;
-        }
-
-        /* Specific style for the date input to allow full width */
-        .form-group input[type="date"] {
-            width: auto;
-            /* Let the browser decide based on content */
-            flex-grow: 1;
-            /* Allow it to take available space in its flex container */
-            margin-right: 0;
-            /* Remove margin right if inside a flex container */
-        }
-
-
-        .right-column {
-            width: 65%;
-            text-align: left;
-            padding-left: 20px
-        }
-
-        label {
-            font-weight: bold;
-        }
-
-        select,
-        input[type="number"] {
-            padding: 8px;
-        }
-
-        /* Style for button container */
-        .button-container {
-            margin-top: 20px;
-            display: flex;
-            /* Use flexbox */
-            gap: 10px;
-            /* Add space between buttons */
-        }
-
-        button {
-            padding: 10px 20px;
-            color: white;
-            border: none;
-            cursor: pointer;
-            flex-grow: 1;
-            /* Make buttons grow to fill space */
-            text-align: center;
-        }
-
-        /* Style for Calculate button */
-        button[name="action"][value="calculate"] {
-            background-color: #4CAF50;
-            /* Green */
-        }
-
-        button[name="action"][value="calculate"]:hover {
-            background-color: #45a049;
-        }
-
-        /* Style for Rerun button */
-        button[name="action"][value="rerun"] {
-            background-color: #008CBA;
-            /* Blue */
-        }
-
-        button[name="action"][value="rerun"]:hover {
-            background-color: #007b9e;
-        }
-
-
-        .output {
-            margin-top: 20px;
-        }
-
-        /* Tooltip container */
-        .tooltip-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        /* Tooltip text styling */
-        .tooltip-text {
-            visibility: hidden;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 12px;
-            /* Positioning */
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-
-            /* Fade-in effect */
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        /* Show tooltip on hover */
-        .tooltip-container:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-    </style>
+    <title>Vinyl Price Estimator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 </head>
 
 <body>
 
-    <h1>Price Calculator</h1>
-    <div class="status-message" style="text-align: center; font-weight: bold;">{{ status_message }}</div>
-    <div class="separator"></div>
-
-    <div class="container">
-        <div class="left-column">
-            <form method="POST">
-            <div class="paste-container">
-                <div class="paste-label-container">
-                    <label for="pasted_discogs_data" class="paste-label">
-                        Paste Discogs data here:
-                        <div class="tooltip-container" style="cursor: pointer;">
-                            <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
-                            <div class="tooltip-text">Paste discogs data here for the engine to pick up and use</div>
-                        </div>
-                    </label>
-                </div>
-                <textarea id="pasted_discogs_data" name="pasted_discogs_data">{{ pasted_discogs_data }}</textarea>
+    <div class="main-container">
+        <header>
+            <h1>Vinyl Price Estimator</h1>
+            {% set status_class = 'info' %}
+            {% if status_message and 'Error' in status_message %}
+                {% set status_class = 'error' %}
+            {% elif status_message and ('Completed' in status_message or 'calculated' in status_message) %}
+                {% set status_class = 'success' %}
+            {% endif %}
+            <div class="status-message {{ status_class if status_message else '' }} {{ 'show' if status_message else '' }}">
+                {{ status_message }}
             </div>
-                <div class="form-group">
-                    <label for="media">
-                        Media:
-                        <div class="tooltip-container" style="cursor: pointer;">
-                            <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
-                            <div class="tooltip-text">The grading of the media.</div>
-                        </div>
-                    </label>
-                    <select id="media" name="media">
-                        <option value="9" {% if media == 9 %}selected{% endif %}>Mint (M)</option>
-                        <option value="8" {% if media == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
-                        <option value="7" {% if media == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
-                        <option value="6" {% if media == 6 %}selected{% endif %}>Very Good (VG)</option>
-                        <option value="5" {% if media == 5 %}selected{% endif %}>Good Plus (G+)</option>
-                        <option value="4" {% if media == 4 %}selected{% endif %}>Good (G)</option>
-                        <option value="3" {% if media == 3 %}selected{% endif %}>Fair (F)</option>
-                        <option value="2" {% if media == 2 %}selected{% endif %}>Poor (P)</option>
-                        <option value="1" {% if media == 1 %}selected{% endif %}>Generic</option>
-                        <option value="1" {% if media == 1 %}selected{% endif %}>Not Graded</option>
-                        <option value="1" {% if media == 1 %}selected{% endif %}>No Cover</option>
-                    </select>
-                </div>
+        </header>
 
-                <div class="form-group">
-                    <label for="sleeve">
-                        Sleeve:
-                        <div class="tooltip-container" style="cursor: pointer;">
-                             <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
-                            <div class="tooltip-text">The grading of the sleeve.</div>
-                        </div>
-                    </label>
-                    <select id="sleeve" name="sleeve">
-                         <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
-                        <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-</option>
-                        <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
-                        <option value="6" {% if sleeve == 6 %}selected{% endif %}>Very Good (VG)</option>
-                        <option value="5" {% if sleeve == 5 %}selected{% endif %}>Good Plus (G+)</option>
-                        <option value="4" {% if sleeve == 4 %}selected{% endif %}>Good (G)</option>
-                        <option value="3" {% if sleeve == 3 %}selected{% endif %}>Fair (F)</option>
-                        <option value="2" {% if sleeve == 2 %}selected{% endif %}>Poor (P)</option>
-                         <option value="1" {% if sleeve == 1 %}selected{% endif %}>Generic</option>
-                        <option value="1" {% if sleeve == 1 %}selected{% endif %}>Not Graded</option>
-                        <option value="1" {% if sleeve == 1 %}selected{% endif %}>No Cover</option>
-                    </select>
-                </div>
 
-                <div class="form-group">
-                    <label for="shop_var">
-                        Shop Variable:
-                        <div class="tooltip-container" style="cursor: pointer;">
-                             <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
-                            <div class="tooltip-text">How much of the price variance you should be applied to the calculated price.</div>
-                        </div>
-                    </label>
-                     <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
-                </div>
-
-                <div class="form-group" style="display: flex; align-items: center;">
-                    <div style="flex-grow: 1; display: flex; align-items: center;">
-                        <label for="start_date" style="display: flex; align-items: center; margin-right: 10px; width: auto;"> Start Date of data:
-                            <div class="tooltip-container" style="cursor: pointer;">
-                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
-                                <div class="tooltip-text">Select the start date for the data you want to include.</div>
+        <div class="content-wrapper">
+            <div class="left-column">
+                <form method="POST">
+                    <div class="paste-container">
+                        <label for="pasted_discogs_data" class="paste-label label-with-tooltip">
+                            <span>Paste Discogs Sales Data:</span>
+                            <div class="tooltip-container">
+                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                <span class="tooltip-text">Paste copied sales history from Discogs here.</span>
                             </div>
                         </label>
-                        <input type="date" id="start_date" name="start_Date" value="{{ start_date }}">
+                        <textarea id="pasted_discogs_data" name="pasted_discogs_data" placeholder="Paste data here...">{{ pasted_discogs_data }}</textarea>
                     </div>
-                    <div style="margin-left: 10px; display: flex; align-items: center;"> <input type="checkbox" id="add_data" name="add_data" {% if add_data %}checked{% endif %}>
-                        <label for="add_data" style="width: auto; margin-right: 5px; margin-left: 0; font-weight: normal;"> Add Data
-                            <div class="tooltip-container" style="cursor: pointer;">
-                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info" style="width: 16px; height: 16px;">
-                                <div class="tooltip-text">This will add the current data to the previous run's data rather than replacing it.</div>
+
+                    <div class="form-group">
+                        <label for="media" class="label-with-tooltip">
+                            <span>Media Condition:</span>
+                             <div class="tooltip-container">
+                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                <span class="tooltip-text">Select the grading for the vinyl/media itself.</span>
                             </div>
                         </label>
+                        <select id="media" name="media">
+                            <option value="9" {% if media == 9 %}selected{% endif %}>Mint (M)</option>
+                            <option value="8" {% if media == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
+                            <option value="7" {% if media == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
+                            <option value="6" {% if media == 6 %}selected{% endif %}>Very Good (VG)</option>
+                            <option value="5" {% if media == 5 %}selected{% endif %}>Good Plus (G+)</option>
+                            <option value="4" {% if media == 4 %}selected{% endif %}>Good (G)</option>
+                            <option value="3" {% if media == 3 %}selected{% endif %}>Fair (F)</option>
+                            <option value="2" {% if media == 2 %}selected{% endif %}>Poor (P)</option>
+                            <option value="1" {% if media == 1 %}selected{% endif %}>Generic / Not Graded / No Cover</option>
+                        </select>
                     </div>
-                </div>
 
-                 <input type="hidden" id="saved_discogs_data" name="saved_discogs_data">
+                    <div class="form-group">
+                         <label for="sleeve" class="label-with-tooltip">
+                            <span>Sleeve Condition:</span>
+                             <div class="tooltip-container">
+                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                <span class="tooltip-text">Select the grading for the record sleeve/cover.</span>
+                            </div>
+                        </label>
+                        <select id="sleeve" name="sleeve">
+                            <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
+                            <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
+                            <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
+                            <option value="6" {% if sleeve == 6 %}selected{% endif %}>Very Good (VG)</option>
+                            <option value="5" {% if sleeve == 5 %}selected{% endif %}>Good Plus (G+)</option>
+                            <option value="4" {% if sleeve == 4 %}selected{% endif %}>Good (G)</option>
+                            <option value="3" {% if sleeve == 3 %}selected{% endif %}>Fair (F)</option>
+                            <option value="2" {% if sleeve == 2 %}selected{% endif %}>Poor (P)</option>
+                            <option value="1" {% if sleeve == 1 %}selected{% endif %}>Generic / Not Graded / No Cover</option>
+                        </select>
+                    </div>
 
-                <div class="button-container">
-                    <button type="submit" name="action" value="calculate">Calculate</button>
-                </div>
+                    <div class="form-group">
+                         <label for="shop_var" class="label-with-tooltip">
+                           <span>Shop Variance Factor:</span>
+                             <div class="tooltip-container">
+                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                <span class="tooltip-text">Adjusts the final price based on uncertainty (0.1-2.0). Lower=closer to prediction, Higher=closer to upper bound.</span>
+                            </div>
+                        </label>
+                        <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
+                    </div>
+
+                    <div class="form-group date-add-group">
+                         <div class="date-group">
+                             <label for="start_date" class="label-with-tooltip">
+                               <span>Include Sales From:</span>
+                                 <div class="tooltip-container">
+                                    <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                    <span class="tooltip-text">Only include sales data from this date onwards.</span>
+                                </div>
+                            </label>
+                            <input type="date" id="start_date" name="start_Date" value="{{ start_date }}">
+                         </div>
+                         <div class="add-data-group">
+                            <input type="checkbox" id="add_data" name="add_data" {% if add_data %}checked{% endif %}>
+                             <label for="add_data" class="label-with-tooltip">
+                                <span>Add to Previous Data</span>
+                                <div class="tooltip-container">
+                                    <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                    <span class="tooltip-text">Check this to merge the pasted data with data from the last calculation. Uncheck to replace.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="saved_discogs_data" name="saved_discogs_data">
+                    <input type="hidden" id="selected_points_to_delete" name="selected_points_to_delete">
+
+                    <div class="button-container">
+                        <button type="submit" name="action" value="calculate">Estimate Price</button>
+                        </div>
 
                 </form>
-        </div>
+            </div> <div class="right-column">
+                 {% if calculated_price is not none or status_message and 'Error' in status_message %}
+                 <div class="results-container">
+                     <h2>Estimation Results:</h2>
+                     {% if calculated_price == 'Error' or (calculated_price is none and status_message and 'Error' in status_message) %}
+                        <p class="price-error"><strong>Calculation Error:</strong> {{ status_message }}</p>
+                     {% elif calculated_price is not none %}
+                        <p class="price-calculated"><strong>Predicted Price:</strong> £{{ calculated_price }}</p>
+                        <p class="price-upper-bound"><strong>Upper Bound (Pred + SD):</strong> £{{ adjusted_price }}</p>
+                        <p class="price-actual"><strong>Suggested Price:</strong> £{{ actual_price }}</p>
+                     {% endif %}
+                 </div>
 
-        <div class="right-column">
-             {% if calculated_price is not none %}
-            <h2>Results:</h2>
-            {% if calculated_price == 'Error' %}
-            <p style="color: red;"><strong>Calculation Error:</strong> {{ status_message }}</p>
-            {% else %}
-            <p style="color: orange;"><strong>Calculated Price:</strong> £{{ calculated_price }}</p>
-            <p style="color: purple;"><strong>Upper Bound of Price:</strong> £{{ adjusted_price }}</p>
-            <p style="color: green;"><strong>Adjusted Price:</strong> £{{ actual_price }}</p>
-            {% endif %}
+                {% if chart_data %}
+                   <div class="chart-container">
+                       <canvas id="myChart"></canvas>
+                   </div>
+                   <script id="chart-data-json" type="application/json">
+                       {{ chart_data | tojson | safe }}
+                   </script>
+                {% endif %}
 
-             {% if chart_data %}
-            <canvas id="myChart"></canvas>
-            {% endif %}
+                 {% endif %}
+            </div> </div> </div> {% if chart_data %}
+    <script>
+        // --- Chart.js Logic (largely unchanged, but check variable names) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const jsonScriptTag = document.getElementById('chart-data-json');
+            const jsonString = jsonScriptTag.textContent;
+            const chartData = JSON.parse(jsonString);
 
-            <script id="chart-data-json" type="application/json">
-                {{ chart_data | tojson }}
-            </script>
-            {% if chart_data %}
-            <script>
-                // Get the canvas element
-                const ctx = document.getElementById('myChart').getContext('2d');
+            const labels = chartData.labels; // Quality labels (strings)
+            const prices = chartData.prices; // Price values
+            const predictedPrices = chartData.predicted_prices; // Best fit line prices
+            const predictedQualities = chartData.predicted_qualities; // Best fit line qualities
+            const reqscore = parseFloat(chartData.reqscore); // Requested quality score
+            const predictedPrice = chartData.predicted_price; // Predicted price at reqscore
+            const upperBound = chartData.upper_bound; // Upper bound at reqscore
+            const actualPrice = chartData.actual_price; // Actual price at reqscore
+            const dates = chartData.dates;
+            const comments = chartData.comments;
 
-                // --- Get the JSON string from the script tag ---
-                const jsonScriptTag = document.getElementById('chart-data-json');
-                const jsonString = jsonScriptTag.textContent;
-                const chartData = JSON.parse(jsonString);
-                // -----------------------------------------------
+            // Determine axis min/max dynamically but ensure reqscore is visible
+            const all_qualities = labels.map(parseFloat).concat(predictedQualities.map(parseFloat));
+            const minQualityInData = all_qualities.length > 0 ? Math.min(...all_qualities) : 1;
+            const maxQualityInData = all_qualities.length > 0 ? Math.max(...all_qualities) : 9;
+            const xAxisMin = Math.floor(Math.min(minQualityInData, reqscore)); // Ensure reqscore is included
+            const xAxisMax = Math.ceil(Math.max(maxQualityInData, reqscore)); // Ensure reqscore is included
 
-                // Extract data for Chart.js
-                const labels = chartData.labels; // Quality labels (strings)
-                const prices = chartData.prices; // Price values
-                const predictedPrices = chartData.predicted_prices; // Best fit line prices
-                const predictedQualities = chartData.predicted_qualities; // Best fit line qualities
-                const reqscore = parseFloat(chartData.reqscore); // Requested quality score
-                const predictedPrice = chartData.predicted_price; // Predicted price at reqscore
-                const upperBound = chartData.upper_bound; // Upper bound at reqscore
-                const actualPrice = chartData.actual_price; // Actual price at reqscore
+            let selectedPoints = []; // Array to hold selected points data
 
-                // Extract additional data (dates and comments) - Ensure these are present in your chart_data JSON from Flask
-                const dates = chartData.dates;
-                const comments = chartData.comments;
+            function doPointsMatch(point1, point2) {
+                const tolerance = 0.0001;
+                return (
+                    Math.abs(point1.quality - point2.quality) < tolerance &&
+                    Math.abs(point1.price - point2.price) < tolerance &&
+                    point1.date === point2.date &&
+                    (point1.comment || "") === (point2.comment || "")
+                );
+            }
 
-                // Determine the minimum quality for the x-axis
-                // Ensure predictedQualities is not empty before using Math.min/max
-                const minQuality = predictedQualities && predictedQualities.length > 0 ? Math.min(...predictedQualities) : 1; // Default to 1 if empty
-                const xAxisMin = Math.floor(minQuality);
+            function handlePointClick(event, elements, chart) {
+                if (elements.length > 0) {
+                    const clickedElement = elements[0];
+                    const datasetIndex = clickedElement.datasetIndex;
+                    const dataIndex = clickedElement.index;
 
+                    // Only interact with the 'Items Sold' dataset (index 0)
+                    if (datasetIndex === 0) {
+                        const clickedPointData = {
+                            quality: parseFloat(labels[dataIndex]),
+                            price: prices[dataIndex],
+                            date: dates[dataIndex],
+                            comment: comments[dataIndex]
+                        };
 
-                // --- Array to hold data of selected points (using more attributes) ---
-                // This array will store the data of points the user clicks
-                let selectedPoints = [];
-                // --------------------------------------------------------------------
+                        const selectedIndex = selectedPoints.findIndex(p => doPointsMatch(p, clickedPointData));
 
-                // --- Helper function to check if two points match by data ---
-                // Used to find a point in selectedPoints array based on its properties
-                function doPointsMatch(point1, point2) {
-                    // Use a small tolerance for float comparisons (quality and price)
-                    const tolerance = 0.0001;
-                     return (
-                        Math.abs(point1.quality - point2.quality) < tolerance &&
-                        Math.abs(point1.price - point2.price) < tolerance &&
-                        point1.date === point2.date &&
-                        (point1.comment || "") === (point2.comment || "") // Treat null/undefined/empty string comments the same
-                    );
-                }
-                // ----------------------------------------------------
+                        const backgroundColors = chart.data.datasets[datasetIndex].backgroundColor;
 
-
-                // --- Function to handle point click ---
-                // This function is called by Chart.js when a point on the chart is clicked
-                 function handlePointClick(event) {
-                    const activeElements = myChart.getElementsAtEventForMode(event, 'nearest', {
-                         intersect: true
-                    }, false);
-
-
-                     if (activeElements.length > 0) {
-                         const clickedElement = activeElements[0];
-                         const datasetIndex = clickedElement.datasetIndex;
-                         const dataIndex = clickedElement.index;
-
-                         // Only interact with the 'Items Sold' dataset (assuming it's the first one, index 0)
-                         if (datasetIndex === 0) {
-                             // Get the full data for the clicked point from your original data arrays
-                             const clickedPointData = {
-                                 quality: parseFloat(labels[dataIndex]), // Use the quality label (converted to number)
-                                 price: prices[dataIndex], // Use the price from the prices array
-                                 date: dates[dataIndex], // Use the date
-                                 comment: comments[dataIndex] // Use the comment
-                             };
-
-                             // Check if the point is already in the selectedPoints array
-                             const selectedIndex = selectedPoints.findIndex(p => doPointsMatch(p, clickedPointData));
-
-
-                             if (selectedIndex > -1) {
-                                 // Point is already selected (black), deselect it (turn back to red)
-                                 console.log('Point found in selectedPoints. Deselecting...');
-                                 // Remove the point from the selectedPoints array
-                                 selectedPoints.splice(selectedIndex, 1);
-                                 // Change the point's color back to red in the chart data
-                                 myChart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'red'; // Explicitly set to red
-                                 console.log('Point deselected. New color: red');
-
-                             } else {
-                                 // Point is not selected (red), select it (turn black)
-                                 console.log('Point NOT found in selectedPoints. Selecting...');
-                                 // Add the point data to the selectedPoints array
-                                 selectedPoints.push(clickedPointData); // Store the point data
-                                 // Change the point's color to black in the chart data
-                                 myChart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'black';
-                                 console.log('Point selected. New color: black');
-                             }
-
-                             console.log('Selected Points AFTER change:', selectedPoints);
-
-                             // Update the chart to visually show the color change
-                             myChart.update();
-                             console.log('Chart update called.');
-                         }
-                     } else {
-                         console.log('No active elements found at click location.');
-                     }
-                 }
-
-                 // *** ADD: Function to wrap text ***
-                function wrapText(text, maxLength) {
-                    if (!text) return []; // Return empty array if no text
-                    const words = text.split(' ');
-                    let lines = [];
-                    let currentLine = '';
-
-                    words.forEach(word => {
-                        // Check if adding the next word exceeds the maxLength
-                        if ((currentLine + word).length > maxLength) {
-                            // If currentLine is not empty, push it to lines
-                            if (currentLine.length > 0) {
-                                lines.push(currentLine.trim());
+                        if (selectedIndex > -1) { // Point is selected -> Deselect
+                            selectedPoints.splice(selectedIndex, 1);
+                             // Ensure backgroundColors is an array before modifying
+                            if (Array.isArray(backgroundColors)) {
+                                backgroundColors[dataIndex] = 'red'; // Back to original color
+                            } else { // If it's a single string, convert to array
+                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
+                                chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'red';
                             }
-                            // Start a new line with the current word
-                            currentLine = word + ' ';
-                        } else {
-                            // Otherwise, add the word to the current line
-                            currentLine += word + ' ';
+                        } else { // Point is not selected -> Select
+                            selectedPoints.push(clickedPointData);
+                             if (Array.isArray(backgroundColors)) {
+                                backgroundColors[dataIndex] = 'black'; // Selected color
+                            } else {
+                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
+                                chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'black';
+                            }
                         }
-                    });
-
-                    // Push the last remaining line
-                    if (currentLine.length > 0) {
-                        lines.push(currentLine.trim());
+                        chart.update(); // Update the chart visually
                     }
-                    return lines;
                 }
-                // *** END ADD ***
+            }
 
 
-                // Chart configuration options - Add the onClick handler here
-                const chartOptions = {
-                    responsive: true,
-                    onClick: handlePointClick, // Add the click handler to make points clickable
-                    plugins: {
+            function wrapText(text, maxLength) {
+                if (!text) return [];
+                const words = text.split(' ');
+                let lines = [];
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + word).length > maxLength) {
+                        if (currentLine.length > 0) lines.push(currentLine.trim());
+                        currentLine = word + ' ';
+                    } else {
+                        currentLine += word + ' ';
+                    }
+                });
+                if (currentLine.length > 0) lines.push(currentLine.trim());
+                return lines;
+            }
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false, // Allow chart to resize height
+                aspectRatio: 1.5, // Adjust aspect ratio if needed
+                onClick: handlePointClick,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Price vs. Quality Analysis',
+                        font: { size: 16, weight: '500' },
+                        padding: { top: 10, bottom: 20 }
+                    },
+                    legend: {
+                        position: 'bottom', // Move legend below chart
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: { weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        padding: 10,
+                        cornerRadius: 6,
+                        displayColors: false, // Don't show color box in tooltip
+                        callbacks: {
+                             label: function(context) {
+                                let labelLines = [];
+                                const index = context.dataIndex;
+
+                                if (context.datasetIndex === 0) { // 'Items Sold' points
+                                    const date = dates && dates[index] ? dates[index] : 'N/A';
+                                    const price = prices && prices[index] !== undefined ? prices[index] : 'N/A';
+                                    const comment = comments && comments[index] ? comments[index] : 'No comment';
+                                    const qualityScore = labels && labels[index] ? parseFloat(labels[index]).toFixed(2) : 'N/A';
+
+                                    let priceLabel = 'Price';
+                                    if (date !== 'N/A') {
+                                        const saleYear = new Date(date).getFullYear();
+                                         // Use current year logic if needed
+                                        const currentYear = new Date().getFullYear();
+                                        if (saleYear < currentYear) {
+                                            priceLabel = `Infl.-Adj. Price (from ${saleYear})`;
+                                        } else {
+                                             priceLabel = `Price (${saleYear})`;
+                                        }
+                                    }
+
+                                    labelLines.push(`Date: ${date}`);
+                                     labelLines.push(`Quality Score: ${qualityScore}`);
+                                    labelLines.push(`${priceLabel}: ${new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price)}`);
+
+                                    if (comment && comment !== 'No comment') {
+                                        const wrappedComment = wrapText(comment, 40);
+                                        labelLines.push(`Comment: ${wrappedComment[0]}`);
+                                        for (let i = 1; i < wrappedComment.length; i++) {
+                                            labelLines.push(`  ${wrappedComment[i]}`);
+                                        }
+                                    } else if (comment === 'No comment'){
+                                        labelLines.push(`Comment: ${comment}`);
+                                    }
+
+                                    return labelLines;
+                                } else {
+                                    // Default tooltip for lines (like Best Fit)
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                     if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: { // Use named annotations
+                            predictedLine: {
+                                type: 'line',
+                                yMin: predictedPrice,
+                                yMax: predictedPrice,
+                                xMin: xAxisMin, // Start from axis
+                                xMax: reqscore,
+                                borderColor: 'orange',
+                                borderWidth: 2,
+                                borderDash: [6, 6],
+                                label: {
+                                    content: `Predicted: £${predictedPrice.toFixed(2)}`,
+                                    enabled: true,
+                                    position: 'start',
+                                     backgroundColor: 'rgba(255,165,0,0.7)',
+                                    color: 'black',
+                                    font: { size: 10 },
+                                     yAdjust: -10
+                                }
+                            },
+                             upperBoundLine: {
+                                type: 'line',
+                                yMin: upperBound,
+                                yMax: upperBound,
+                                xMin: xAxisMin,
+                                xMax: reqscore,
+                                borderColor: 'purple',
+                                borderWidth: 2,
+                                borderDash: [6, 6],
+                                label: {
+                                    content: `Upper Bound: £${upperBound.toFixed(2)}`,
+                                    enabled: true,
+                                    position: 'start',
+                                    backgroundColor: 'rgba(128,0,128,0.7)',
+                                    color: 'white',
+                                    font: { size: 10 },
+                                    yAdjust: 10
+                                }
+                            },
+                            actualPriceLine: {
+                                type: 'line',
+                                yMin: actualPrice,
+                                yMax: actualPrice,
+                                xMin: xAxisMin,
+                                xMax: reqscore,
+                                borderColor: 'green',
+                                borderWidth: 2,
+                                borderDash: [6, 6],
+                                 label: {
+                                    content: `Suggested: £${actualPrice.toFixed(2)}`,
+                                    enabled: true,
+                                    position: 'start',
+                                    backgroundColor: 'rgba(0,128,0,0.7)',
+                                     color: 'white',
+                                    font: { size: 10 },
+                                     yAdjust: 0 // Adjust as needed based on other labels
+                                }
+                            },
+                            reqScoreLine: { // Vertical line at reqscore
+                                type: 'line',
+                                xMin: reqscore,
+                                xMax: reqscore,
+                                yMin: 0, // Start from bottom axis
+                                yMax: actualPrice, // Go up to the actual price line
+                                borderColor: 'green',
+                                borderWidth: 2
+                            },
+                            intersectionPoint: { // Point at intersection
+                                type: 'point',
+                                xValue: reqscore,
+                                yValue: actualPrice,
+                                backgroundColor: 'green',
+                                radius: 6
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
                         title: {
                             display: true,
-                            text: 'Predicted Prices'
+                            text: 'Combined Quality Score',
+                            font: { size: 14, weight: '500'}
                         },
-                        legend: {
-                            position: 'top',
-                            align: 'end',
-                            labels: {
-                                usePointStyle: true,
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    const index = context.dataIndex; // Get the index of the hovered point
-
-                                    // Only show custom tooltip for the 'Items Sold' dataset (assuming it's the first one)
-                                    if (context.datasetIndex === 0) {
-                                        // Make sure dates and comments arrays exist and have the data
-                                        const date = dates && dates[index] ? dates[index] : 'N/A';
-                                        const price = prices && prices[index] !== undefined ? prices[index] : 'N/A'; // Use price from the original list
-                                        const comment = comments && comments[index] ? comments[index] : 'No comment';
-
-
-                                        let tooltipLines = [];
-
-                                        // Add Date line if available
-                                        if (date !== 'N/A') {
-                                            tooltipLines.push(`Date: ${date}`);
-                                        }
-
-                                       // Determine the price label based on the year
-                                        let priceLabel = 'Price';
-                                        if (date !== 'N/A') {
-                                            const saleYear = new Date(date).getFullYear();
-                                            if (saleYear < 2025) {
-                                                priceLabel = 'Inflation-adjusted Price';
-                                            }
-                                        }
-
-                                        // Add Price line if available
-                                        if (price !== 'N/A') {
-                                            tooltipLines.push(`${priceLabel}: ${new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price)}`);
-                                        }
-
-                                        // --- Use the wrapText function for comments ---
-                                        // wrapText function needs to be defined elsewhere if not already
-                                        // (Assuming it's available from your previous code)
-                                        if (comment && comment !== 'No comment') {
-                                            // Define the maximum length for comment lines
-                                            const maxCommentLineLength = 50; // Adjust as needed
-                                             // Ensure wrapText function is defined before use
-                                            if (typeof wrapText === "function") {
-                                                 const commentLines = wrapText(comment, maxCommentLineLength); // Split the comment
-
-                                                 if (commentLines.length > 0) {
-                                                     // Add the first line prefixed with "Comment:"
-                                                     tooltipLines.push(`Comment: ${commentLines[0]}`);
-                                                     // Add subsequent lines with indentation
-                                                     for (let i = 1; i < commentLines.length; i++) {
-                                                         tooltipLines.push(`  ${commentLines[i]}`); // Add indentation for wrapping lines
-                                                     }
-                                                 } else if (comment.length > 0) {
-                                                     // Fallback in case wrapText returns empty for a non-empty comment
-                                                     tooltipLines.push('Comment: ' + comment);
-                                                 }
-                                            } else {
-                                                 // Fallback if wrapText is not defined
-                                                 tooltipLines.push('Comment: ' + comment);
-                                            }
-
-                                        } else if (comment === 'No comment') {
-                                            tooltipLines.push(`Comment: ${comment}`); // Still show "No comment" if that's the case
-                                        }
-                                        // ---------------------------------------------
-
-
-                                        // If no specific data is available for some reason, fall back or show a default
-                                        if (tooltipLines.length === 0) {
-                                            return 'No data available'; // Or some other default message
-                                        }
-
-                                        return tooltipLines; // Return the array of lines for the tooltip
-                                    } else {
-                                        // For other datasets (lines, etc.), use the default label logic
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.y !== null) {
-                                            label += new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(context.parsed.y);
-                                        }
-                                        return label;
-                                    }
+                        type: 'linear', // Ensure x-axis is treated linearly
+                        min: xAxisMin,
+                        max: xAxisMax,
+                         ticks: {
+                             stepSize: 1,
+                             callback: function(value, index, values) {
+                                const qualityMap = {
+                                        1: 'Gen/NG', 2: 'P', 3: 'F', 4: 'G', 5: 'G+',
+                                        6: 'VG', 7: 'VG+', 8: 'NM', 9: 'M'
+                                };
+                                // Show integer ticks and map them
+                                if (Number.isInteger(value) && value >= 1 && value <= 9) {
+                                     return qualityMap[value] || value;
                                 }
-                            }
-                        },
-                        annotation: { // Enable the annotation plugin
-                            annotations: [
-                                { // Predicted Price as a horizontal box
-                                    type: 'box',
-                                    xMin: 0,
-                                    xMax: reqscore,
-                                    yMin: predictedPrice - 0.1,
-                                    yMax: predictedPrice + 0.1,
-                                    borderColor: 'orange',
-                                    backgroundColor: 'orange'
-                                },
-                                { // Upper Bound as a horizontal box
-                                    type: 'box',
-                                    xMin: 0,
-                                    xMax: reqscore,
-                                    yMin: upperBound - 0.1,
-                                    yMax: upperBound + 0.1,
-                                    borderColor: 'purple',
-                                    backgroundColor: 'purple'
-                                },
-                                { // Actual Price as a horizontal box
-                                    type: 'box',
-                                    xMin: 0,
-                                    xMax: reqscore,
-                                    yMin: actualPrice - 0.1,
-                                    yMax: actualPrice + 0.1,
-                                    borderColor: 'green',
-                                    backgroundColor: 'green'
-                                },
-                                { // Vertical line from axis to actual price
-                                    type: 'box',
-                                    xMin: reqscore - 0.005,
-                                    xMax: reqscore + 0.005,
-                                    yMin: 0,
-                                    yMax: actualPrice,
-                                    borderColor: 'green',
-                                    backgroundColor: 'green'
-                                },
-                                { // Added point at intersection
-                                    type: 'point',
-                                    xValue: reqscore,
-                                    yValue: actualPrice,
-                                    backgroundColor: 'green',
-                                    radius: 10
-                                }
-                            ]
+                                // Don't show labels for non-integer ticks unless needed
+                                return null;
+                             },
+                            font: { size: 12 }
+                         },
+                        grid: {
+                            color: '#eee' // Lighter grid lines
                         }
                     },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Quality'
-                            },
-                            ticks: {
-                                stepSize: 1,
-                                callback: function(value, index, values) {
-                                    const qualityMap = {
-                                        '1': 'Generic',
-                                        '2': 'Poor (P)',
-                                        '3': 'Fair (F)',
-                                        '4': 'Good (G)',
-                                        '5': 'Good Plus (G+)',
-                                        '6': 'Very Good (VG)',
-                                        '7': 'Very Good Plus (VG+)',
-                                        '8': 'Near Mint (NM or M-)',
-                                        '9': 'Mint (M)'
-                                    };
-                                    return qualityMap[value] || value;
-                                }
-                            },
-                            grid: {
-                                display: true,
-                                drawBorder: true,
-                                color: '#ccc',
-                                borderDash: [2, 2]
-                            },
-                            min: xAxisMin // <----  Added x-axis minimum
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Price (£, Inflation Adjusted)',
+                             font: { size: 14, weight: '500'}
                         },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Price (£)'
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return '£' + value.toFixed(0); // Simpler price ticks
                             },
-                            beginAtZero: true,
-                            grid: {
-                                display: true,
-                                drawBorder: true,
-                                color: '#ccc',
-                                borderDash: [2, 2]
-                            }
+                             font: { size: 12 }
+                        },
+                         grid: {
+                            color: '#eee' // Lighter grid lines
                         }
                     }
-                    // Note: elements point style is now handled dynamically by the click handler below
-                    // elements: {
-                    //     point: {
-                    //         radius: 5,
-                    //         backgroundColor: 'red' // Default color
-                    //     }
-                    // }
-                };
+                }
+            };
 
-                // Create the chart
-                const myChart = new Chart(ctx, {
-                    type: 'scatter',
-                    data: {
-                        labels: labels, // Quality values as strings
-                        datasets: [{
-                                label: 'Items Sold',
-                                data: labels.map((label, index) => ({
-                                    x: parseFloat(label),
-                                    y: prices[index]
-                                })),
-                                borderColor: 'red',
-                                // Use an array for background colors so we can change individual points
-                                backgroundColor: Array(prices.length).fill('red'), // Start all points as red
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                            },
-                            {
-                                label: 'Best Fit',
-                                data: predictedPrices.map((price, index) => ({
-                                    x: parseFloat(predictedQualities[index]),
-                                    y: price
-                                })),
-                                borderColor: 'blue',
-                                backgroundColor: 'blue',
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                fill: false,
-                                tension: 0.4,
-                                type: 'line',
-                                showLine: true
-                            }, { // Predicted Price Line for Legend
-                                label: 'Predicted Price',
-                                data: [{
-                                    x: xAxisMin,
-                                    y: predictedPrice
-                                }, {
-                                    x: reqscore,
-                                    y: predictedPrice
-                                }],
-                                borderColor: 'orange',
-                                backgroundColor: 'orange',
-                                borderDash: [5, 5],
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                type: 'line',
-                                fill: false
-                            }, { // Upper Bound Line for Legend
-                                label: 'Upper Bound (RMSE)',
-                                data: [{
-                                    x: xAxisMin,
-                                    y: upperBound
-                                }, {
-                                    x: reqscore,
-                                    y: upperBound
-                                }],
-                                borderColor: 'purple',
-                                backgroundColor: 'purple',
-                                borderDash: [5, 5],
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                type: 'line',
-                                fill: false
-                            }, { // Actual Price Line for Legend
-                                label: 'Actual Price',
-                                data: [{
-                                    x: xAxisMin,
-                                    y: actualPrice
-                                }, {
-                                    x: reqscore,
-                                    y: actualPrice
-                                }],
-                                borderColor: 'green',
-                                backgroundColor: 'green',
-                                borderDash: [5, 5],
-                                borderWidth: 2,
-                                pointRadius: 0,
-                                type: 'line',
-                                fill: false
-                            }
-                        ]
-                    },
-                    options: chartOptions // Use the options object defined above
-                });
+            const myChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    // Labels array is still needed for tooltip mapping by index, even if x is linear
+                    labels: labels, // Keep original labels for reference
+                    datasets: [{
+                            label: 'Items Sold',
+                            data: labels.map((label, index) => ({
+                                x: parseFloat(label), // Use numeric quality for position
+                                y: prices[index]
+                            })),
+                            borderColor: 'rgba(255, 0, 0, 0.3)', // More subtle border
+                            backgroundColor: Array(prices.length).fill('red'), // Initial point color (managed by click handler)
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                        },
+                        {
+                            label: 'Best Fit Curve',
+                            data: predictedQualities.map((qual, index) => ({
+                                x: parseFloat(qual),
+                                y: predictedPrices[index]
+                            })),
+                            borderColor: 'blue',//var(--chart-fit-color)',
+                            borderWidth: 2.5,
+                            pointRadius: 0, // No points on the line itself
+                            fill: false,
+                            tension: 0.3, // Smoother curve
+                            type: 'line',
+                            showLine: true
+                        }
+                         // Dashed lines for annotations are handled by the annotation plugin now
+                    ]
+                },
+                options: chartOptions
+            });
 
-                // --- Add a hidden input field to the form to store selected points ---
-                // Find the form
-                const form = document.querySelector('form');
-                // Create the hidden input element for selected points
-                const hiddenPointsInput = document.createElement('input');
-                hiddenPointsInput.type = 'hidden';
-                hiddenPointsInput.name = 'selected_points_to_delete'; // Name for Flask to receive
-                hiddenPointsInput.id = 'selected_points_to_delete';
-                // Append the hidden input to the form
-                form.appendChild(hiddenPointsInput);
-                // ------------------------------------------
+            // --- Form Submission Logic (Handles hidden inputs) ---
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(event) {
+                // Copy pasted data to hidden input
+                const discogsData = document.getElementById('pasted_discogs_data').value;
+                const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
+                if (hiddenDiscogsInput) {
+                    hiddenDiscogsInput.value = discogsData;
+                } else {
+                    console.error("Hidden input 'saved_discogs_data' not found!");
+                }
 
-                // --- Modify the existing form submit listener ---
-                 document.querySelector('form').addEventListener('submit', function(event) {
-                    // *** MODIFICATION: Copy data from NEW textarea ID to NEW hidden input ID ***
-                    const discogsData = document.getElementById('pasted_discogs_data').value; // Get from the textarea
-                    const hiddenDiscogsInput = document.getElementById('saved_discogs_data'); // Find the hidden input
-                    if (hiddenDiscogsInput) { // Check if the hidden input exists
-                         hiddenDiscogsInput.value = discogsData; // Copy data to the hidden input
-                    } else {
-                         console.error("Hidden input 'saved_discogs_data' not found!");
-                    }
-                    // *** END MODIFICATION ***
+                // Serialize selected points data to hidden input
+                const selectedPointsInput = document.getElementById('selected_points_to_delete');
+                selectedPointsInput.value = JSON.stringify(selectedPoints);
+            });
+        });
 
-                    // --- Logic to serialize selected points data (remains the same) ---
-                    const selectedPointsInput = document.getElementById('selected_points_to_delete');
-                    // Make sure selectedPoints variable is accessible here (should be if defined globally or in outer scope)
-                    selectedPointsInput.value = JSON.stringify(selectedPoints);
-                    // --------------------------------------------------
+    </script>
+    {% endif %}
 
-                    // Form will now submit with hidden inputs: saved_discogs_data and selected_points_to_delete
-                    // and the textarea value: pasted_discogs_data
-                });
-            </script>
-            {% endif %} {% endif %}
-        </div>
-    </div>
-    <script>
-    let formSubmitted = false;
-
-    // Set a flag when the form is submitted
-    document.querySelector('form').addEventListener('submit', function() {
-        formSubmitted = true;
-    });
-
-    // Send the beacon only if the page is not being unloaded due to a form submission
-    window.addEventListener('beforeunload', function (e) {
-        if (!formSubmitted) {
-            navigator.sendBeacon('/shutdown');
-        }
-    });
+     <script>
+        let formSubmitted = false;
+        document.querySelector('form').addEventListener('submit', function() {
+            formSubmitted = true;
+        });
+        window.addEventListener('beforeunload', function (e) {
+            if (!formSubmitted) {
+                // Use navigator.sendBeacon for reliable background sending
+                navigator.sendBeacon('/shutdown', ''); // Send empty body is fine for POST trigger
+            }
+        });
     </script>
 
-    </body>
-
+</body>
 </html>
