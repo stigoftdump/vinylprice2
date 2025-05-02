@@ -20,6 +20,13 @@ def open_browser_once():
 
 # --- Keep existing shop_var functions ---
 def read_save_value():
+    """
+    Reads the 'shop_var' value from the save file.
+
+    Returns:
+        float: The saved 'shop_var' value, or 0.8 as a default if the file
+               doesn't exist, is invalid, or 'shop_var' is not set.
+    """
     try:
         with open(SAVE_FILE, 'r') as f:
             data = json.load(f)
@@ -28,6 +35,12 @@ def read_save_value():
         return 0.8  # Default to 0.8
 
 def write_save_value(value):
+    """
+    Writes the given 'shop_var' value to the save file.
+
+    Args:
+        value (float): The 'shop_var' value to save.
+    """
     try:
         with open(SAVE_FILE, 'w') as f:
             json.dump({"shop_var": value}, f)
@@ -37,10 +50,24 @@ def write_save_value(value):
 # Add a shutdown route
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
+    """
+    Handles the shutdown signal sent from the browser's 'beforeunload' event
+    to terminate the Flask development server process.
+    """
     os._exit(0)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """
+    Handles GET and POST requests for the main page.
+
+    GET: Renders the main page with default or saved values.
+    POST: Processes the form submission, calculates the price using 'vin.py',
+          and renders the page with the results and updated form values.
+
+    Returns:
+        str: Rendered HTML template ('index.html') with context variables.
+    """
     calculated_price = None
     adjusted_price = None
     actual_price = None

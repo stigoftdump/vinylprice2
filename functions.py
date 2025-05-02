@@ -5,12 +5,53 @@ from grid_functions import realprice
 import math
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
+    """
+    Calculates the value of a combined sigmoid and exponential function.
+
+    This function models a curve that initially rises sigmoidally and then
+    transitions to exponential growth.
+
+    Args:
+        x (array-like): The input value(s) (e.g., quality score).
+        a1 (float): Amplitude of the sigmoid component.
+        b1 (float): Steepness of the sigmoid component.
+        c1 (float): Midpoint (horizontal shift) of the sigmoid component.
+        a_exp (float): Amplitude scaling factor for the exponential component.
+        b_exp (float): Growth rate of the exponential component.
+        c_exp (float): Onset point (horizontal shift) for the exponential component.
+        d (float): Vertical shift (base value) of the combined function.
+
+    Returns:
+        np.ndarray: The calculated value(s) of the combined function.
+    """
     x = np.asarray(x)
     first_rise = a1 / (1 + np.exp(-b1 * (x - c1)))
     exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
     return first_rise + exponential_increase + d
 
 def graph_logic(reqscore, shop_var, processed_grid):
+    """
+    Performs curve fitting and price prediction based on processed sales data.
+
+    Fits a sigmoid-plus-exponential model to the quality vs. price data,
+    calculates predicted prices, error bounds, and generates data for plotting.
+
+    Args:
+        reqscore (float): The target quality score for which to predict the price.
+        shop_var (float): A factor applied to the standard deviation to adjust the final price.
+        processed_grid (list): A list of tuples, where each tuple represents a processed
+                               sale record (containing price, quality score, etc.).
+
+    Returns:
+        tuple: A tuple containing:
+            - qualities (list): Original quality scores from the data.
+            - prices (list): Original (inflation-adjusted) prices from the data.
+            - X_smooth (np.ndarray): Quality values for plotting the smooth fitted curve.
+            - y_smooth_pred (np.ndarray): Predicted prices corresponding to X_smooth.
+            - predicted_price (float): The predicted price for the reqscore based on the fitted curve.
+            - upper_bound (float): The predicted price plus the local standard deviation.
+            - actual_price (float): The final price after applying shop_var and rounding.
+    """
     # function that returns everything needed to make a chart
 
     qualities = []
@@ -75,6 +116,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
     #a1, b1, c1, a_exp, b_exp, c_exp, d = params
 
     def predict_price_exp(quality_value):
+        """Predicts price using the fitted sigmoid_plus_exponential model."""
         # Ensure it calls the correct function with the fitted params
         return sigmoid_plus_exponential(quality_value, *params)
 
@@ -105,7 +147,22 @@ def graph_logic(reqscore, shop_var, processed_grid):
     return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price
 
 def get_stdev(y, y_pred, X, reqscore):
-    # --- Calculate Local Standard Deviation instead of Global RMSE ---
+    """
+    Calculates a localized standard deviation of the prediction residuals.
+
+    It attempts to find the standard deviation of residuals for points
+    close to the requested quality score (reqscore) in increasing bin sizes.
+    If insufficient points are found locally, it falls back to the global RMSE.
+
+    Args:
+        y_true (np.ndarray): The actual price values.
+        y_pred (np.ndarray): The predicted price values from the model.
+        X_quality (np.ndarray): The quality scores corresponding to y_true/y_pred.
+        reqscore (float): The target quality score around which to localize the std dev.
+
+    Returns:
+        float: The calculated local standard deviation or the global RMSE as a fallback.
+    """
     residuals = y - y_pred
     global_rmse = np.sqrt(mean_squared_error(y, y_pred))  # Keep global RMSE as a fallback
 

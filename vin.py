@@ -2,6 +2,31 @@ from functions import graph_logic
 from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, delete_points
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
+    """
+    Main calculation engine.
+
+    Orchestrates the process of parsing input data, optionally merging with saved data,
+    deleting selected points, performing graph fitting and price prediction,
+    and preparing the output data including chart information.
+
+    Args:
+        reqscore (float): The target quality score for price prediction.
+        shop_var (float): The shop variance factor to apply to the price uncertainty.
+        start_date (str): The start date ('YYYY-MM-DD') for filtering sales data.
+        add_data_str (str): String ('True' or 'False') indicating whether to merge
+                            current data with previously saved data.
+        discogs_data (str): Raw text data pasted by the user (Discogs sales history).
+        points_to_delete_json (str): JSON string array of points selected for deletion.
+
+    Returns:
+        dict: A dictionary containing the calculated results:
+              - calculated_price (float or None): Predicted price before adjustments.
+              - upper_bound (float or None): Predicted price + standard deviation.
+              - actual_price (float or None): Final rounded price after shop_var adjustment.
+              - status_message (str): A message indicating success or errors during processing.
+              - chart_data (dict): Data structured for generating the chart via Chart.js.
+                                   Empty if calculation fails early.
+    """
     status_message = None
     deleted_count = 0
 

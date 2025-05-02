@@ -55,9 +55,18 @@ inflation_rates = {
 
 def adjust_for_inflation(price, sale_year):
     """
-    Adjusts a price from a sale year to the target inflation year.
-    """
+    Adjusts a historical price to its equivalent value in a target year using inflation rates.
 
+    Args:
+        price (float): The original price from the sale year.
+        sale_year (int): The year the sale occurred.
+        target_inflation_year (int, optional): The year to adjust the price to. Defaults to 2024.
+
+    Returns:
+        float: The inflation-adjusted price, rounded to 2 decimal places.
+               Returns the original price if adjustment cannot be fully completed
+               due to missing inflation rates.
+    """
     target_inflation_year = 2024  # Adjust all prices to 2025 values
     adjustment_factor = 1.0
 
@@ -76,11 +85,30 @@ def adjust_for_inflation(price, sale_year):
 
 # function to save processed grid to a file
 def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
+    """
+    Saves the processed grid data to a file using pickle.
+
+    Args:
+        processed_grid (list): The list of processed sale data tuples.
+        filename (str, optional): The name of the file to save to.
+                                  Defaults to 'processed_grid.pkl'.
+    """
     with open(filename, 'wb') as f:
         pickle.dump(processed_grid, f)
 
 # function to load a saved processed grid from a file
 def load_processed_grid(filename='processed_grid.pkl'):
+    """
+    Loads the processed grid data from a pickle file.
+
+    Args:
+        filename (str, optional): The name of the file to load from.
+                                  Defaults to 'processed_grid.pkl'.
+
+    Returns:
+        list: The loaded list of processed sale data tuples, or an empty list
+              if the file is not found or an error occurs during loading.
+    """
     try:
         with open(filename, 'rb') as f:
             return pickle.load(f)
@@ -89,6 +117,20 @@ def load_processed_grid(filename='processed_grid.pkl'):
 
 # converts the record quality and sleeve quality into a score
 def calculate_score(record_quality, sleeve_quality):
+    """
+    Calculates a combined quality score based on media and sleeve grades.
+
+    The score prioritizes media quality, with sleeve quality acting as a modifier.
+    Uses the `quality_to_number` mapping to convert grades to numeric values.
+
+    Args:
+        record_quality (str): The quality grade string for the media (e.g., 'Near Mint (NM or M-)').
+        sleeve_quality (str): The quality grade string for the sleeve.
+
+    Returns:
+        float: The calculated quality score (typically between 1 and 9).
+               Returns 0.0 if the record quality grade is unrecognized.
+    """
     # Strip input strings to match the keys (which now lack trailing spaces)
     record_value = quality_to_number.get(record_quality.strip(), 0)
     sleeve_value = quality_to_number.get(sleeve_quality.strip(), 0)
@@ -102,6 +144,18 @@ def calculate_score(record_quality, sleeve_quality):
 
 # gets the sale price from the calculated price
 def realprice(pred_price):
+    """
+    Rounds a predicted price to the nearest 'realistic' price point.
+
+    Uses a predefined list (`real_prices`) for lower values, rounds to the
+    nearest 5 for mid-range values, and nearest 10 for higher values.
+
+    Args:
+        pred_price (float): The predicted price calculated by the model.
+
+    Returns:
+        float: The rounded, 'realistic' price.
+    """
     if pred_price <42.48:
         # Finds the closest price using the min function with a custom key
         foundprice= min(real_prices, key=lambda x: abs(x - pred_price))
@@ -115,7 +169,26 @@ def realprice(pred_price):
 
 # creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
+    """
+    Parses raw text data (presumably pasted from Discogs sales history)
+    into a structured grid format.
 
+    Extracts date, media/sleeve condition, price, native price, comments,
+    calculates a quality score, and adjusts price for inflation. Filters
+    entries based on the start date.
+
+    Args:
+        clipboard_content (str): The raw text data pasted by the user.
+        start_date_str (str): The earliest date ('YYYY-MM-DD') for sales data to include.
+
+    Returns:
+        tuple: A tuple containing:
+            - processed_grid (list): A list of tuples, each representing a processed sale.
+                                     Format: (date_str, media_grade, sleeve_grade,
+                                             adjusted_price_float, native_price_str,
+                                             score_float, comment_str)
+            - status_message (str or None): An error message if parsing fails, otherwise None.
+    """
     status_message = None
     processed_grid = [] # Use this directly
 
@@ -252,6 +325,23 @@ def make_processed_grid(clipboard_content, start_date):
     return processed_grid, status_message
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
+    """
+    Checks if a row from the processed grid matches a point selected for deletion.
+
+    Compares date, quality score, price, and comment, handling potential None values
+    and using tolerance for float comparisons.
+
+    Args:
+        grid_row_tuple (tuple): A tuple representing a row from the processed_grid.
+                                Expected format matches make_processed_grid output.
+        point_to_delete_dict (dict): A dictionary representing a point selected in the UI.
+                                     Expected keys: 'quality', 'price', 'date', 'comment'.
+        tolerance (float, optional): Tolerance for floating-point comparisons (score, price).
+                                     Defaults to 0.001.
+
+    Returns:
+        bool: True if the row matches the point to delete, False otherwise.
+    """
     if len(grid_row) < 6: # Needs at least date, price, score
         return False
 
@@ -281,7 +371,19 @@ def points_match(grid_row, point_to_delete, tolerance=0.001):
     return score_match and price_match and date_match and comment_match
 
 def delete_points(points_to_delete_json, processed_grid):
-    # --- ADD Deletion Logic ---
+    """
+    Filters the processed grid, removing rows that match points marked for deletion.
+
+    Args:
+        points_to_delete_json (str): A JSON string representing a list of points
+                                     (dictionaries) selected for deletion in the UI.
+        processed_grid (list): The list of processed sale data tuples.
+
+    Returns:
+        tuple: A tuple containing:
+            - filtered_grid (list): The processed grid with matched points removed.
+            - deleted_count (int): The number of points removed from the grid.
+    """
     points_to_delete = []
     if points_to_delete_json:
         try:
