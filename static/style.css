@@ -5,7 +5,7 @@
 
 /* Define CSS Variables for Colors and Styles */
 :root {
-    --primary-color: #4a90e2; /* A nice blue */
+    --primary-color: #4CAF50; /* A nice blue */
     --primary-hover-color: #357abd;
     --secondary-color: #f4f7f6; /* Light background */
     --text-color: #333;
