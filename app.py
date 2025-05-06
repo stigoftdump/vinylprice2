@@ -95,6 +95,8 @@ def index():
         add_data_flag = True if add_data == "on" else False
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
 
+        print(request.form.get('saved_discogs_data'))
+
         # use the saved data is possible, otherwise the pasted.
         if request.form.get('saved_discogs_data'):
             discogs_data = request.form.get('saved_discogs_data', '')

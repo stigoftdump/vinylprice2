@@ -568,18 +568,44 @@
             // --- Form Submission Logic (Handles hidden inputs) ---
             const form = document.querySelector('form');
             form.addEventListener('submit', function(event) {
-                // Copy pasted data to hidden input
-                const discogsData = document.getElementById('pasted_discogs_data').value;
+                const pastedTextarea = document.getElementById('pasted_discogs_data');
                 const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
-                if (hiddenDiscogsInput) {
-                    hiddenDiscogsInput.value = discogsData;
+
+                // Ensure both elements exist before proceeding
+                if (hiddenDiscogsInput && pastedTextarea) {
+                    const discogsData = pastedTextarea.value;
+
+                    // Check if the textarea content is NOT just whitespace or empty
+                    if (discogsData.trim() !== '') {
+                        // If the textarea has content, copy it to the hidden field
+                        hiddenDiscogsInput.value = discogsData;
+                        console.log("Textarea has data, copied to hidden field.");
+                    } else {
+                        // If the textarea is blank, keep the current value in the hidden field
+                        console.log("Textarea is blank, keeping existing data in hidden field.");
+                        // No need to do anything here, the hidden field's value remains unchanged
+                    }
                 } else {
-                    console.error("Hidden input 'saved_discogs_data' not found!");
+                    console.error("Hidden input 'saved_discogs_data' or textarea 'pasted_discogs_data' not found!");
                 }
 
-                // Serialize selected points data to hidden input
+                // Keep the logic for the selected points data
                 const selectedPointsInput = document.getElementById('selected_points_to_delete');
-                selectedPointsInput.value = JSON.stringify(selectedPoints);
+                if (selectedPointsInput) {
+                    // Assuming selectedPoints is managed elsewhere in your script
+                    if (typeof selectedPoints !== 'undefined') {
+                         selectedPointsInput.value = JSON.stringify(selectedPoints);
+                    } else {
+                         console.warn("selectedPoints variable not found. Cannot serialize for deletion.");
+                         selectedPointsInput.value = '[]'; // Default to empty array JSON
+                    }
+
+                } else {
+                     console.error("Hidden input 'selected_points_to_delete' not found!");
+                }
+
+                // The form will submit automatically after this listener finishes,
+                // as event.preventDefault() is not called.
             });
         });
 
