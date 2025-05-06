@@ -94,7 +94,12 @@ def index():
         add_data = request.form.get("add_data", "off")
         add_data_flag = True if add_data == "on" else False
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
-        discogs_data = request.form.get('pasted_discogs_data', '') # Always get from form
+
+        # use the saved data is possible, otherwise the pasted.
+        if request.form.get('saved_discogs_data'):
+            discogs_data = request.form.get('saved_discogs_data', '')
+        else:
+            discogs_data = request.form.get('pasted_discogs_data', '')
 
         # Update display variables with submitted values for rendering
         media_display = media
@@ -116,7 +121,7 @@ def index():
              status_message = "Invalid start date format. Please use ISO YYYY-MM-DD."
              # Render template with current form values and error message
              return render_template("index.html",
-                       pasted_discogs_data=discogs_data, # Keep the discogs data in the textarea
+                       pasted_discogs_data="", # Keep the discogs data in the textarea
                        media=media_display,
                        sleeve=sleeve_display,
                        shop_var=shop_var_display,
