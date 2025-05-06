@@ -566,20 +566,30 @@
             });
 
             // --- Form Submission Logic (Handles hidden inputs) ---
-            const form = document.querySelector('form');
-            form.addEventListener('submit', function(event) {
-                // Copy pasted data to hidden input
-                const discogsData = document.getElementById('pasted_discogs_data').value;
-                const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
-                if (hiddenDiscogsInput) {
-                    hiddenDiscogsInput.value = discogsData;
-                } else {
-                    console.error("Hidden input 'saved_discogs_data' not found!");
-                }
+         const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            // Copy pasted data to hidden input
+            const discogsData = document.getElementById('pasted_discogs_data').value;
+            // The hidden saved_discogs_data input seems redundant with the session logic now,
+            // as the server determines the base grid from either the pasted data directly
+            // or the session. You could potentially remove this hidden input and the
+            // corresponding logic here and in app.py if you rely solely on session/paste.
+            // Keeping it for now to minimize disruption to existing structure.
+            const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
+            if (hiddenDiscogsInput) {
+                hiddenDiscogsInput.value = discogsData;
+            } else {
+                console.error("Hidden input 'saved_discogs_data' not found!");
+            }
 
-                // Serialize selected points data to hidden input
-                const selectedPointsInput = document.getElementById('selected_points_to_delete');
-                selectedPointsInput.value = JSON.stringify(selectedPoints);
+            // Serialize selected points data to hidden input
+            const selectedPointsInput = document.getElementById('selected_points_to_delete');
+            selectedPointsInput.value = JSON.stringify(selectedPoints);
+
+            // *** Add the following line here to clear points after submission ***
+            selectedPoints = []; // Clear the selectedPoints array after submission
+            // This ensures the hidden input for the *next* submission only contains newly selected points.
+            // ***********************************
             });
         });
 
