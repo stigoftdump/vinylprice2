@@ -13,18 +13,25 @@
 <body>
 
     <div class="main-container">
-        <header>
-            <h1>Vinyl Price Calculator</h1>
-            {% set status_class = 'info' %}
-            {% if status_message and 'Error' in status_message %}
-                {% set status_class = 'error' %}
-            {% elif status_message and ('Completed' in status_message or 'calculated' in status_message) %}
-                {% set status_class = 'success' %}
-            {% endif %}
-            <div class="status-message {{ status_class if status_message else '' }} {{ 'show' if status_message else '' }}">
-                {{ status_message }}
-            </div>
-        </header>
+            <header>
+                <div class="header-top-row">
+                    <img src="{{ url_for('static', filename='images/oxfam-logo.png') }}" alt="Oxfam Logo" class="header-logo">
+                    <div class="header-title-container">
+                        <h1>Vinyl Price Calculator</h1>
+                    </div>
+                    <div class="header-spacer"></div>
+                </div>
+                {# Status message remains below the logo/title row #}
+                {% set status_class = 'info' %}
+                {% if status_message and 'Error' in status_message %}
+                    {% set status_class = 'error' %}
+                {% elif status_message and ('Completed' in status_message or 'calculated' in status_message) %}
+                    {% set status_class = 'success' %}
+                {% endif %}
+                <div class="status-message {{ status_class if status_message else '' }} {{ 'show' if status_message else '' }}">
+                    {{ status_message }}
+                </div>
+            </header>
 
 
         <div class="content-wrapper">

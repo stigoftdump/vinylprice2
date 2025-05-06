@@ -50,16 +50,55 @@ body {
 
 /* Header */
 header {
-    text-align: center;
+    /* text-align: center; */ /* REMOVE or COMMENT OUT this line */
+    text-align: left; /* Reset text alignment for the header block */
     margin-bottom: var(--spacing-unit);
     padding-bottom: var(--spacing-unit);
     border-bottom: 1px solid #eee;
+    /* Add horizontal padding if you want space from the edges */
+     padding-left: var(--spacing-unit);
+     padding-right: var(--spacing-unit);
 }
 
-header h1 {
+/* Styles for the new container holding logo and title */
+.header-top-row {
+    display: flex;            /* Enable Flexbox */
+    align-items: center;      /* Vertically align items */
+    justify-content: space-between; /* Key for layout: pushes logo left, spacer right, title center */
+    width: 100%;              /* Take full width */
+}
+
+/* Style for the logo */
+.header-logo {
+    height: 50px;           /* Set your desired logo height */
+    width: auto;            /* Maintain aspect ratio */
+    flex-shrink: 0;         /* Prevent logo from shrinking if space is tight */
+    /* You might need to note the actual width this renders at for the spacer below */
+}
+
+/* Container for the H1 title */
+.header-title-container {
+    /* No specific flex needed, space-between handles centering */
+    text-align: center;     /* Ensures H1 text is centered if container has extra space */
+}
+
+/* Remove default margins from H1 that might interfere */
+.header-title-container h1 {
     margin: 0;
+    /* Keep existing h1 styles from your file */
     color: var(--primary-color);
     font-weight: 700;
+    /* font-size: 1.8rem; /* Adjust if needed */
+}
+
+/* The invisible spacer element */
+.header-spacer {
+    /* This MUST have the same width as the rendered .header-logo */
+    width: 50px;  /* ADJUST THIS VALUE! Inspect logo width in browser & match it here */
+                 /* Or set an explicit width on .header-logo */
+    height: 1px;            /* Minimal height */
+    flex-shrink: 0;         /* Prevent shrinking */
+    visibility: hidden;     /* Make it take up space but be invisible */
 }
 
 .status-message {
