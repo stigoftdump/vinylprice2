@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from sklearn.metrics import mean_squared_error
 from grid_functions import realprice
-import math
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """
@@ -38,7 +36,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
 
     Args:
         reqscore (float): The target quality score for which to predict the price.
-        shop_var (float): A factor applied to the standard deviation to adjust the final price.
+        shop_var (float): A factor applied to the calculated upper price bound.
         processed_grid (list): A list of tuples, where each tuple represents a processed
                                sale record (containing price, quality score, etc.).
 
@@ -49,7 +47,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
             - X_smooth (np.ndarray): Quality values for plotting the smooth fitted curve.
             - y_smooth_pred (np.ndarray): Predicted prices corresponding to X_smooth.
             - predicted_price (float): The predicted price for the reqscore based on the fitted curve.
-            - upper_bound (float): The predicted price plus the local standard deviation.
+            - upper_bound (float): The calculated upper bound price based on percentiles.
             - actual_price (float): The final price after applying shop_var and rounding.
     """
     # function that returns everything needed to make a chart
@@ -102,6 +100,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
     ]
     bounds = (lower_bounds, upper_bounds)
 
+
     # Fit the double sigmoid model
     params, _ = curve_fit(
         sigmoid_plus_exponential,  # Use the new function
@@ -112,25 +111,23 @@ def graph_logic(reqscore, shop_var, processed_grid):
         maxfev=100000  # Keep high max iterations, might be needed
     )
 
-    # Extract parameters for readability
-    #a1, b1, c1, a_exp, b_exp, c_exp, d = params
-
+    # Calculate predictions for all data points
     def predict_price_exp(quality_value):
         """Predicts price using the fitted sigmoid_plus_exponential model."""
         # Ensure it calls the correct function with the fitted params
         return sigmoid_plus_exponential(quality_value, *params)
 
-    # Calculate predictions for all data points
     y_pred = predict_price_exp(X.flatten())
 
-    # gets local std dev
-    local_std_dev = get_stdev(y, y_pred, X, reqscore)
+    # gets percentile price above line
+    # NOTE: The shop_var is now applied to this percentile price
+    percentile_price_above_line = get_percentile_price_above_line(y, y_pred, X, reqscore, percentile=90) # Using 90th percentile
 
     # calculates prices
     predicted_price = predict_price_exp(reqscore)
-    upper_bound = predicted_price + local_std_dev # Upper bound using local error estimate
-    adjusted_price = predicted_price + (local_std_dev * shop_var) # Adjusted price using local error
-    actual_price = realprice(adjusted_price)
+    upper_bound = percentile_price_above_line # Upper bound is now the calculated percentile price
+    adjusted_price = predicted_price + ((upper_bound-predicted_price) * shop_var) # Apply shop_var to the upper bound
+    actual_price = realprice(float(adjusted_price))
 
     # Create a smooth curve for plotting the fitted function
     # Determine the minimum x-value for the smooth curve
@@ -139,6 +136,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
     # Determine the maximum x-value for the smooth curve
     max_x_for_smooth = max(max(X.flatten()), reqscore) if X.size > 0 else reqscore
 
+
     # Create a smooth curve for plotting the fitted function, extending to reqscore if necessary
     X_smooth = np.linspace(min_x_for_smooth, max_x_for_smooth, 200)
 
@@ -146,65 +144,100 @@ def graph_logic(reqscore, shop_var, processed_grid):
 
     return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price
 
-def get_stdev(y, y_pred, X, reqscore):
-    """
-    Calculates a localized standard deviation of the prediction residuals.
 
-    It attempts to find the standard deviation of residuals for points
+def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, percentile=90):
+    """
+    Calculates a localized percentile of the actual prices for data points
+    where the actual price is above the predicted price line.
+
+    It attempts to find the specified percentile of these actual prices for points
     close to the requested quality score (reqscore) in increasing bin sizes.
-    If insufficient points are found locally, it falls back to the global RMSE.
+    If insufficient points are found locally, it falls back to calculating
+    the percentile from all points above the line.
 
     Args:
         y_true (np.ndarray): The actual price values.
         y_pred (np.ndarray): The predicted price values from the model.
         X_quality (np.ndarray): The quality scores corresponding to y_true/y_pred.
-        reqscore (float): The target quality score around which to localize the std dev.
+                                Expected to be a 2D array from reshape(-1,1).
+        reqscore (float): The target quality score around which to localize the percentile.
+        percentile (float): The desired percentile to calculate (0 to 100).
 
     Returns:
-        float: The calculated local standard deviation or the global RMSE as a fallback.
+        float: The calculated local percentile of actual prices for points above
+               the best fit line, or the predicted price at reqscore if no points
+               are above the line or insufficient points are found. Returns 0.0 as a fallback
+               if no points are above the line.
     """
-    residuals = y - y_pred
-    global_rmse = np.sqrt(mean_squared_error(y, y_pred))  # Keep global RMSE as a fallback
+    all_residuals = y_true - y_pred
 
-    quality_floors = np.floor(X.flatten())
-    req_score_floor = math.floor(reqscore)
+    # Identify points above the line of best fit (positive residuals)
+    points_above_line_indices = np.where(all_residuals > 0)[0]
 
-    local_std_dev = global_rmse  # Default to global RMSE
-    min_points_in_bin = 3  # Minimum points needed in a bin to calculate local std dev
+    # Get the actual prices for points above the line
+    y_true_above = y_true[points_above_line_indices]
+    X_quality_flat_above = X_quality.flatten()[points_above_line_indices]
 
-    # Tier 1: Exact reqscore
-    indices_in_bin_tier1 = np.where(np.isclose(X.flatten(), reqscore))[0]
+    # If no points are above the line, return 0.0 as a fallback
+    if len(y_true_above) == 0:
+        print("Warning: No sales points found above the line of best fit. Returning 0.0 as upper bound.")
+        return 0.0
 
-    if len(indices_in_bin_tier1) >= min_points_in_bin:
-        residuals_in_bin = residuals[indices_in_bin_tier1]
-        local_std_dev = np.std(residuals_in_bin)
+
+    # Fallback percentile: percentile of *all* actual prices from points above the line
+    fallback_percentile_price = np.percentile(y_true_above, percentile) if len(y_true_above) > 0 else 0.0
+
+    local_percentile_price = fallback_percentile_price  # Default to the fallback
+    min_points_in_bin = 3  # Minimum points needed in a bin to calculate local percentile
+
+    # Tier 1: Exact reqscore (using X_quality_flat_above and y_true_above)
+    indices_in_bin_tier1 = np.where(np.isclose(X_quality_flat_above, reqscore))[0]
+    y_true_in_bin_tier1 = y_true_above[indices_in_bin_tier1]
+
+    if len(y_true_in_bin_tier1) >= min_points_in_bin:
+        local_percentile_price = np.percentile(y_true_in_bin_tier1, percentile)
         print(
-            f"Using local std dev ({local_std_dev:.2f}) for exact quality score {reqscore} based on {len(indices_in_bin_tier1)} points.")
+            f"Using local {percentile}th percentile ({local_percentile_price:.2f}) for points above line at exact quality score {reqscore} based on {len(y_true_in_bin_tier1)} points.")
     else:
         # Tier 2: 0.5 either side of reqscore
         lower_bound_tier2 = reqscore - 0.5
         upper_bound_tier2 = reqscore + 0.5
-        indices_in_bin_tier2 = np.where((X.flatten() >= lower_bound_tier2) & (X.flatten() <= upper_bound_tier2))[0]
+        indices_in_bin_tier2 = np.where((X_quality_flat_above >= lower_bound_tier2) & (X_quality_flat_above <= upper_bound_tier2))[0]
+        y_true_in_bin_tier2 = y_true_above[indices_in_bin_tier2]
 
-        if len(indices_in_bin_tier2) >= min_points_in_bin:
-            residuals_in_bin = residuals[indices_in_bin_tier2]
-            local_std_dev = np.std(residuals_in_bin)
+
+        if len(y_true_in_bin_tier2) >= min_points_in_bin:
+            local_percentile_price = np.percentile(y_true_in_bin_tier2, percentile)
             print(
-                f"Using local std dev ({local_std_dev:.2f}) for quality range [{lower_bound_tier2:.2f}, {upper_bound_tier2:.2f}] based on {len(indices_in_bin_tier2)} points.")
+                f"Using local {percentile}th percentile ({local_percentile_price:.2f}) for points above line in quality range [{lower_bound_tier2:.2f}, {upper_bound_tier2:.2f}] based on {len(y_true_in_bin_tier2)} points.")
         else:
             # Tier 3: 1.0 either side of reqscore
             lower_bound_tier3 = reqscore - 1.0
             upper_bound_tier3 = reqscore + 1.0
-            indices_in_bin_tier3 = np.where((X.flatten() >= lower_bound_tier3) & (X.flatten() <= upper_bound_tier3))[0]
+            indices_in_bin_tier3 = np.where((X_quality_flat_above >= lower_bound_tier3) & (X_quality_flat_above <= upper_bound_tier3))[0]
+            y_true_in_bin_tier3 = y_true_above[indices_in_bin_tier3]
 
-            if len(indices_in_bin_tier3) >= min_points_in_bin:
-                residuals_in_bin = residuals[indices_in_bin_tier3]
-                local_std_dev = np.std(residuals_in_bin)
+            if len(y_true_in_bin_tier3) >= min_points_in_bin:
+                local_percentile_price = np.percentile(y_true_in_bin_tier3, percentile)
                 print(
-                    f"Using local std dev ({local_std_dev:.2f}) for quality range [{lower_bound_tier3:.2f}, {upper_bound_tier3:.2f}] based on {len(indices_in_bin_tier3)} points.")
+                    f"Using local {percentile}th percentile ({local_percentile_price:.2f}) for points above line in quality range [{lower_bound_tier3:.2f}, {upper_bound_tier3:.2f}] based on {len(y_true_in_bin_tier3)} points.")
             else:
-                # Tier 4: Fallback to global RMSE
-                print(
-                    f"Warning: Insufficient points in tiered bins for reqscore {reqscore}. Falling back to global RMSE ({global_rmse:.2f}).")
-                local_std_dev = global_rmse
-    return local_std_dev
+                # Fallback to percentile of all points above the line (already set as default)
+                if len(y_true_above) >= min_points_in_bin : # Only print if the fallback is based on a reasonable number of points
+                    print(
+                        f"Warning: Insufficient points above line in tiered bins for reqscore {reqscore}. "
+                        f"Falling back to {percentile}th percentile of all ({len(y_true_above)}) points above line: ({fallback_percentile_price:.2f}).")
+                elif len(y_true_above) > 0:
+                     print(
+                        f"Warning: Insufficient points above line in tiered bins for reqscore {reqscore}. "
+                        f"Falling back to {percentile}th percentile of all ({len(y_true_above)}) points above line (value: {fallback_percentile_price:.2f}). Number of points is low.")
+                # If fallback_percentile_price was based on 0 points (already handled by initial check) or 1-2 points, local_percentile_price is already correctly 0 or the calculated percentile.
+
+
+    # If local percentile price is 0.0 and fallback was also 0.0 due to no points above line,
+    # we might want a more informative fallback. However, based on the initial check,
+    # if len(y_true_above) is 0, we return 0.0 early.
+
+    # If local_percentile_price was calculated from a bin but was 0.0 (unlikely for prices),
+    # we return it. If fallback was used and was > 0.0, we return it.
+    return local_percentile_price
