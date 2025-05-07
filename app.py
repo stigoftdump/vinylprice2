@@ -94,7 +94,22 @@ def index():
         add_data = request.form.get("add_data", "off")
         add_data_flag = True if add_data == "on" else False
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
-        discogs_data = request.form.get('pasted_discogs_data', '') # Always get from form
+
+
+        # First check the hidden field (it contains our "master" copy)
+        saved_discogs_data = request.form.get('saved_discogs_data', '')
+        # Then check the textarea
+        current_discogs_data = request.form.get('pasted_discogs_data', '')
+
+        # Prioritize current pasted data if it exists
+        if saved_discogs_data.strip():
+            discogs_data = saved_discogs_data
+        else:
+            # Otherwise use saved data from hidden field
+            discogs_data = current_discogs_data
+
+        # Keep displayed data in sync
+        pasted_discogs_data_display = discogs_data
 
         # Update display variables with submitted values for rendering
         media_display = media
