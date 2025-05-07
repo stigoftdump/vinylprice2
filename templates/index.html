@@ -622,20 +622,23 @@
                 const infoMessage = initialMessageDiv.getAttribute('data-info-message'); // Get info message
                 const errorMessage = initialMessageDiv.getAttribute('data-error-message'); // Get error message
 
-                // Prioritize displaying messages: Error > Info > Status (if applicable)
-                if (errorMessage && errorMessage !== 'None') { // Check if error message exists and is not the string "None"
+               // Display error message toast if present
+                if (errorMessage && errorMessage !== 'None') {
                     showToast(errorMessage, 'error');
-                } else if (infoMessage && infoMessage !== 'None') { // Check if info message exists and is not the string "None"
-                     // Replace '\n' with <br> for multi-line info messages
-                    const formattedInfoMessage = infoMessage.replace(/\\n/g, '<br>');
-                    // Temporarily set innerHTML if needed for <br>, or ensure CSS white-space: pre-wrap is used
-                    // Given the CSS approach from before, showToast should handle \n if pre-wrap is used.
-                    // Let's assume showToast + CSS handles \n.
+                }
+
+                // Display info message toast if present
+                if (infoMessage && infoMessage !== 'None') {
+                    // The showToast function combined with white-space: pre-wrap CSS
+                    // should handle newlines from the backend.
                     showToast(infoMessage, 'info');
-                } else if (statusMessage && statusMessage !== 'None') { // Check if status message exists and is not the string "None"
-                    // Determine status message type - assuming "Completed" is success
-                    const messageType = statusMessage === 'Completed' ? 'success' : 'info'; // Or define other status types
-                    showToast(statusMessage, messageType);
+                }
+
+                // Display status message toast if present and not an error
+                // Assuming 'Completed' is a success status, you might need to adjust logic
+                if (statusMessage && statusMessage !== 'None' && statusMessage !== 'Error') { // Avoid showing status if it's just "Error" (handled by error_message)
+                     const messageType = statusMessage === 'Completed' ? 'success' : 'info'; // Or define other status types as needed
+                     showToast(statusMessage, messageType);
                 }
             }
         });
