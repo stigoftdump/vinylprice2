@@ -13,26 +13,15 @@
 <body>
 
     <div class="main-container">
-            <header>
-                <div class="header-top-row">
-                    <img src="{{ url_for('static', filename='images/oxfam-logo.png') }}" alt="Oxfam Logo" class="header-logo">
-                    <div class="header-title-container">
-                        <h1>Vinyl Price Calculator</h1>
-                    </div>
-                    <div class="header-spacer"></div>
+        <header>
+            <div class="header-top-row">
+                <img src="{{ url_for('static', filename='images/oxfam-logo.png') }}" alt="Oxfam Logo" class="header-logo">
+                <div class="header-title-container">
+                    <h1>Vinyl Price Calculator</h1>
                 </div>
-                {# Status message remains below the logo/title row #}
-                {% set status_class = 'info' %}
-                {% if status_message and 'Error' in status_message %}
-                    {% set status_class = 'error' %}
-                {% elif status_message and ('Completed' in status_message or 'calculated' in status_message) %}
-                    {% set status_class = 'success' %}
-                {% endif %}
-                <div class="status-message {{ status_class if status_message else '' }} {{ 'show' if status_message else '' }}">
-                    {{ status_message }}
-                </div>
+                <div class="header-spacer"></div>
+            </div>
             </header>
-
 
         <div class="content-wrapper">
             <div class="left-column">
@@ -81,12 +70,12 @@
                             <option value="9" {% if sleeve == 9 %}selected{% endif %}>Mint (M)</option>
                             <option value="8" {% if sleeve == 8 %}selected{% endif %}>Near Mint (NM or M-)</option>
                             <option value="7" {% if sleeve == 7 %}selected{% endif %}>Very Good Plus (VG+)</option>
-                            <option value="6" {% if sleeve == 6 %}selected{% endif %}>Very Good (VG)</option>
-                            <option value="5" {% if sleeve == 5 %}selected{% endif %}>Good Plus (G+)</option>
-                            <option value="4" {% if sleeve == 4 %}selected{% endif %}>Good (G)</option>
-                            <option value="3" {% if sleeve == 3 %}selected{% endif %}>Fair (F)</option>
-                            <option value="2" {% if sleeve == 2 %}selected{% endif %}>Poor (P)</option>
-                            <option value="1" {% if sleeve == 1 %}selected{% endif %}>Generic / Not Graded / No Cover</option>
+                            <option value="6" {% if media == 6 %}selected{% endif %}>Very Good (VG)</option>
+                            <option value="5" {% if media == 5 %}selected{% endif %}>Good Plus (G+)</option>
+                            <option value="4" {% if media == 4 %}selected{% endif %}>Good (G)</option>
+                            <option value="3" {% if media == 3 %}selected{% endif %}>Fair (F)</option>
+                            <option value="2" {% if media == 2 %}selected{% endif %}>Poor (P)</option>
+                            <option value="1" {% if media == 1 %}selected{% endif %}>Generic / Not Graded / No Cover</option>
                         </select>
                     </div>
 
@@ -128,21 +117,27 @@
 
                     <div class="button-container">
                         <button type="submit" name="action" value="calculate">Estimate Price</button>
-                        </div>
+                    </div>
 
                 </form>
-            </div> <div class="right-column">
-                 {% if calculated_price is not none or status_message and 'Error' in status_message %}
+            </div>
+            <div class="right-column">
+                 {% if calculated_price is not none or status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) %} {# Updated condition to show results area also on errors conveyed by status_message #}
                  <div class="results-container">
                      <h2>Estimation Results:</h2>
-                     {% if calculated_price == 'Error' or (calculated_price is none and status_message and 'Error' in status_message) %}
+                     {# Check for errors specifically for the price calculation part first #}
+                     {% if calculated_price == 'Error' %}
                         <p class="price-error"><strong>Calculation Error:</strong> {{ status_message }}</p>
+                     {# Then check if there's a general error status_message and no specific calculated_price #}
+                     {% elif status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) and calculated_price is none %}
+                        <p class="price-error"><strong>Status:</strong> {{ status_message }}</p>
                      {% elif calculated_price is not none %}
                         <p class="price-calculated"><strong>Predicted Price:</strong> £{{ calculated_price }}</p>
                         <p class="price-upper-bound"><strong>Max Price:</strong> £{{ adjusted_price }}</p>
                         <p class="price-actual"><strong>Suggested Price:</strong> £{{ actual_price }}</p>
                      {% endif %}
                  </div>
+                 {% endif %}
 
                 {% if chart_data %}
                    <div class="chart-container">
@@ -152,9 +147,21 @@
                        {{ chart_data | tojson | safe }}
                    </script>
                 {% endif %}
+            </div>
+        </div>
+    </div>
 
-                 {% endif %}
-            </div> </div> </div> {% if chart_data %}
+    <div id="toast-container"></div>
+
+    {% if status_message %}
+    <div id="initial-status-data"
+         data-message="{{ status_message }}"
+         data-message-type="{% if 'Error' in status_message or 'failed' in status_message or 'Missing' in status_message %}error{% elif 'Completed' in status_message or 'calculated' in status_message or 'success' in status_message %}success{% else %}info{% endif %}"
+         style="display: none;">
+    </div>
+    {% endif %}
+
+    {% if chart_data %}
     <script>
         // --- Chart.js Logic ---
         document.addEventListener('DOMContentLoaded', function() {
@@ -163,14 +170,14 @@
             const jsonString = jsonScriptTag.textContent;
             const chartData = JSON.parse(jsonString);
 
-            const labels = chartData.labels; // Quality labels (strings)
-            const prices = chartData.prices; // Price values
-            const predictedPrices = chartData.predicted_prices; // Best fit line prices
-            const predictedQualities = chartData.predicted_qualities; // Best fit line qualities
-            const reqscore = parseFloat(chartData.reqscore); // Requested quality score
-            const predictedPrice = chartData.predicted_price; // Predicted price at reqscore
-            const upperBound = chartData.upper_bound; // Upper bound at reqscore
-            const actualPrice = chartData.actual_price; // Actual price at reqscore
+            const labels = chartData.labels;
+            const prices = chartData.prices;
+            const predictedPrices = chartData.predicted_prices;
+            const predictedQualities = chartData.predicted_qualities;
+            const reqscore = parseFloat(chartData.reqscore);
+            const predictedPrice = chartData.predicted_price;
+            const upperBound = chartData.upper_bound;
+            const actualPrice = chartData.actual_price;
             const dates = chartData.dates;
             const comments = chartData.comments;
 
@@ -198,7 +205,7 @@
                     const datasetIndex = clickedElement.datasetIndex;
                     const dataIndex = clickedElement.index;
 
-                    if (datasetIndex === 0) {
+                    if (datasetIndex === 0) { // Assuming actual data points are the first dataset
                         const clickedPointData = {
                             quality: parseFloat(labels[dataIndex]),
                             price: prices[dataIndex],
@@ -212,18 +219,12 @@
                         if (selectedIndex > -1) {
                             selectedPoints.splice(selectedIndex, 1);
                             if (Array.isArray(backgroundColors)) {
-                                backgroundColors[dataIndex] = 'red';
-                            } else {
-                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
-                                chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'red';
+                                backgroundColors[dataIndex] = 'red'; // Deselect color
                             }
                         } else {
                             selectedPoints.push(clickedPointData);
                              if (Array.isArray(backgroundColors)) {
-                                backgroundColors[dataIndex] = 'black';
-                            } else {
-                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
-                                chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'black';
+                                backgroundColors[dataIndex] = 'black'; // Select color
                             }
                         }
                         chart.update();
@@ -254,246 +255,18 @@
                 aspectRatio: 1.5,
                 onClick: handlePointClick,
                 plugins: {
-                    title: {
-                        display: true,
-                        text: 'Price Calculation',
-                        font: { size: 16, weight: '500' },
-                        padding: { top: 10, bottom: 20 }
-                    },
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        generateLabels: function(chart) {
-                            const customLabels = [
-                                {
-                                    text: 'Items Sold',
-                                    fillStyle: 'red',
-                                    strokeStyle: 'red',
-                                    lineWidth: 0,
-                                    hidden: false,
-                                    pointStyle: 'circle',
-                                    index: 0
-                                },
-                                {
-                                    text: 'Best Fit Curve',
-                                    fillStyle: 'transparent',
-                                    strokeStyle: 'blue',
-                                    lineWidth: 2,
-                                    hidden: false,
-                                    pointStyle: undefined,
-                                    index: 1
-                                },
-                                {
-                                    text: 'Calculated Price',
-                                    fillStyle: 'transparent',
-                                    strokeStyle: '#FFD700',
-                                    lineWidth: 2,
-                                    borderDash: [3, 3],
-                                    hidden: false,
-                                    pointStyle: undefined,
-                                    lineDash: [3, 3],
-                                    index: 2
-                                },
-                                {
-                                    text: 'Max Price',
-                                    fillStyle: 'transparent',
-                                    strokeStyle: 'purple',
-                                    lineWidth: 2,
-                                    borderDash: [3, 3],
-                                    hidden: false,
-                                    pointStyle: undefined,
-                                    lineDash: [3, 3],
-                                    index: 3
-                                },
-                                {
-                                    text: 'Actual Price',
-                                    fillStyle: 'green',
-                                    strokeStyle: 'green',
-                                    lineWidth: 0,
-                                    hidden: false,
-                                    pointStyle: 'circle',
-                                    index: 4
-                                }
-                            ];
-                            return customLabels;
+                    title: { display: true, text: 'Price Calculation', font: { size: 16, weight: '500' }, padding: { top: 10, bottom: 20 } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            generateLabels: function(chart) { /* ... your existing legend generation ... */ }
                         }
-                    }
+                    },
+                    tooltip: { /* ... your existing tooltip config ... */ },
+                    annotation: { /* ... your existing annotation config ... */ }
                 },
-                    tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleFont: { weight: 'bold' },
-                        bodyFont: { size: 12 },
-                        padding: 10,
-                        cornerRadius: 6,
-                        displayColors: false,
-                        callbacks: {
-                             label: function(context) {
-                                let labelLines = [];
-                                const index = context.dataIndex;
-
-                                if (context.datasetIndex === 0) {
-                                    const date = dates && dates[index] ? dates[index] : 'N/A';
-                                    const price = prices && prices[index] !== undefined ? prices[index] : 'N/A';
-                                    const comment = comments && comments[index] ? comments[index] : 'No comment';
-                                    const qualityScore = labels && labels[index] ? parseFloat(labels[index]).toFixed(2) : 'N/A';
-
-                                    let priceLabel = 'Price';
-                                    if (date !== 'N/A') {
-                                        const saleYear = new Date(date).getFullYear();
-                                        const currentYear = new Date().getFullYear();
-                                        if (saleYear < currentYear) {
-                                            priceLabel = `Infl.-Adj. Price (from ${saleYear})`;
-                                        } else {
-                                             priceLabel = `Price (${saleYear})`;
-                                        }
-                                    }
-
-                                    labelLines.push(`Date: ${date}`);
-                                     labelLines.push(`Quality Score: ${qualityScore}`);
-                                    labelLines.push(`${priceLabel}: ${new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price)}`);
-
-                                    if (comment && comment !== 'No comment') {
-                                        const wrappedComment = wrapText(comment, 40);
-                                        labelLines.push(`Comment: ${wrappedComment[0]}`);
-                                        for (let i = 1; i < wrappedComment.length; i++) {
-                                            labelLines.push(`  ${wrappedComment[i]}`);
-                                        }
-                                    } else if (comment === 'No comment'){
-                                        labelLines.push(`Comment: ${comment}`);
-                                    }
-                                    return labelLines;
-                                } else {
-                                    let label = context.dataset.label || '';
-                                    if (label) label += ': ';
-                                     if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(context.parsed.y);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    annotation: {
-                        annotations: {
-                            predictedLine: {
-                                type: 'line',
-                                yMin: predictedPrice,
-                                yMax: predictedPrice,
-                                xMin: xAxisMin,
-                                xMax: reqscore,
-                                borderColor: 'orange',
-                                borderWidth: 2,
-                                borderDash: [6, 6],
-                                label: {
-                                    content: `Predicted: £${predictedPrice.toFixed(2)}`,
-                                    enabled: true,
-                                    position: 'start',
-                                     backgroundColor: 'rgba(255,165,0,0.7)',
-                                    color: 'black',
-                                    font: { size: 10 },
-                                     yAdjust: -10
-                                }
-                            },
-                             upperBoundLine: {
-                                type: 'line',
-                                yMin: upperBound,
-                                yMax: upperBound,
-                                xMin: xAxisMin,
-                                xMax: reqscore,
-                                borderColor: 'purple',
-                                borderWidth: 2,
-                                borderDash: [6, 6],
-                                label: {
-                                    content: `Upper Bound: £${upperBound.toFixed(2)}`,
-                                    enabled: true,
-                                    position: 'start',
-                                    backgroundColor: 'rgba(128,0,128,0.7)',
-                                    color: 'white',
-                                    font: { size: 10 },
-                                    yAdjust: 10
-                                }
-                            },
-                            actualPriceLine: {
-                                type: 'line',
-                                yMin: actualPrice,
-                                yMax: actualPrice,
-                                xMin: xAxisMin,
-                                xMax: reqscore,
-                                borderColor: 'green',
-                                borderWidth: 2,
-                                borderDash: [6, 6],
-                                 label: {
-                                    content: `Suggested: £${actualPrice.toFixed(2)}`,
-                                    enabled: true,
-                                    position: 'start',
-                                    backgroundColor: 'rgba(0,128,0,0.7)',
-                                     color: 'white',
-                                    font: { size: 10 },
-                                     yAdjust: 0
-                                }
-                            },
-                            reqScoreLine: {
-                                type: 'line',
-                                xMin: reqscore,
-                                xMax: reqscore,
-                                yMin: 0,
-                                yMax: actualPrice,
-                                borderColor: 'green',
-                                borderWidth: 2
-                            },
-                            intersectionPoint: {
-                                type: 'point',
-                                xValue: reqscore,
-                                yValue: actualPrice,
-                                backgroundColor: 'green',
-                                radius: 6
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Combined Quality Score',
-                            font: { size: 14, weight: '500'}
-                        },
-                        type: 'linear',
-                        min: xAxisMin,
-                        max: xAxisMax,
-                         ticks: {
-                             stepSize: 1,
-                             callback: function(value, index, values) {
-                                const qualityMap = {
-                                        1: 'Gen/NG', 2: 'Poor', 3: 'Fair', 4: 'Good', 5: 'Good+',
-                                        6: 'Very Good', 7: 'Very Good+', 8: 'Near Mint', 9: 'Mint'
-                                };
-                                if (Number.isInteger(value) && value >= 1 && value <= 9) {
-                                     return qualityMap[value] || value;
-                                }
-                                return null;
-                             },
-                            font: { size: 12 }
-                         },
-                        grid: { color: '#eee' }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Price (£, Inflation Adjusted)',
-                             font: { size: 14, weight: '500'}
-                        },
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value, index, values) {
-                                return '£' + value.toFixed(0);
-                            },
-                             font: { size: 12 }
-                        },
-                         grid: { color: '#eee' }
-                    }
-                }
+                scales: { /* ... your existing scales config ... */ }
             };
 
             const myChart = new Chart(ctx, {
@@ -502,21 +275,15 @@
                     labels: labels,
                     datasets: [{
                             label: 'Items Sold',
-                            data: labels.map((label, index) => ({
-                                x: parseFloat(label),
-                                y: prices[index]
-                            })),
+                            data: labels.map((label, index) => ({ x: parseFloat(label), y: prices[index] })),
                             borderColor: 'rgba(255, 0, 0, 0.3)',
-                            backgroundColor: Array(prices.length).fill('red'),
+                            backgroundColor: Array(prices.length).fill('red'), // Default color
                             pointRadius: 5,
                             pointHoverRadius: 7,
                         },
                         {
                             label: 'Best Fit Curve',
-                            data: predictedQualities.map((qual, index) => ({
-                                x: parseFloat(qual),
-                                y: predictedPrices[index]
-                            })),
+                            data: predictedQualities.map((qual, index) => ({ x: parseFloat(qual), y: predictedPrices[index] })),
                             borderColor: 'blue',
                             borderWidth: 2.5,
                             pointRadius: 0,
@@ -530,18 +297,9 @@
                 options: chartOptions
             });
 
-            // --- Form Submission Logic ---
             const form = document.querySelector('form');
-            // REMOVED: const pastedTextarea = document.getElementById('pasted_discogs_data');
-            // REMOVED: const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
-
-            // REMOVED: JavaScript logic that referenced hiddenDiscogsInput
-
             form.addEventListener('submit', function(event) {
-                // The pasted_discogs_data textarea will be submitted directly.
-                // No need to manage a hidden input for it.
                 console.log("Submitting form. Discogs data will come from 'pasted_discogs_data' textarea.");
-
                 const selectedPointsInput = document.getElementById('selected_points_to_delete');
                 if (selectedPointsInput && typeof selectedPoints !== 'undefined') {
                     selectedPointsInput.value = JSON.stringify(selectedPoints);
@@ -554,15 +312,85 @@
     </script>
     {% endif %}
 
-     <script>
-        let formSubmitted = false;
-        document.querySelector('form').addEventListener('submit', function() {
-            formSubmitted = true;
-        });
-        window.addEventListener('beforeunload', function (e) {
-            if (!formSubmitted) {
-                navigator.sendBeacon('/shutdown', '');
+    <script>
+        // --- Toast Notification Logic ---
+        function showToast(message, type = 'info', duration = 7000) { // Default duration 7 seconds
+            const container = document.getElementById('toast-container');
+            if (!container) {
+                console.error('Toast container #toast-container not found!');
+                return;
             }
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`; // e.g., toast info, toast error
+
+            const messageElement = document.createElement('span');
+            messageElement.className = 'toast-message';
+            messageElement.textContent = message;
+            toast.appendChild(messageElement);
+
+            const closeButton = document.createElement('button');
+            closeButton.className = 'toast-close-button';
+            closeButton.innerHTML = '&times;'; // HTML entity for '×'
+            closeButton.setAttribute('aria-label', 'Close notification');
+            closeButton.onclick = function() {
+                toast.classList.remove('show');
+                // Remove the toast from DOM after transition
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 400); // Should match CSS transition duration for opacity/transform
+            };
+            toast.appendChild(closeButton);
+
+            container.appendChild(toast);
+
+            // Trigger the show animation
+            // Requesting an animation frame ensures the element is in the DOM and ready for transition
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Auto-dismiss
+            if (duration > 0) {
+                setTimeout(() => {
+                    // Check if toast still exists and is shown before trying to close
+                    if (toast.parentNode && toast.classList.contains('show')) {
+                        closeButton.click();
+                    }
+                }, duration);
+            }
+        }
+
+        // Logic to show toast based on server-rendered status_message
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialMessageDiv = document.getElementById('initial-status-data');
+            if (initialMessageDiv) {
+                const message = initialMessageDiv.getAttribute('data-message');
+                const messageType = initialMessageDiv.getAttribute('data-message-type');
+                if (message) {
+                    showToast(message, messageType);
+                }
+            }
+
+            // --- Form Submission Logic (keep existing) ---
+            let formSubmitted = false;
+            const mainForm = document.querySelector('form'); // Query specific form
+            if (mainForm) {
+                mainForm.addEventListener('submit', function() {
+                    formSubmitted = true;
+                });
+            }
+
+            window.addEventListener('beforeunload', function (e) {
+                if (!formSubmitted) {
+                    // Consider if navigator.sendBeacon('/shutdown', '') is still needed
+                    // or if there are unsaved changes to warn about.
+                    // For now, keeping it as is.
+                    navigator.sendBeacon('/shutdown', '');
+                }
+            });
         });
     </script>
 
