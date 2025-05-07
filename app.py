@@ -146,6 +146,8 @@ def index():
             adjusted_price = output_data.get("upper_bound")
             actual_price = output_data.get("actual_price")
             status_message = output_data.get("status_message", status_message)
+            info_message = output_data.get("info_message")  # Get the info message
+            error_message = output_data.get("error_message")  # Get the error message
             chart_data = output_data.get("chart_data", {})
 
         except Exception as e:
@@ -169,7 +171,9 @@ def index():
                                adjusted_price=adjusted_price,
                                actual_price=actual_price,
                                chart_data=chart_data,
-                               status_message=status_message)
+                               status_message=status_message,  # Overall status
+                               info_message=info_message,  # Info message
+                               error_message=error_message)  # Error message
 
     # This block is for the initial GET request
     # Load shop_var for display, other defaults are hardcoded or handled by Jinja
@@ -186,6 +190,8 @@ def index():
                            start_date=start_date_display, # Default
                            add_data=add_data_display, # Default False
                            status_message="", # No status on initial load
+                           info_message=None,  # Default info for initial load
+                           error_message=None,  # Default error for initial load
                            calculated_price=None,
                            adjusted_price=None,
                            actual_price=None,

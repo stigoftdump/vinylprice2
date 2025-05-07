@@ -1,3 +1,5 @@
+from numpy.f2py.auxfuncs import process_f2cmap_dict
+
 from functions import graph_logic
 from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, delete_points
 
@@ -28,6 +30,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
                                    Empty if calculation fails early.
     """
     status_message = None
+    info_message = None
+    error_message = None
     deleted_count = 0
 
     # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
@@ -102,18 +106,24 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         "actual_price": actual_price
     }
 
-    # make status "Okay" if there are no problems
-    if status_message is None:
+    # Make overall status "Completed" if no error messages were set
+    if error_message is None:
         status_message = "Completed"
-        # Notifies if points are deleted
+        info_messages_list = []  # Use a list to build info message parts
+        # Add info about points deleted
         if deleted_count > 0:
-            status_message += f"\n{deleted_count} points deleted"
-        # Notifies if data is added
+            info_messages_list.append(f"{deleted_count} points deleted.")
+        # Add info about data added
         if add_data == "True":
-            status_message += f"\nData added to previous run"
-        # Adds a message if there is less than 10 points
+            info_messages_list.append("Data added to previous run.")
+
+        # Join info messages with a newline if there are any
+        if info_messages_list:
+            info_message = "\n".join(info_messages_list)
+
+        # send an error message too if theer are less than 10 points
         if len(processed_grid)<10:
-            status_message += f"\nLess than 10 data points. Please add more data if possible."
+            error_message="Less than 10 data points. Add more data if possible"
 
     # output for sending to flask
     output_data = {
@@ -121,6 +131,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         "upper_bound": round(upper_bound, 2),
         "actual_price": round(actual_price, 2),
         "status_message": status_message,
+        "info_message": info_message,
+        "error_message": error_message,
         "chart_data": chart_data  # Include chart data in the output
     }
 

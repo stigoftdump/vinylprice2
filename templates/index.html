@@ -156,8 +156,9 @@
 
     {% if status_message %}
     <div id="initial-status-data"
-         data-message="{{ status_message }}"
-         data-message-type="{% if 'Error' in status_message or 'failed' in status_message or 'Missing' in status_message %}error{% elif 'Completed' in status_message or 'calculated' in status_message or 'success' in status_message %}success{% else %}info{% endif %}"
+         data-status-message="{{ status_message }}"
+         data-info-message="{{ info_message }}"
+         data-error-message="{{ error_message }}"
          style="display: none;">
     </div>
     {% endif %}
@@ -617,10 +618,24 @@
         document.addEventListener('DOMContentLoaded', function() {
             const initialMessageDiv = document.getElementById('initial-status-data');
             if (initialMessageDiv) {
-                const message = initialMessageDiv.getAttribute('data-message');
-                const messageType = initialMessageDiv.getAttribute('data-message-type');
-                if (message) {
-                    showToast(message, messageType);
+                const statusMessage = initialMessageDiv.getAttribute('data-status-message');
+                const infoMessage = initialMessageDiv.getAttribute('data-info-message'); // Get info message
+                const errorMessage = initialMessageDiv.getAttribute('data-error-message'); // Get error message
+
+                // Prioritize displaying messages: Error > Info > Status (if applicable)
+                if (errorMessage && errorMessage !== 'None') { // Check if error message exists and is not the string "None"
+                    showToast(errorMessage, 'error');
+                } else if (infoMessage && infoMessage !== 'None') { // Check if info message exists and is not the string "None"
+                     // Replace '\n' with <br> for multi-line info messages
+                    const formattedInfoMessage = infoMessage.replace(/\\n/g, '<br>');
+                    // Temporarily set innerHTML if needed for <br>, or ensure CSS white-space: pre-wrap is used
+                    // Given the CSS approach from before, showToast should handle \n if pre-wrap is used.
+                    // Let's assume showToast + CSS handles \n.
+                    showToast(infoMessage, 'info');
+                } else if (statusMessage && statusMessage !== 'None') { // Check if status message exists and is not the string "None"
+                    // Determine status message type - assuming "Completed" is success
+                    const messageType = statusMessage === 'Completed' ? 'success' : 'info'; // Or define other status types
+                    showToast(statusMessage, messageType);
                 }
             }
         });
