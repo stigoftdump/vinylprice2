@@ -187,6 +187,7 @@
             const xAxisMax = Math.ceil(Math.max(maxQualityInData, reqscore));
 
             let selectedPoints = [];
+            let pointsClickedForDeletionCount = 0;
 
             function doPointsMatch(point1, point2) {
                 const tolerance = 0.0001;
@@ -217,6 +218,8 @@
 
                         if (selectedIndex > -1) {
                             selectedPoints.splice(selectedIndex, 1);
+                            pointsClickedForDeletionCount--;
+                            showToast(`Points selected for deletion: ${pointsClickedForDeletionCount}`, 'info', 3000);
                             if (Array.isArray(backgroundColors)) {
                                 backgroundColors[dataIndex] = 'red';
                             } else {
@@ -227,6 +230,8 @@
                             }
                         } else {
                             selectedPoints.push(clickedPointData);
+                         pointsClickedForDeletionCount++;
+                         showToast(`Points selected for deletion: ${pointsClickedForDeletionCount}`, 'info', 3000);
                              if (Array.isArray(backgroundColors)) {
                                 backgroundColors[dataIndex] = 'black';
                             } else {
