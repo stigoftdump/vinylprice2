@@ -124,7 +124,6 @@
                         </div>
                     </div>
 
-                    <input type="hidden" id="saved_discogs_data" name="saved_discogs_data">
                     <input type="hidden" id="selected_points_to_delete" name="selected_points_to_delete">
 
                     <div class="button-container">
@@ -157,7 +156,7 @@
                  {% endif %}
             </div> </div> </div> {% if chart_data %}
     <script>
-        // --- Chart.js Logic (largely unchanged, but check variable names) ---
+        // --- Chart.js Logic ---
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('myChart').getContext('2d');
             const jsonScriptTag = document.getElementById('chart-data-json');
@@ -175,14 +174,13 @@
             const dates = chartData.dates;
             const comments = chartData.comments;
 
-            // Determine axis min/max dynamically but ensure reqscore is visible
             const all_qualities = labels.map(parseFloat).concat(predictedQualities.map(parseFloat));
             const minQualityInData = all_qualities.length > 0 ? Math.min(...all_qualities) : 1;
             const maxQualityInData = all_qualities.length > 0 ? Math.max(...all_qualities) : 9;
-            const xAxisMin = Math.floor(Math.min(minQualityInData, reqscore)); // Ensure reqscore is included
-            const xAxisMax = Math.ceil(Math.max(maxQualityInData, reqscore)); // Ensure reqscore is included
+            const xAxisMin = Math.floor(Math.min(minQualityInData, reqscore));
+            const xAxisMax = Math.ceil(Math.max(maxQualityInData, reqscore));
 
-            let selectedPoints = []; // Array to hold selected points data
+            let selectedPoints = [];
 
             function doPointsMatch(point1, point2) {
                 const tolerance = 0.0001;
@@ -200,7 +198,6 @@
                     const datasetIndex = clickedElement.datasetIndex;
                     const dataIndex = clickedElement.index;
 
-                    // Only interact with the 'Items Sold' dataset (index 0)
                     if (datasetIndex === 0) {
                         const clickedPointData = {
                             quality: parseFloat(labels[dataIndex]),
@@ -210,32 +207,29 @@
                         };
 
                         const selectedIndex = selectedPoints.findIndex(p => doPointsMatch(p, clickedPointData));
-
                         const backgroundColors = chart.data.datasets[datasetIndex].backgroundColor;
 
-                        if (selectedIndex > -1) { // Point is selected -> Deselect
+                        if (selectedIndex > -1) {
                             selectedPoints.splice(selectedIndex, 1);
-                             // Ensure backgroundColors is an array before modifying
                             if (Array.isArray(backgroundColors)) {
-                                backgroundColors[dataIndex] = 'red'; // Back to original color
-                            } else { // If it's a single string, convert to array
+                                backgroundColors[dataIndex] = 'red';
+                            } else {
                                 chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
                                 chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'red';
                             }
-                        } else { // Point is not selected -> Select
+                        } else {
                             selectedPoints.push(clickedPointData);
                              if (Array.isArray(backgroundColors)) {
-                                backgroundColors[dataIndex] = 'black'; // Selected color
+                                backgroundColors[dataIndex] = 'black';
                             } else {
                                 chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
                                 chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'black';
                             }
                         }
-                        chart.update(); // Update the chart visually
+                        chart.update();
                     }
                 }
             }
-
 
             function wrapText(text, maxLength) {
                 if (!text) return [];
@@ -256,8 +250,8 @@
 
             const chartOptions = {
                 responsive: true,
-                maintainAspectRatio: false, // Allow chart to resize height
-                aspectRatio: 1.5, // Adjust aspect ratio if needed
+                maintainAspectRatio: false,
+                aspectRatio: 1.5,
                 onClick: handlePointClick,
                 plugins: {
                     title: {
@@ -270,14 +264,8 @@
                     position: 'bottom',
                     labels: {
                         usePointStyle: true,
-                        // --- Modified generateLabels function ---
                         generateLabels: function(chart) {
-                            // Get the default labels generated by Chart.js (for datasets)
-                            const originalLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-
-                            // Create a new array for custom labels
                             const customLabels = [
-                                // Items Sold label (red circle)
                                 {
                                     text: 'Items Sold',
                                     fillStyle: 'red',
@@ -287,7 +275,6 @@
                                     pointStyle: 'circle',
                                     index: 0
                                 },
-                                // Best Fit Curve label (blue line)
                                 {
                                     text: 'Best Fit Curve',
                                     fillStyle: 'transparent',
@@ -297,7 +284,6 @@
                                     pointStyle: undefined,
                                     index: 1
                                 },
-                                // Calculated Price label (orange dotted line)
                                 {
                                     text: 'Calculated Price',
                                     fillStyle: 'transparent',
@@ -309,7 +295,6 @@
                                     lineDash: [3, 3],
                                     index: 2
                                 },
-                                // Max Price label (purple dotted line)
                                 {
                                     text: 'Max Price',
                                     fillStyle: 'transparent',
@@ -321,7 +306,6 @@
                                     lineDash: [3, 3],
                                     index: 3
                                 },
-                                // Actual Price label (green circle)
                                 {
                                     text: 'Actual Price',
                                     fillStyle: 'green',
@@ -332,7 +316,6 @@
                                     index: 4
                                 }
                             ];
-
                             return customLabels;
                         }
                     }
@@ -343,13 +326,13 @@
                         bodyFont: { size: 12 },
                         padding: 10,
                         cornerRadius: 6,
-                        displayColors: false, // Don't show color box in tooltip
+                        displayColors: false,
                         callbacks: {
                              label: function(context) {
                                 let labelLines = [];
                                 const index = context.dataIndex;
 
-                                if (context.datasetIndex === 0) { // 'Items Sold' points
+                                if (context.datasetIndex === 0) {
                                     const date = dates && dates[index] ? dates[index] : 'N/A';
                                     const price = prices && prices[index] !== undefined ? prices[index] : 'N/A';
                                     const comment = comments && comments[index] ? comments[index] : 'No comment';
@@ -358,7 +341,6 @@
                                     let priceLabel = 'Price';
                                     if (date !== 'N/A') {
                                         const saleYear = new Date(date).getFullYear();
-                                         // Use current year logic if needed
                                         const currentYear = new Date().getFullYear();
                                         if (saleYear < currentYear) {
                                             priceLabel = `Infl.-Adj. Price (from ${saleYear})`;
@@ -380,10 +362,8 @@
                                     } else if (comment === 'No comment'){
                                         labelLines.push(`Comment: ${comment}`);
                                     }
-
                                     return labelLines;
                                 } else {
-                                    // Default tooltip for lines (like Best Fit)
                                     let label = context.dataset.label || '';
                                     if (label) label += ': ';
                                      if (context.parsed.y !== null) {
@@ -395,12 +375,12 @@
                         }
                     },
                     annotation: {
-                        annotations: { // Use named annotations
+                        annotations: {
                             predictedLine: {
                                 type: 'line',
                                 yMin: predictedPrice,
                                 yMax: predictedPrice,
-                                xMin: xAxisMin, // Start from axis
+                                xMin: xAxisMin,
                                 xMax: reqscore,
                                 borderColor: 'orange',
                                 borderWidth: 2,
@@ -450,19 +430,19 @@
                                     backgroundColor: 'rgba(0,128,0,0.7)',
                                      color: 'white',
                                     font: { size: 10 },
-                                     yAdjust: 0 // Adjust as needed based on other labels
+                                     yAdjust: 0
                                 }
                             },
-                            reqScoreLine: { // Vertical line at reqscore
+                            reqScoreLine: {
                                 type: 'line',
                                 xMin: reqscore,
                                 xMax: reqscore,
-                                yMin: 0, // Start from bottom axis
-                                yMax: actualPrice, // Go up to the actual price line
+                                yMin: 0,
+                                yMax: actualPrice,
                                 borderColor: 'green',
                                 borderWidth: 2
                             },
-                            intersectionPoint: { // Point at intersection
+                            intersectionPoint: {
                                 type: 'point',
                                 xValue: reqscore,
                                 yValue: actualPrice,
@@ -479,35 +459,24 @@
                             text: 'Combined Quality Score',
                             font: { size: 14, weight: '500'}
                         },
-                        type: 'linear', // Ensure x-axis is treated linearly
+                        type: 'linear',
                         min: xAxisMin,
                         max: xAxisMax,
                          ticks: {
                              stepSize: 1,
                              callback: function(value, index, values) {
                                 const qualityMap = {
-                                        1: 'Gen/NG',
-                                        2: 'Poor',
-                                        3: 'Fair',
-                                        4: 'Good',
-                                        5: 'Good+',
-                                        6: 'Very Good',
-                                        7: 'Very Good+',
-                                        8: 'Near Mint',
-                                        9: 'Mint'
+                                        1: 'Gen/NG', 2: 'Poor', 3: 'Fair', 4: 'Good', 5: 'Good+',
+                                        6: 'Very Good', 7: 'Very Good+', 8: 'Near Mint', 9: 'Mint'
                                 };
-                                // Show integer ticks and map them
                                 if (Number.isInteger(value) && value >= 1 && value <= 9) {
                                      return qualityMap[value] || value;
                                 }
-                                // Don't show labels for non-integer ticks unless needed
                                 return null;
                              },
                             font: { size: 12 }
                          },
-                        grid: {
-                            color: '#eee' // Lighter grid lines
-                        }
+                        grid: { color: '#eee' }
                     },
                     y: {
                         title: {
@@ -518,13 +487,11 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value, index, values) {
-                                return '£' + value.toFixed(0); // Simpler price ticks
+                                return '£' + value.toFixed(0);
                             },
                              font: { size: 12 }
                         },
-                         grid: {
-                            color: '#eee' // Lighter grid lines
-                        }
+                         grid: { color: '#eee' }
                     }
                 }
             };
@@ -532,16 +499,15 @@
             const myChart = new Chart(ctx, {
                 type: 'scatter',
                 data: {
-                    // Labels array is still needed for tooltip mapping by index, even if x is linear
-                    labels: labels, // Keep original labels for reference
+                    labels: labels,
                     datasets: [{
                             label: 'Items Sold',
                             data: labels.map((label, index) => ({
-                                x: parseFloat(label), // Use numeric quality for position
+                                x: parseFloat(label),
                                 y: prices[index]
                             })),
-                            borderColor: 'rgba(255, 0, 0, 0.3)', // More subtle border
-                            backgroundColor: Array(prices.length).fill('red'), // Initial point color (managed by click handler)
+                            borderColor: 'rgba(255, 0, 0, 0.3)',
+                            backgroundColor: Array(prices.length).fill('red'),
                             pointRadius: 5,
                             pointHoverRadius: 7,
                         },
@@ -551,38 +517,40 @@
                                 x: parseFloat(qual),
                                 y: predictedPrices[index]
                             })),
-                            borderColor: 'blue',//var(--chart-fit-color)',
+                            borderColor: 'blue',
                             borderWidth: 2.5,
-                            pointRadius: 0, // No points on the line itself
+                            pointRadius: 0,
                             fill: false,
-                            tension: 0.3, // Smoother curve
+                            tension: 0.3,
                             type: 'line',
                             showLine: true
                         }
-                         // Dashed lines for annotations are handled by the annotation plugin now
                     ]
                 },
                 options: chartOptions
             });
 
-            // --- Form Submission Logic (Handles hidden inputs) ---
+            // --- Form Submission Logic ---
             const form = document.querySelector('form');
-            form.addEventListener('submit', function(event) {
-                // Copy pasted data to hidden input
-                const discogsData = document.getElementById('pasted_discogs_data').value;
-                const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
-                if (hiddenDiscogsInput) {
-                    hiddenDiscogsInput.value = discogsData;
-                } else {
-                    console.error("Hidden input 'saved_discogs_data' not found!");
-                }
+            // REMOVED: const pastedTextarea = document.getElementById('pasted_discogs_data');
+            // REMOVED: const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
 
-                // Serialize selected points data to hidden input
+            // REMOVED: JavaScript logic that referenced hiddenDiscogsInput
+
+            form.addEventListener('submit', function(event) {
+                // The pasted_discogs_data textarea will be submitted directly.
+                // No need to manage a hidden input for it.
+                console.log("Submitting form. Discogs data will come from 'pasted_discogs_data' textarea.");
+
                 const selectedPointsInput = document.getElementById('selected_points_to_delete');
-                selectedPointsInput.value = JSON.stringify(selectedPoints);
+                if (selectedPointsInput && typeof selectedPoints !== 'undefined') {
+                    selectedPointsInput.value = JSON.stringify(selectedPoints);
+                } else {
+                    console.warn("selectedPoints variable not found or input missing.");
+                    if (selectedPointsInput) selectedPointsInput.value = '[]';
+                }
             });
         });
-
     </script>
     {% endif %}
 
@@ -593,8 +561,7 @@
         });
         window.addEventListener('beforeunload', function (e) {
             if (!formSubmitted) {
-                // Use navigator.sendBeacon for reliable background sending
-                navigator.sendBeacon('/shutdown', ''); // Send empty body is fine for POST trigger
+                navigator.sendBeacon('/shutdown', '');
             }
         });
     </script>
