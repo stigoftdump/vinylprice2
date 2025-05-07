@@ -116,7 +116,7 @@ def index():
              status_message = "Invalid start date format. Please use ISO YYYY-MM-DD."
              # Render template with current form values and error message
              return render_template("index.html",
-                       pasted_discogs_data=discogs_data, # Keep the discogs data in the textarea
+                       pasted_discogs_data='', # Keep the discogs data in the textarea
                        media=media_display,
                        sleeve=sleeve_display,
                        shop_var=shop_var_display,
@@ -159,7 +159,7 @@ def index():
         # Render template with results and the inputs that were used
         # Populate form fields with the submitted values for continuity
         return render_template("index.html",
-                               pasted_discogs_data=pasted_discogs_data_display, # Keep the discogs data in the textarea
+                               pasted_discogs_data='', # Keep the discogs data in the textarea
                                media=media_display,
                                sleeve=sleeve_display,
                                shop_var=shop_var_display,
@@ -179,7 +179,7 @@ def index():
     # Render template with default values (or potentially last values if they were POSTed)
     # Jinja will use the default values passed here on the first GET
     return render_template("index.html",
-                           pasted_discogs_data=pasted_discogs_data_display, # Default empty
+                           pasted_discogs_data='', # Default empty
                            media=media_display, # Default 6
                            sleeve=sleeve_display, # Default 6
                            shop_var=shop_var_display, # Loaded from file

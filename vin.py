@@ -34,6 +34,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     if not discogs_data:
         # load the saved file
         processed_grid = load_processed_grid()
+        # delete points
+        processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
     else:
         # Gets the processed_grid from the discogs_data sent over
         processed_grid, status_message = make_processed_grid(discogs_data, start_date)
@@ -57,8 +59,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
              output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
              return output_data
 
-        # Save processed grid to file
-        save_processed_grid(processed_grid)
+    # Save processed grid to file
+    save_processed_grid(processed_grid)
 
     # gets dates and comments from the PROCESSED_GRID to go in the output
     dates = []
