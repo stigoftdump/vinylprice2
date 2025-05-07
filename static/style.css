@@ -336,35 +336,44 @@ button[type="submit"]:active {
 /* Toast Notification Styles */
 #toast-container {
     position: fixed;
-    bottom: calc(var(--spacing-unit) * 1.5); /* 24px from bottom */
-    right: calc(var(--spacing-unit) * 1.5);  /* 24px from right */
+    /* MODIFIED: Move to top right */
+    top: calc(var(--spacing-unit) * 1.5);    /* e.g., 24px from top */
+    right: calc(var(--spacing-unit) * 1.5);   /* e.g., 24px from right */
     z-index: 1050; /* Ensure it's above most other content */
     display: flex;
-    flex-direction: column-reverse; /* New toasts appear on top of older ones */
-    align-items: flex-end;
-    gap: calc(var(--spacing-unit) * 0.5); /* Space between toasts */
+    /* MODIFIED: New toasts appear below older ones when at the top */
+    flex-direction: column;
+    align-items: flex-end; /* Toasts align to the right within the container */
+    gap: calc(var(--spacing-unit) * 0.75); /* MODIFIED: Slightly increased gap between toasts */
 }
 
 .toast {
-    background-color: var(--input-bg-color);
+    background-color: var(--input-bg-color); /* Usually white or a light color */
     color: var(--text-color);
-    padding: calc(var(--spacing-unit) * 0.8) calc(var(--spacing-unit) * 1.2);
+    /* MODIFIED: Increased padding for a larger, more noticeable toast */
+    padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.5); /* e.g., 16px 24px */
     border-radius: var(--border-radius);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    /* MODIFIED: More pronounced shadow to lift it off the page */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0,0,0,0.15);
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    width: auto;
-    min-width: 280px;
-    max-width: 380px;
+    align-items: center; /* Vertically align content and close button */
+    width: auto; /* Auto width based on content */
+    /* MODIFIED: Adjust min/max width for better presence */
+    min-width: 320px;
+    max-width: 420px;
     opacity: 0;
-    transform: translateX(calc(100% + var(--spacing-unit) * 1.5)); /* Start off-screen (right) */
-    transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-    font-size: 0.9rem;
-    line-height: 1.4;
-    border-left-width: 5px;
+    /* Animation: Slide in from the right */
+    transform: translateX(calc(100% + var(--spacing-unit) * 1.5));
+    /* MODIFIED: Slightly adjusted transition for a smoother feel */
+    transition: opacity 0.3s ease-out, transform 0.4s ease-out;
+    /* MODIFIED: Slightly larger base font size within the toast */
+    font-size: 0.95rem;
+    line-height: 1.5; /* MODIFIED: Improved line height for readability */
+    border-left-width: 6px; /* MODIFIED: Thicker colored border for emphasis */
     border-left-style: solid;
-    border-left-color: var(--border-color); /* Default border color */
+    /* Default border color, will be overridden by type-specific styles */
+    border-left-color: var(--border-color);
 }
 
 .toast.show {
@@ -373,41 +382,46 @@ button[type="submit"]:active {
 }
 
 .toast.error {
-    background-color: #fff2f2; /* Lighter red background */
-    color: var(--error-color);
+    background-color: #fff2f2; /* Light red background */
+    color: var(--error-color); /* Darker red text for contrast */
     border-left-color: var(--error-color);
 }
 
 .toast.success {
-    background-color: #f0fff0; /* Lighter green background */
-    color: var(--success-color);
+    background-color: #f0fff0; /* Light green background */
+    color: var(--success-color); /* Darker green text */
     border-left-color: var(--success-color);
 }
 
 .toast.info {
-    background-color: #eef7ff; /* Lighter blue background */
-    color: var(--info-color);
+    background-color: #eef7ff; /* Light blue background */
+    color: var(--info-color); /* Darker blue text */
     border-left-color: var(--info-color);
 }
 
 .toast-message {
     flex-grow: 1;
-    padding-right: var(--spacing-unit); /* Space before close button */
+    /* MODIFIED: Ensure adequate spacing from the close button */
+    padding-right: calc(var(--spacing-unit) * 1.2);
+    /* MODIFIED: Make message text slightly bolder for emphasis */
+    font-weight: 500;
 }
+
 
 .toast-close-button {
     background: none;
     border: none;
     color: inherit; /* Inherits color from parent toast type's text color */
-    font-size: 1.4rem; /* Slightly larger for easier clicking */
+    /* MODIFIED: Larger font size for easier clicking */
+    font-size: 1.6rem;
     font-weight: bold;
-    line-height: 1; /* Ensure it doesn't add extra height */
+    line-height: 1; /* Prevent extra height */
     cursor: pointer;
-    padding: 0;
-    margin-left: var(--spacing-unit);
+    padding: 0; /* Reset padding if any */
+    margin-left: var(--spacing-unit); /* Space from the message */
     opacity: 0.6;
     transition: opacity 0.2s ease;
-    align-self: flex-start; /* Align to the top of the toast message */
+    align-self: flex-start; /* Align 'x' to the top of the message area */
 }
 
 .toast-close-button:hover {
@@ -456,19 +470,28 @@ button[type="submit"]:active {
 
     /* Adjust toast position for smaller screens if they take too much space */
     #toast-container {
+        /* MODIFIED: Position at top, span more width on smaller screens */
+        top: var(--spacing-unit);
+        left: var(--spacing-unit);
         right: var(--spacing-unit);
-        bottom: var(--spacing-unit);
-        width: calc(100% - (var(--spacing-unit) * 2)); /* Make container responsive */
-        align-items: center; /* Center toasts on small screens */
+        width: calc(100% - (var(--spacing-unit) * 2)); /* Full width minus some padding */
+        align-items: center; /* Center toasts if they don't take full width */
     }
     .toast {
-        min-width: unset; /* Allow toasts to be narrower */
-        width: 100%;     /* Full width within container */
-        max-width: none;
-        transform: translateY(calc(100% + var(--spacing-unit))); /* Start off-screen (bottom) */
+        min-width: unset; /* Allow toast to be narrower than desktop min-width */
+        width: 100%;     /* Toast takes full width of its container */
+        max-width: none; /* No max-width */
+        /* MODIFIED: Slide in from the top for top-aligned toasts on mobile */
+        transform: translateY(-120%); /* Start off-screen (top) */
+        opacity: 0; /* Start transparent */
     }
-     .toast.show {
+    .toast.show {
+        /* MODIFIED: Animate to final position (sliding from top) */
         transform: translateY(0);
+        opacity: 1;
+    }
+    .toast-message {
+    font-size: 0.9rem; /* Slightly adjust font size for mobile if needed */
     }
 }
 
