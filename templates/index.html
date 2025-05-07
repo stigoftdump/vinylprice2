@@ -81,13 +81,13 @@
 
                     <div class="form-group">
                          <label for="shop_var" class="label-with-tooltip">
-                           <span>Shop Variance Factor:</span>
+                           <span>Price Adjustment factor:</span>
                              <div class="tooltip-container">
                                 <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
-                                <span class="tooltip-text">Adjusts the final price based on uncertainty (0.1-2.0). Lower=closer to prediction, Higher=closer to upper bound.</span>
+                                <span class="tooltip-text">Adjusts how near the price should be to the max price.</span>
                             </div>
                         </label>
-                        <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="0.1" max="2">
+                        <input type="number" id="shop_var" name="shop_var" value="{{ shop_var }}" step="0.1" min="=1" max="2">
                     </div>
 
                     <div class="form-group date-add-group">
