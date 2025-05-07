@@ -405,6 +405,7 @@ button[type="submit"]:active {
     padding-right: calc(var(--spacing-unit) * 1.2);
     /* MODIFIED: Make message text slightly bolder for emphasis */
     font-weight: 500;
+    white-space: pre-wrap;
 }
 
 

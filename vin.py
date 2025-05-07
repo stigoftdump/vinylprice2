@@ -107,10 +107,13 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         status_message = "Completed"
         # Notifies if points are deleted
         if deleted_count > 0:
-            status_message += f". {deleted_count} points deleted"
+            status_message += f"\n{deleted_count} points deleted"
         # Notifies if data is added
         if add_data == "True":
-            status_message += f". Data added to previous run"
+            status_message += f"\nData added to previous run"
+        # Adds a message if there is less than 10 points
+        if len(processed_grid)<10:
+            status_message += f"\nLess than 10 data points. Please add more data if possible."
 
     # output for sending to flask
     output_data = {
