@@ -121,7 +121,7 @@ def index():
                        sleeve=sleeve_display,
                        shop_var=shop_var_display,
                        start_date=start_date_display,
-                       add_data=add_data_display, # Pass boolean
+                       add_data=False, # Pass boolean
                        status_message=status_message,
                        calculated_price=None, adjusted_price=None, actual_price=None, chart_data={})
 
@@ -166,7 +166,7 @@ def index():
                                sleeve=sleeve_display,
                                shop_var=shop_var_display,
                                start_date=start_date_display,
-                               add_data=add_data_display, # Pass boolean
+                               add_data=False, # Pass boolean
                                calculated_price=calculated_price,
                                adjusted_price=adjusted_price,
                                actual_price=actual_price,
@@ -188,7 +188,7 @@ def index():
                            sleeve=sleeve_display, # Default 6
                            shop_var=shop_var_display, # Loaded from file
                            start_date=start_date_display, # Default
-                           add_data=add_data_display, # Default False
+                           add_data=False, # Default False
                            status_message="", # No status on initial load
                            info_message=None,  # Default info for initial load
                            error_message=None,  # Default error for initial load
