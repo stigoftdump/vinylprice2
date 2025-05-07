@@ -512,3 +512,40 @@ button[type="submit"]:active {
         height: 400px;
     }
 }
+
+/* Styles for Chart Info Box */
+.chart-info-box {
+    background-color: #eef7ff; /* A light, friendly background color, similar to 'info' toast */
+    color: var(--info-color); /* Text color consistent with 'info' */
+    border: 1px solid var(--info-color);
+    border-left: 6px solid var(--info-color); /* Emphasized left border */
+    border-radius: var(--border-radius);
+    padding: var(--spacing-unit); /* Use existing spacing variable */
+    margin-top: var(--spacing-unit); /* Space above the box */
+    margin-bottom: var(--spacing-unit); /* Space below the box */
+    font-size: 0.95rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between icon (if added) and text */
+}
+
+.chart-info-box p {
+    margin: 0; /* Remove default paragraph margin */
+    font-weight: 500; /* Make text slightly bolder */
+}
+
+/* Optional: Add an icon using a pseudo-element */
+.chart-info-box p::before {
+    content: '💡'; /* Or use an icon font or SVG */
+    margin-right: 8px;
+    font-size: 1.2rem;
+    line-height: 1; /* Align icon vertically */
+}
+
+/* Responsive adjustments if needed */
+@media (max-width: 900px) {
+    .chart-info-box {
+        margin-top: var(--spacing-unit) * 1.5; /* Adjust spacing on smaller screens */
+    }
+}
