@@ -157,7 +157,6 @@ def index():
             chart_data = {} # Ensure empty chart data on error
         # --- End of direct function call ---
 
-
         # Render template with results and the inputs that were used
         # Populate form fields with the submitted values for continuity
         return render_template("index.html",
