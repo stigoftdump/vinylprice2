@@ -5,9 +5,9 @@
 
 /* Define CSS Variables for Colors and Styles */
 :root {
-    --primary-color: #4CAF50; /* A nice blue */
-    --primary-hover-color: #357abd;
-    --secondary-color: #f4f7f6; /* Light background */
+    --primary-color: #4CAF50;
+    --primary-hover-color: #3e8e41; /* Darker green for hover */
+    --secondary-color: #f4f7f6;
     --text-color: #333;
     --label-color: #555;
     --border-color: #ccc;
@@ -15,7 +15,7 @@
     --error-color: #d9534f;
     --success-color: #5cb85c;
     --warning-color: #f0ad4e;
-    --info-color: #5bc0de;
+    --info-color: #5bc0de; /* Using the existing info color */
     --chart-predicted-color: orange;
     --chart-upper-bound-color: purple;
     --chart-actual-color: green;
@@ -50,64 +50,54 @@ body {
 
 /* Header */
 header {
-    /* text-align: center; */ /* REMOVE or COMMENT OUT this line */
-    text-align: left; /* Reset text alignment for the header block */
+    text-align: left;
     margin-bottom: var(--spacing-unit);
     padding-bottom: var(--spacing-unit);
     border-bottom: 1px solid #eee;
-    /* Add horizontal padding if you want space from the edges */
-     padding-left: var(--spacing-unit);
-     padding-right: var(--spacing-unit);
+    padding-left: var(--spacing-unit);
+    padding-right: var(--spacing-unit);
 }
 
-/* Styles for the new container holding logo and title */
 .header-top-row {
-    display: flex;            /* Enable Flexbox */
-    align-items: center;      /* Vertically align items */
-    justify-content: space-between; /* Key for layout: pushes logo left, spacer right, title center */
-    width: 100%;              /* Take full width */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 }
 
-/* Style for the logo */
 .header-logo {
-    height: 50px;           /* Set your desired logo height */
-    width: auto;            /* Maintain aspect ratio */
-    flex-shrink: 0;         /* Prevent logo from shrinking if space is tight */
-    /* You might need to note the actual width this renders at for the spacer below */
+    height: 50px;
+    width: auto;
+    flex-shrink: 0;
 }
 
-/* Container for the H1 title */
 .header-title-container {
-    /* No specific flex needed, space-between handles centering */
-    text-align: center;     /* Ensures H1 text is centered if container has extra space */
+    text-align: center;
+    flex-grow: 1; /* Allow title to take up space for better centering */
 }
 
-/* Remove default margins from H1 that might interfere */
 .header-title-container h1 {
     margin: 0;
-    /* Keep existing h1 styles from your file */
     color: var(--primary-color);
     font-weight: 700;
-    /* font-size: 1.8rem; /* Adjust if needed */
 }
 
-/* The invisible spacer element */
 .header-spacer {
-    /* This MUST have the same width as the rendered .header-logo */
-    width: 50px;  /* ADJUST THIS VALUE! Inspect logo width in browser & match it here */
-                 /* Or set an explicit width on .header-logo */
-    height: 1px;            /* Minimal height */
-    flex-shrink: 0;         /* Prevent shrinking */
-    visibility: hidden;     /* Make it take up space but be invisible */
+    width: 50px; /* Adjust to match actual logo width if needed */
+    height: 1px;
+    flex-shrink: 0;
+    visibility: hidden;
 }
 
+/* REMOVE OR COMMENT OUT OLD STATUS MESSAGE STYLES */
+/*
 .status-message {
     text-align: center;
     font-weight: 500;
     padding: calc(var(--spacing-unit) * 0.75);
     margin: var(--spacing-unit) 0;
     border-radius: var(--border-radius);
-    display: none; /* Hidden by default, shown if message exists */
+    display: none;
 }
 .status-message.show {
     display: block;
@@ -127,7 +117,7 @@ header {
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
 }
-
+*/
 
 /* Content Layout (Flexbox) */
 .content-wrapper {
@@ -137,12 +127,12 @@ header {
 }
 
 .left-column {
-    flex: 1; /* Takes up 1 part of the space */
-    min-width: 300px; /* Minimum width before wrapping */
+    flex: 1;
+    min-width: 300px;
 }
 
 .right-column {
-    flex: 2; /* Takes up 2 parts of the space */
+    flex: 2;
     padding-left: var(--spacing-unit);
     border-left: 1px solid #eee;
 }
@@ -158,22 +148,20 @@ form {
     margin-bottom: calc(var(--spacing-unit) * 0.5);
 }
 
-/* Labels */
 label, .paste-label {
     font-weight: 500;
     color: var(--label-color);
     margin-bottom: calc(var(--spacing-unit) * 0.3);
-    display: block; /* Ensure label takes its own line */
+    display: block;
     font-size: 0.9rem;
 }
 
 .label-with-tooltip {
     display: flex;
     align-items: center;
-    gap: 5px; /* Space between label text and icon */
+    gap: 5px;
 }
 
-/* Input Fields (Textarea, Select, Number, Date) */
 textarea,
 select,
 input[type="number"],
@@ -191,63 +179,60 @@ input[type="date"] {
 
 textarea {
     min-height: 150px;
-    resize: vertical; /* Allow vertical resize */
+    resize: vertical;
     font-family: monospace;
 }
 
 select {
-    appearance: none; /* Remove default arrow */
+    appearance: none;
     background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
     background-repeat: no-repeat;
     background-position: right calc(var(--spacing-unit) * 0.75) center;
     background-size: 0.65em auto;
-    padding-right: calc(var(--spacing-unit) * 2.5); /* Space for arrow */
+    padding-right: calc(var(--spacing-unit) * 2.5);
 }
 
-/* Focus Styles */
 textarea:focus,
 select:focus,
 input[type="number"]:focus,
 input[type="date"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3); /* Consider changing this shadow to use primary color alpha */
 }
 
-/* Specific Group Layouts (Date and Add Data) */
 .date-add-group {
     display: flex;
     align-items: center;
     gap: var(--spacing-unit);
-    flex-wrap: wrap; /* Allow wrapping on small screens */
+    flex-wrap: wrap;
 }
 
 .date-group {
-    flex: 1; /* Take available space */
-    min-width: 150px; /* Prevent excessive shrinking */
+    flex: 1;
+    min-width: 150px;
 }
 
 .add-data-group {
     display: flex;
     align-items: center;
-    white-space: nowrap; /* Keep checkbox and label together */
+    white-space: nowrap;
 }
 
 .add-data-group input[type="checkbox"] {
     margin-right: calc(var(--spacing-unit) * 0.4);
-    accent-color: var(--primary-color); /* Modern way to style checkbox */
+    accent-color: var(--primary-color);
     width: 1.1em;
     height: 1.1em;
     cursor: pointer;
 }
 
 .add-data-group label {
-    margin-bottom: 0; /* Reset default bottom margin */
-    font-weight: 400; /* Normal weight for checkbox label */
+    margin-bottom: 0;
+    font-weight: 400;
     cursor: pointer;
 }
 
-/* Button Styling */
 button[type="submit"] {
     background-color: var(--primary-color);
     color: white;
@@ -259,19 +244,17 @@ button[type="submit"] {
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.1s ease;
     width: 100%;
-    margin-top: var(--spacing-unit); /* Add space above button */
+    margin-top: var(--spacing-unit);
 }
 
 button[type="submit"]:hover {
-    background-color: var(--primary-hover-color);
+    background-color: var(--primary-hover-color); /* Updated hover color */
 }
 
 button[type="submit"]:active {
     transform: scale(0.98);
 }
 
-
-/* Right Column Results */
 .right-column h2 {
     margin-top: 0;
     color: var(--primary-color);
@@ -287,34 +270,30 @@ button[type="submit"]:active {
 
 .results-container strong {
     display: inline-block;
-    min-width: 180px; /* Align values */
+    min-width: 180px;
 }
 
-/* Specific Result Colors */
 .price-calculated { color: var(--chart-predicted-color); }
 .price-upper-bound { color: var(--chart-upper-bound-color); }
 .price-actual { color: var(--chart-actual-color); font-weight: 500; }
 .price-error { color: var(--error-color); font-weight: 500; }
 
-
-/* Chart Container */
 #myChart {
     margin-top: calc(var(--spacing-unit) * 1.5);
-    max-width: 100%; /* Ensure chart doesn't overflow */
+    max-width: 100%;
 }
 
-/* Tooltip Styling */
 .tooltip-container {
     position: relative;
     display: inline-block;
     cursor: help;
-    line-height: 1; /* Prevent icon from affecting line height */
+    line-height: 1;
 }
 
 .tooltip-container img {
     width: 16px;
     height: 16px;
-    vertical-align: middle; /* Align icon better with text */
+    vertical-align: middle;
 }
 
 .tooltip-text {
@@ -325,26 +304,23 @@ button[type="submit"]:active {
     padding: 8px 12px;
     border-radius: var(--border-radius);
     font-size: 0.8rem;
-    font-weight: 400; /* Normal weight for tooltip */
+    font-weight: 400;
     line-height: 1.4;
-    /* Positioning */
     position: absolute;
     z-index: 10;
-    bottom: 130%; /* Position above the icon */
+    bottom: 130%;
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
-    /* Fade-in effect */
     opacity: 0;
     transition: opacity 0.3s ease, visibility 0.3s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* Small arrow for the tooltip */
 .tooltip-text::after {
     content: "";
     position: absolute;
-    top: 100%; /* At the bottom of the tooltip */
+    top: 100%;
     left: 50%;
     margin-left: -5px;
     border-width: 5px;
@@ -352,9 +328,89 @@ button[type="submit"]:active {
     border-color: #333 transparent transparent transparent;
 }
 
-/* Show tooltip on hover */
 .tooltip-container:hover .tooltip-text {
     visibility: visible;
+    opacity: 1;
+}
+
+/* Toast Notification Styles */
+#toast-container {
+    position: fixed;
+    bottom: calc(var(--spacing-unit) * 1.5); /* 24px from bottom */
+    right: calc(var(--spacing-unit) * 1.5);  /* 24px from right */
+    z-index: 1050; /* Ensure it's above most other content */
+    display: flex;
+    flex-direction: column-reverse; /* New toasts appear on top of older ones */
+    align-items: flex-end;
+    gap: calc(var(--spacing-unit) * 0.5); /* Space between toasts */
+}
+
+.toast {
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    padding: calc(var(--spacing-unit) * 0.8) calc(var(--spacing-unit) * 1.2);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: auto;
+    min-width: 280px;
+    max-width: 380px;
+    opacity: 0;
+    transform: translateX(calc(100% + var(--spacing-unit) * 1.5)); /* Start off-screen (right) */
+    transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-left-color: var(--border-color); /* Default border color */
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.error {
+    background-color: #fff2f2; /* Lighter red background */
+    color: var(--error-color);
+    border-left-color: var(--error-color);
+}
+
+.toast.success {
+    background-color: #f0fff0; /* Lighter green background */
+    color: var(--success-color);
+    border-left-color: var(--success-color);
+}
+
+.toast.info {
+    background-color: #eef7ff; /* Lighter blue background */
+    color: var(--info-color);
+    border-left-color: var(--info-color);
+}
+
+.toast-message {
+    flex-grow: 1;
+    padding-right: var(--spacing-unit); /* Space before close button */
+}
+
+.toast-close-button {
+    background: none;
+    border: none;
+    color: inherit; /* Inherits color from parent toast type's text color */
+    font-size: 1.4rem; /* Slightly larger for easier clicking */
+    font-weight: bold;
+    line-height: 1; /* Ensure it doesn't add extra height */
+    cursor: pointer;
+    padding: 0;
+    margin-left: var(--spacing-unit);
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    align-self: flex-start; /* Align to the top of the toast message */
+}
+
+.toast-close-button:hover {
     opacity: 1;
 }
 
@@ -386,7 +442,7 @@ button[type="submit"]:active {
     }
 
     .add-data-group {
-        width: 100%; /* Make checkbox group take full width */
+        width: 100%;
         margin-top: calc(var(--spacing-unit) * 0.5);
     }
 
@@ -395,27 +451,41 @@ button[type="submit"]:active {
     }
 
      .results-container strong {
-        min-width: 150px; /* Adjust alignment for smaller screens */
+        min-width: 150px;
+    }
+
+    /* Adjust toast position for smaller screens if they take too much space */
+    #toast-container {
+        right: var(--spacing-unit);
+        bottom: var(--spacing-unit);
+        width: calc(100% - (var(--spacing-unit) * 2)); /* Make container responsive */
+        align-items: center; /* Center toasts on small screens */
+    }
+    .toast {
+        min-width: unset; /* Allow toasts to be narrower */
+        width: 100%;     /* Full width within container */
+        max-width: none;
+        transform: translateY(calc(100% + var(--spacing-unit))); /* Start off-screen (bottom) */
+    }
+     .toast.show {
+        transform: translateY(0);
     }
 }
 
 .chart-container {
-    position: relative; /* Required for Chart.js responsiveness within */
-    height: 500px;      /* Define a specific height */
-    width: 100%;        /* Take full width of the parent column */
-    margin-top: calc(var(--spacing-unit) * 1.5); /* Keep the margin */
-    max-width: 100%;    /* Ensure it doesn't overflow horizontally */
+    position: relative;
+    height: 500px;
+    width: 100%;
+    margin-top: calc(var(--spacing-unit) * 1.5);
+    max-width: 100%;
 }
 
-/* Optional: Adjust canvas style if needed */
 #myChart {
-    /* max-width: 100%; */ /* No longer needed directly on canvas if container handles width */
-    margin-top: 0; /* Reset margin if container has it */
+    margin-top: 0;
 }
 
-/* Adjustments for smaller screens if needed */
 @media (max-width: 600px) {
     .chart-container {
-        height: 400px; /* Maybe make it shorter on small screens */
+        height: 400px;
     }
 }

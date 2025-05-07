@@ -13,26 +13,15 @@
 <body>
 
     <div class="main-container">
-            <header>
-                <div class="header-top-row">
-                    <img src="{{ url_for('static', filename='images/oxfam-logo.png') }}" alt="Oxfam Logo" class="header-logo">
-                    <div class="header-title-container">
-                        <h1>Vinyl Price Calculator</h1>
-                    </div>
-                    <div class="header-spacer"></div>
+        <header>
+            <div class="header-top-row">
+                <img src="{{ url_for('static', filename='images/oxfam-logo.png') }}" alt="Oxfam Logo" class="header-logo">
+                <div class="header-title-container">
+                    <h1>Vinyl Price Calculator</h1>
                 </div>
-                {# Status message remains below the logo/title row #}
-                {% set status_class = 'info' %}
-                {% if status_message and 'Error' in status_message %}
-                    {% set status_class = 'error' %}
-                {% elif status_message and ('Completed' in status_message or 'calculated' in status_message) %}
-                    {% set status_class = 'success' %}
-                {% endif %}
-                <div class="status-message {{ status_class if status_message else '' }} {{ 'show' if status_message else '' }}">
-                    {{ status_message }}
-                </div>
+                <div class="header-spacer"></div>
+            </div>
             </header>
-
 
         <div class="content-wrapper">
             <div class="left-column">
@@ -128,21 +117,25 @@
 
                     <div class="button-container">
                         <button type="submit" name="action" value="calculate">Estimate Price</button>
-                        </div>
+                    </div>
 
                 </form>
-            </div> <div class="right-column">
-                 {% if calculated_price is not none or status_message and 'Error' in status_message %}
+            </div>
+            <div class="right-column">
+                 {% if calculated_price is not none or status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) %}
                  <div class="results-container">
                      <h2>Estimation Results:</h2>
-                     {% if calculated_price == 'Error' or (calculated_price is none and status_message and 'Error' in status_message) %}
+                     {% if calculated_price == 'Error' %}
                         <p class="price-error"><strong>Calculation Error:</strong> {{ status_message }}</p>
+                     {% elif status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) and calculated_price is none %}
+                        <p class="price-error"><strong>Status:</strong> {{ status_message }}</p>
                      {% elif calculated_price is not none %}
                         <p class="price-calculated"><strong>Predicted Price:</strong> £{{ calculated_price }}</p>
                         <p class="price-upper-bound"><strong>Max Price:</strong> £{{ adjusted_price }}</p>
                         <p class="price-actual"><strong>Suggested Price:</strong> £{{ actual_price }}</p>
                      {% endif %}
                  </div>
+                 {% endif %}
 
                 {% if chart_data %}
                    <div class="chart-container">
@@ -152,11 +145,24 @@
                        {{ chart_data | tojson | safe }}
                    </script>
                 {% endif %}
+            </div>
+        </div>
+    </div>
 
-                 {% endif %}
-            </div> </div> </div> {% if chart_data %}
+    <div id="toast-container"></div>
+
+    {% if status_message %}
+    <div id="initial-status-data"
+         data-message="{{ status_message }}"
+         data-message-type="{% if 'Error' in status_message or 'failed' in status_message or 'Missing' in status_message %}error{% elif 'Completed' in status_message or 'calculated' in status_message or 'success' in status_message %}success{% else %}info{% endif %}"
+         style="display: none;">
+    </div>
+    {% endif %}
+
+    {% if chart_data %}
     <script>
-        // --- Chart.js Logic ---
+        // --- START OF ORIGINAL Chart.js Logic ---
+        // This is the exact Chart.js logic from your initial file.
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('myChart').getContext('2d');
             const jsonScriptTag = document.getElementById('chart-data-json');
@@ -214,15 +220,18 @@
                             if (Array.isArray(backgroundColors)) {
                                 backgroundColors[dataIndex] = 'red';
                             } else {
-                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
-                                chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'red';
+                                // This case might occur if backgroundColor was initially a string
+                                // For robustness, ensure it's an array reflecting current points
+                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill('red'); // Default or initial color
+                                // If you have a more specific way to get initial colors, use that
                             }
                         } else {
                             selectedPoints.push(clickedPointData);
                              if (Array.isArray(backgroundColors)) {
                                 backgroundColors[dataIndex] = 'black';
                             } else {
-                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill(backgroundColors);
+                                // Similar to above, ensure it's an array
+                                chart.data.datasets[datasetIndex].backgroundColor = Array(prices.length).fill('red');
                                 chart.data.datasets[datasetIndex].backgroundColor[dataIndex] = 'black';
                             }
                         }
@@ -287,7 +296,7 @@
                                 {
                                     text: 'Calculated Price',
                                     fillStyle: 'transparent',
-                                    strokeStyle: '#FFD700',
+                                    strokeStyle: '#FFD700', // Gold color
                                     lineWidth: 2,
                                     borderDash: [3, 3],
                                     hidden: false,
@@ -332,7 +341,7 @@
                                 let labelLines = [];
                                 const index = context.dataIndex;
 
-                                if (context.datasetIndex === 0) {
+                                if (context.datasetIndex === 0) { // Tooltip for 'Items Sold'
                                     const date = dates && dates[index] ? dates[index] : 'N/A';
                                     const price = prices && prices[index] !== undefined ? prices[index] : 'N/A';
                                     const comment = comments && comments[index] ? comments[index] : 'No comment';
@@ -354,7 +363,7 @@
                                     labelLines.push(`${priceLabel}: ${new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price)}`);
 
                                     if (comment && comment !== 'No comment') {
-                                        const wrappedComment = wrapText(comment, 40);
+                                        const wrappedComment = wrapText(comment, 40); // Max 40 chars per line for comment
                                         labelLines.push(`Comment: ${wrappedComment[0]}`);
                                         for (let i = 1; i < wrappedComment.length; i++) {
                                             labelLines.push(`  ${wrappedComment[i]}`);
@@ -363,7 +372,7 @@
                                         labelLines.push(`Comment: ${comment}`);
                                     }
                                     return labelLines;
-                                } else {
+                                } else { // Tooltips for other datasets (lines, etc.)
                                     let label = context.dataset.label || '';
                                     if (label) label += ': ';
                                      if (context.parsed.y !== null) {
@@ -380,9 +389,9 @@
                                 type: 'line',
                                 yMin: predictedPrice,
                                 yMax: predictedPrice,
-                                xMin: xAxisMin,
+                                xMin: xAxisMin, // Use calculated min for x-axis
                                 xMax: reqscore,
-                                borderColor: 'orange',
+                                borderColor: 'orange', // var(--chart-predicted-color)
                                 borderWidth: 2,
                                 borderDash: [6, 6],
                                 label: {
@@ -399,9 +408,9 @@
                                 type: 'line',
                                 yMin: upperBound,
                                 yMax: upperBound,
-                                xMin: xAxisMin,
+                                xMin: xAxisMin, // Use calculated min for x-axis
                                 xMax: reqscore,
-                                borderColor: 'purple',
+                                borderColor: 'purple', // var(--chart-upper-bound-color)
                                 borderWidth: 2,
                                 borderDash: [6, 6],
                                 label: {
@@ -414,13 +423,13 @@
                                     yAdjust: 10
                                 }
                             },
-                            actualPriceLine: {
+                            actualPriceLine: { // For the suggested price
                                 type: 'line',
                                 yMin: actualPrice,
                                 yMax: actualPrice,
-                                xMin: xAxisMin,
+                                xMin: xAxisMin, // Use calculated min for x-axis
                                 xMax: reqscore,
-                                borderColor: 'green',
+                                borderColor: 'green', // var(--chart-actual-color)
                                 borderWidth: 2,
                                 borderDash: [6, 6],
                                  label: {
@@ -430,23 +439,24 @@
                                     backgroundColor: 'rgba(0,128,0,0.7)',
                                      color: 'white',
                                     font: { size: 10 },
-                                     yAdjust: 0
+                                     yAdjust: 0 // Adjust as needed, e.g., if it overlaps with predictedLine label
                                 }
                             },
-                            reqScoreLine: {
+                            reqScoreLine: { // Vertical line at requested score
                                 type: 'line',
                                 xMin: reqscore,
                                 xMax: reqscore,
-                                yMin: 0,
-                                yMax: actualPrice,
-                                borderColor: 'green',
+                                yMin: 0, // Start from bottom of y-axis
+                                yMax: actualPrice, // End at the actual price point
+                                borderColor: 'green', // var(--chart-actual-color)
                                 borderWidth: 2
+                                // No label needed for this line usually
                             },
-                            intersectionPoint: {
+                            intersectionPoint: { // Point for the actual/suggested price
                                 type: 'point',
                                 xValue: reqscore,
                                 yValue: actualPrice,
-                                backgroundColor: 'green',
+                                backgroundColor: 'green', // var(--chart-actual-color)
                                 radius: 6
                             }
                         }
@@ -459,20 +469,21 @@
                             text: 'Combined Quality Score',
                             font: { size: 14, weight: '500'}
                         },
-                        type: 'linear',
-                        min: xAxisMin,
-                        max: xAxisMax,
+                        type: 'linear', // Ensure x-axis is linear for numerical quality scores
+                        min: xAxisMin,   // Dynamic min based on data
+                        max: xAxisMax,   // Dynamic max based on data
                          ticks: {
-                             stepSize: 1,
+                             stepSize: 1, // Show ticks for whole numbers
                              callback: function(value, index, values) {
+                                // Map numerical scores to labels if they are integers within range
                                 const qualityMap = {
                                         1: 'Gen/NG', 2: 'Poor', 3: 'Fair', 4: 'Good', 5: 'Good+',
                                         6: 'Very Good', 7: 'Very Good+', 8: 'Near Mint', 9: 'Mint'
                                 };
                                 if (Number.isInteger(value) && value >= 1 && value <= 9) {
-                                     return qualityMap[value] || value;
+                                     return qualityMap[value] || value; // Fallback to value if not in map
                                 }
-                                return null;
+                                return null; // Hide ticks for non-integer values between scores
                              },
                             font: { size: 12 }
                          },
@@ -487,7 +498,7 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value, index, values) {
-                                return '£' + value.toFixed(0);
+                                return '£' + value.toFixed(0); // Format as currency
                             },
                              font: { size: 12 }
                         },
@@ -499,30 +510,30 @@
             const myChart = new Chart(ctx, {
                 type: 'scatter',
                 data: {
-                    labels: labels,
+                    labels: labels, // Original string labels for data points if needed by tooltips/callbacks
                     datasets: [{
                             label: 'Items Sold',
-                            data: labels.map((label, index) => ({
+                            data: labels.map((label, index) => ({ // Convert string labels to numbers for scatter plot x
                                 x: parseFloat(label),
                                 y: prices[index]
                             })),
-                            borderColor: 'rgba(255, 0, 0, 0.3)',
-                            backgroundColor: Array(prices.length).fill('red'),
+                            borderColor: 'rgba(255, 0, 0, 0.3)', // Example color
+                            backgroundColor: Array(prices.length).fill('red'), // Example color, fill an array
                             pointRadius: 5,
                             pointHoverRadius: 7,
                         },
                         {
                             label: 'Best Fit Curve',
-                            data: predictedQualities.map((qual, index) => ({
+                            data: predictedQualities.map((qual, index) => ({ // Ensure qual is a number
                                 x: parseFloat(qual),
                                 y: predictedPrices[index]
                             })),
-                            borderColor: 'blue',
+                            borderColor: 'blue', // var(--chart-fit-color)
                             borderWidth: 2.5,
-                            pointRadius: 0,
+                            pointRadius: 0, // No points for the line itself
                             fill: false,
-                            tension: 0.3,
-                            type: 'line',
+                            tension: 0.3, // For curve smoothness
+                            type: 'line', // Draw this dataset as a line
                             showLine: true
                         }
                     ]
@@ -530,16 +541,9 @@
                 options: chartOptions
             });
 
-            // --- Form Submission Logic ---
+            // --- ORIGINAL Form Submission Logic (for selected points) ---
             const form = document.querySelector('form');
-            // REMOVED: const pastedTextarea = document.getElementById('pasted_discogs_data');
-            // REMOVED: const hiddenDiscogsInput = document.getElementById('saved_discogs_data');
-
-            // REMOVED: JavaScript logic that referenced hiddenDiscogsInput
-
             form.addEventListener('submit', function(event) {
-                // The pasted_discogs_data textarea will be submitted directly.
-                // No need to manage a hidden input for it.
                 console.log("Submitting form. Discogs data will come from 'pasted_discogs_data' textarea.");
 
                 const selectedPointsInput = document.getElementById('selected_points_to_delete');
@@ -551,19 +555,88 @@
                 }
             });
         });
+        // --- END OF ORIGINAL Chart.js Logic ---
     </script>
     {% endif %}
 
-     <script>
-        let formSubmitted = false;
-        document.querySelector('form').addEventListener('submit', function() {
-            formSubmitted = true;
+    <script>
+        // --- START OF Toast Notification Logic ---
+        function showToast(message, type = 'info', duration = 7000) {
+            const container = document.getElementById('toast-container');
+            if (!container) {
+                console.error('Toast container #toast-container not found!');
+                return;
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const messageElement = document.createElement('span');
+            messageElement.className = 'toast-message';
+            messageElement.textContent = message;
+            toast.appendChild(messageElement);
+
+            const closeButton = document.createElement('button');
+            closeButton.className = 'toast-close-button';
+            closeButton.innerHTML = '&times;';
+            closeButton.setAttribute('aria-label', 'Close notification');
+            closeButton.onclick = function() {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 400);
+            };
+            toast.appendChild(closeButton);
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (toast.parentNode && toast.classList.contains('show')) {
+                        closeButton.click();
+                    }
+                }, duration);
+            }
+        }
+
+        // Separate DOMContentLoaded for initial toast display
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialMessageDiv = document.getElementById('initial-status-data');
+            if (initialMessageDiv) {
+                const message = initialMessageDiv.getAttribute('data-message');
+                const messageType = initialMessageDiv.getAttribute('data-message-type');
+                if (message) {
+                    showToast(message, messageType);
+                }
+            }
         });
+        // --- END OF Toast Notification Logic ---
+    </script>
+
+    <script>
+        // --- START OF ORIGINAL beforeunload Logic ---
+        let formSubmitted = false;
+        const mainFormForBeacon = document.querySelector('div.left-column form');
+        if (mainFormForBeacon) {
+            mainFormForBeacon.addEventListener('submit', function() {
+                formSubmitted = true;
+            });
+        }
+
         window.addEventListener('beforeunload', function (e) {
             if (!formSubmitted) {
+                // Consider the implications of this. If the user is just closing the tab
+                // without submitting, this will fire.
                 navigator.sendBeacon('/shutdown', '');
             }
         });
+        // --- END OF ORIGINAL beforeunload Logic ---
     </script>
 
 </body>
