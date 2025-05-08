@@ -1,4 +1,4 @@
-from functions import graph_logic, load_processed_grid, save_processed_grid
+from functions import graph_logic, read_save_value, write_save_value
 from grid_functions import make_processed_grid, delete_points
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
@@ -35,7 +35,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
     if not discogs_data:
         # load the saved file
-        processed_grid = load_processed_grid()
+        processed_grid = read_save_value("processed_grid", {})
         # delete points
         processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
     else:
@@ -47,17 +47,17 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
 
         # If add_data is True, load the previously saved processed_grid and add it to the current one
         if add_data == "True":
-            saved_processed_grid = load_processed_grid()
+            saved_processed_grid = read_save_value("processed_grid", {})
             processed_grid.extend(saved_processed_grid) # Add saved data *after* potential deletion
 
-    # Check again if the grid is empty after adding saved data or max price filtering
+    # Check again if the grid is empty after deleting or loading
     if not processed_grid:
          error_message = "No data points available for analysis."
          output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": status_message, "chart_data": {}}
          return output_data
 
     # Save processed grid to file
-    save_processed_grid(processed_grid)
+    write_save_value(processed_grid, "processed_grid")
 
     # gets dates and comments from the PROCESSED_GRID to go in the output
     dates = []

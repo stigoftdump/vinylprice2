@@ -22,41 +22,24 @@ def write_application_data(data):
     except IOError as e:
         print(f"Error writing to {UNIFIED_SAVE_FILE}: {e}")
 
-def read_save_value():
+def read_save_value(datatype, default):
     """
-    Reads the 'shop_var' value from the unified save file.
-    Defaults to 0.8 if not found.
+    Reads the data type from the saved file
+
+    It returns the default if it cant read the file
+
     """
     data = read_application_data()
-    shop_var = data.get("shop_var", 0.8)
+    datareturn = data.get(datatype, default)
 
-    return shop_var
+    return datareturn
 
-def write_save_value(value):
+def write_save_value(value, datatype):
     """
-    Writes the given 'shop_var' value to the unified save file.
-    Args:
-        value (float): The 'shop_var' value to save.
+    Write the value to the datatype in the save file
     """
     data = read_application_data() # Read existing data
-    data["shop_var"] = value
-    write_application_data(data)
-
-def load_processed_grid(filename=UNIFIED_SAVE_FILE):
-    """
-    Loads the processed grid data from the unified pickle file.
-    """
-    data = read_application_data()
-    grid_data = data.get("processed_grid", [])
-
-    return grid_data
-
-def save_processed_grid(processed_grid, filename=UNIFIED_SAVE_FILE):
-    """
-    Saves the processed grid data to the unified pickle file.
-    """
-    data = read_application_data()
-    data["processed_grid"] = processed_grid
+    data[datatype] = value
     write_application_data(data)
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
