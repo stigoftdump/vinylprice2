@@ -116,11 +116,7 @@ def index():
 
     else:
         # This block is for the initial GET request
-        # Load shop_var for display, other defaults are hardcoded or handled by Jinja
-        shop_var_display = read_save_value("shop_var", 0.8 )# Load initial shop_var
 
-        # Render template with default values (or potentially last values if they were POSTed)
-        # Jinja will use the default values passed here on the first GET
         return render_template("index.html",
                                pasted_discogs_data='', # Default empty
                                media=media_display, # Default 6

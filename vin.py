@@ -36,19 +36,17 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     if not discogs_data:
         # load the saved file
         processed_grid = read_save_value("processed_grid", {})
-        # delete points
-        processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
     else:
         # Gets the processed_grid from the discogs_data sent over
         processed_grid, status_message = make_processed_grid(discogs_data, start_date)
 
-        # deletes points if needed
-        processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
+    # deletes points if needed
+    processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
 
-        # If add_data is True, load the previously saved processed_grid and add it to the current one
-        if add_data == "True":
-            saved_processed_grid = read_save_value("processed_grid", {})
-            processed_grid.extend(saved_processed_grid) # Add saved data *after* potential deletion
+    # If add_data is True, load the previously saved processed_grid and add it to the current one
+    if add_data == "True" and discogs_data:
+        saved_processed_grid = read_save_value("processed_grid", {})
+        processed_grid.extend(saved_processed_grid) # Add saved data *after* potential deletion
 
     # Check again if the grid is empty after deleting or loading
     if not processed_grid:
@@ -59,7 +57,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # Save processed grid to file
     write_save_value(processed_grid, "processed_grid")
 
-    # gets dates and comments from the PROCESSED_GRID to go in the output
+    # gets dates and comments from the processed_grid to go in the output
     dates = []
     comments = []
     # Ensure the loop handles the structure correctly, especially after filtering
@@ -81,8 +79,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message = graph_logic(reqscore, shop_var, processed_grid)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
-        status_message = f"Error during graph calculation: {e}"
-        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "status_message": status_message, "chart_data": {}}
+        error_message = f"Error during graph calculation: {e}"
+        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
         return output_data
 
     # Create chart data in JSON format
