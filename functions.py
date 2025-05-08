@@ -1,6 +1,63 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from grid_functions import realprice
+import pickle
+
+UNIFIED_SAVE_FILE = "vinylpricedata.pkl"
+
+def read_application_data():
+    """Reads the entire data dictionary from the unified pickle file."""
+    try:
+        with open(UNIFIED_SAVE_FILE, 'rb') as f:
+            data = pickle.load(f)
+            return data
+    except (FileNotFoundError, EOFError, pickle.UnpicklingError): # Handle empty or corrupted file
+        return {} # Return an empty dict if file not found or unpickling error
+
+def write_application_data(data):
+    """Writes the entire data dictionary to the unified pickle file."""
+    try:
+        with open(UNIFIED_SAVE_FILE, 'wb') as f:
+            pickle.dump(data, f)
+    except IOError as e:
+        print(f"Error writing to {UNIFIED_SAVE_FILE}: {e}")
+
+def read_save_value():
+    """
+    Reads the 'shop_var' value from the unified save file.
+    Defaults to 0.8 if not found.
+    """
+    data = read_application_data()
+    shop_var = data.get("shop_var", 0.8)
+
+    return shop_var
+
+def write_save_value(value):
+    """
+    Writes the given 'shop_var' value to the unified save file.
+    Args:
+        value (float): The 'shop_var' value to save.
+    """
+    data = read_application_data() # Read existing data
+    data["shop_var"] = value
+    write_application_data(data)
+
+def load_processed_grid(filename=UNIFIED_SAVE_FILE):
+    """
+    Loads the processed grid data from the unified pickle file.
+    """
+    data = read_application_data()
+    grid_data = data.get("processed_grid", [])
+
+    return grid_data
+
+def save_processed_grid(processed_grid, filename=UNIFIED_SAVE_FILE):
+    """
+    Saves the processed grid data to the unified pickle file.
+    """
+    data = read_application_data()
+    data["processed_grid"] = processed_grid
+    write_application_data(data)
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """

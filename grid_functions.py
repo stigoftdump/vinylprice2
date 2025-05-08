@@ -1,4 +1,3 @@
-import pickle
 import re
 from datetime import datetime
 import math
@@ -82,38 +81,6 @@ def adjust_for_inflation(price, sale_year):
     new_price = round(price * adjustment_factor,2)
 
     return new_price
-
-# function to save processed grid to a file
-def save_processed_grid(processed_grid, filename='processed_grid.pkl'):
-    """
-    Saves the processed grid data to a file using pickle.
-
-    Args:
-        processed_grid (list): The list of processed sale data tuples.
-        filename (str, optional): The name of the file to save to.
-                                  Defaults to 'processed_grid.pkl'.
-    """
-    with open(filename, 'wb') as f:
-        pickle.dump(processed_grid, f)
-
-# function to load a saved processed grid from a file
-def load_processed_grid(filename='processed_grid.pkl'):
-    """
-    Loads the processed grid data from a pickle file.
-
-    Args:
-        filename (str, optional): The name of the file to load from.
-                                  Defaults to 'processed_grid.pkl'.
-
-    Returns:
-        list: The loaded list of processed sale data tuples, or an empty list
-              if the file is not found or an error occurs during loading.
-    """
-    try:
-        with open(filename, 'rb') as f:
-            return pickle.load(f)
-    except FileNotFoundError:
-        return []  # Return an empty list if the file doesn't exist
 
 # converts the record quality and sleeve quality into a score
 def calculate_score(record_quality, sleeve_quality):

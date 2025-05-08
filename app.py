@@ -1,51 +1,18 @@
 from flask import Flask, render_template, request, send_from_directory
-import json
 import webbrowser
 import threading
 import time
 from datetime import datetime # Import datetime
 from vin import calculate_vin_data
+from functions import read_save_value, write_save_value
 import os
 
-
 app = Flask(__name__)
-
-# File to store saved shop_var
-SAVE_FILE = "save_data.json"
 
 def open_browser_once():
     """Wait briefly and open the browser."""
     time.sleep(1)
     webbrowser.open("http://127.0.0.1:5002")
-
-# --- Keep existing shop_var functions ---
-def read_save_value():
-    """
-    Reads the 'shop_var' value from the save file.
-
-    Returns:
-        float: The saved 'shop_var' value, or 0.8 as a default if the file
-               doesn't exist, is invalid, or 'shop_var' is not set.
-    """
-    try:
-        with open(SAVE_FILE, 'r') as f:
-            data = json.load(f)
-            return data.get("shop_var", 0.8)  # Default to 0.8 if not set
-    except (FileNotFoundError, json.JSONDecodeError):
-        return 0.8  # Default to 0.8
-
-def write_save_value(value):
-    """
-    Writes the given 'shop_var' value to the save file.
-
-    Args:
-        value (float): The 'shop_var' value to save.
-    """
-    try:
-        with open(SAVE_FILE, 'w') as f:
-            json.dump({"shop_var": value}, f)
-    except IOError as e:
-        print(f"Error writing to {SAVE_FILE}: {e}")
 
 # Add a shutdown route
 @app.route('/shutdown', methods=['POST'])

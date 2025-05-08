@@ -1,7 +1,5 @@
-from numpy.f2py.auxfuncs import process_f2cmap_dict
-
-from functions import graph_logic
-from grid_functions import make_processed_grid, load_processed_grid, save_processed_grid, delete_points
+from functions import graph_logic, load_processed_grid, save_processed_grid
+from grid_functions import make_processed_grid, delete_points
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     """
