@@ -56,17 +56,18 @@ header {
     border-bottom: 1px solid #eee;
     padding-left: var(--spacing-unit);
     padding-right: var(--spacing-unit);
+    position: relative;
 }
 
 .header-top-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* justify-content: space-between; */
     width: 100%;
 }
 
 .header-logo {
-    height: 50px;
+    height: 60px;
     width: auto;
     flex-shrink: 0;
 }
@@ -88,36 +89,6 @@ header {
     flex-shrink: 0;
     visibility: hidden;
 }
-
-/* REMOVE OR COMMENT OUT OLD STATUS MESSAGE STYLES */
-/*
-.status-message {
-    text-align: center;
-    font-weight: 500;
-    padding: calc(var(--spacing-unit) * 0.75);
-    margin: var(--spacing-unit) 0;
-    border-radius: var(--border-radius);
-    display: none;
-}
-.status-message.show {
-    display: block;
-}
-.status-message.error {
-    background-color: #fdd;
-    color: var(--error-color);
-    border: 1px solid var(--error-color);
-}
-.status-message.success {
-    background-color: #dfd;
-    color: var(--success-color);
-    border: 1px solid var(--success-color);
-}
-.status-message.info {
-    background-color: #eef;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-}
-*/
 
 /* Content Layout (Flexbox) */
 .content-wrapper {
