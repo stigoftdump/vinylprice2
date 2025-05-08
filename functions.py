@@ -3,12 +3,12 @@ from scipy.optimize import curve_fit
 from grid_functions import realprice
 import pickle
 
-UNIFIED_SAVE_FILE = "vinylpricedata.pkl"
+unified_save_file = "vinylpricedata.pkl"
 
 def read_application_data():
     """Reads the entire data dictionary from the unified pickle file."""
     try:
-        with open(UNIFIED_SAVE_FILE, 'rb') as f:
+        with open(unified_save_file, 'rb') as f:
             data = pickle.load(f)
             return data
     except (FileNotFoundError, EOFError, pickle.UnpicklingError): # Handle empty or corrupted file
@@ -17,10 +17,10 @@ def read_application_data():
 def write_application_data(data):
     """Writes the entire data dictionary to the unified pickle file."""
     try:
-        with open(UNIFIED_SAVE_FILE, 'wb') as f:
+        with open(unified_save_file, 'wb') as f:
             pickle.dump(data, f)
     except IOError as e:
-        print(f"Error writing to {UNIFIED_SAVE_FILE}: {e}")
+        print(f"Error writing to {unified_save_file}: {e}")
 
 def read_save_value(datatype, default):
     """
@@ -139,7 +139,6 @@ def graph_logic(reqscore, shop_var, processed_grid):
         np.inf  # d
     ]
     bounds = (lower_bounds, upper_bounds)
-
 
     # Fit the double sigmoid model
     params, _ = curve_fit(

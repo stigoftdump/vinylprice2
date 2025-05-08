@@ -1,8 +1,7 @@
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request
 import webbrowser
 import threading
 import time
-from datetime import datetime
 from vin import calculate_vin_data
 from functions import read_save_value, write_save_value
 import os
@@ -42,7 +41,6 @@ def index():
     chart_data = {}  # Initialize chart_data
 
     # Variables to hold form values for rendering (will be populated below)
-    pasted_discogs_data_display = ""
     media_display = 6
     sleeve_display = 6
     shop_var_display = read_save_value("shop_var", 0.8 ) # Load initial shop_var for GET
@@ -54,10 +52,10 @@ def index():
         action = request.form.get('action')
 
         # --- Read form values regardless of action, except discogs_data for rerun ---
-        media = int(request.form.get("media", 6)) # Provide default
-        sleeve = int(request.form.get("sleeve", 6)) # Provide default
-        shop_var = float(request.form.get("shop_var", 0.8)) # Provide default
-        start_date = request.form.get("start_Date", "2020-01-01") # Provide default
+        media = int(request.form.get("media", 6))
+        sleeve = int(request.form.get("sleeve", 6))
+        shop_var = float(request.form.get("shop_var", 0.8))
+        start_date = request.form.get("start_Date", "2020-01-01")
         add_data = request.form.get("add_data", "off")
         add_data_flag = True if add_data == "on" else False
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
@@ -76,58 +74,33 @@ def index():
         # Save the shop_var value for next session (using original save mechanism)
         write_save_value(shop_var, "shop_var")
 
-        # Validate date format briefly
-        try:
-            datetime.strptime(start_date, '%Y-%m-%d')
-        except ValueError:
-             status_message = "Invalid start date format. Please use ISO YYYY-MM-DD."
-             # Render template with current form values and error message
-             return render_template("index.html",
-                       pasted_discogs_data='', # Keep the discogs data in the textarea
-                       media=media_display,
-                       sleeve=sleeve_display,
-                       shop_var=shop_var_display,
-                       start_date=start_date_display,
-                       add_data=add_data_display, # Pass boolean
-                       status_message=status_message,
-                       calculated_price=None, adjusted_price=None, actual_price=None, chart_data={})
-
-
         # --- Prepare vin.py arguments based on action ---
-        print("Calculate button clicked. Using Discogs data from form.")
         process_discogs_data = discogs_data # Use form data for calculate
-        pasted_discogs_data_display = discogs_data # Keep it in the textarea after calc
         status_message = "Calculating"
 
-        # --- Call the function directly ---
-        try:
-            output_data = calculate_vin_data(
-                quality,
-                shop_var,
-                start_date,
-                str(add_data_flag), # Pass boolean as string as it was expected by the original logic
-                process_discogs_data,
-                points_to_delete_json
-            )
-            calculated_price = output_data.get("calculated_price")
-            adjusted_price = output_data.get("upper_bound")
-            actual_price = output_data.get("actual_price")
-            status_message = output_data.get("status_message", status_message)
-            info_message = output_data.get("info_message")  # Get the info message
-            error_message = output_data.get("error_message")  # Get the error message
-            chart_data = output_data.get("chart_data", {})
+        # Calls the vin data function
+        output_data = calculate_vin_data(
+            quality,
+            shop_var,
+            start_date,
+            str(add_data_flag), # Pass boolean as string as it was expected by the original logic
+            process_discogs_data,
+            points_to_delete_json
+        )
 
-        except Exception as e:
-            print(f"Error calling vin.py function: {e}")
-            status_message = f"Error: An unexpected error occurred during calculation: {e}"
-            calculated_price = adjusted_price = actual_price = "Error"
-            chart_data = {} # Ensure empty chart data on error
-        # --- End of direct function call ---
+        # assigns the data to variables
+        calculated_price = output_data.get("calculated_price")
+        adjusted_price = output_data.get("upper_bound")
+        actual_price = output_data.get("actual_price")
+        status_message = output_data.get("status_message", status_message)
+        info_message = output_data.get("info_message")  # Get the info message
+        error_message = output_data.get("error_message")  # Get the error message
+        chart_data = output_data.get("chart_data", {})
 
         # Render template with results and the inputs that were used
         # Populate form fields with the submitted values for continuity
         return render_template("index.html",
-                               pasted_discogs_data='', # Keep the discogs data in the textarea
+                               pasted_discogs_data='',
                                media=media_display,
                                sleeve=sleeve_display,
                                shop_var=shop_var_display,
@@ -141,27 +114,27 @@ def index():
                                info_message=info_message,  # Info message
                                error_message=error_message)  # Error message
 
-    # This block is for the initial GET request
-    # Load shop_var for display, other defaults are hardcoded or handled by Jinja
-    print("GET request. Loading saved shop_var for display.")
-    shop_var_display = read_save_value("shop_var", 0.8 )# Load initial shop_var
+    else:
+        # This block is for the initial GET request
+        # Load shop_var for display, other defaults are hardcoded or handled by Jinja
+        shop_var_display = read_save_value("shop_var", 0.8 )# Load initial shop_var
 
-    # Render template with default values (or potentially last values if they were POSTed)
-    # Jinja will use the default values passed here on the first GET
-    return render_template("index.html",
-                           pasted_discogs_data='', # Default empty
-                           media=media_display, # Default 6
-                           sleeve=sleeve_display, # Default 6
-                           shop_var=shop_var_display, # Loaded from file
-                           start_date=start_date_display, # Default
-                           add_data=add_data_display, # Default False
-                           status_message="", # No status on initial load
-                           info_message=None,  # Default info for initial load
-                           error_message=None,  # Default error for initial load
-                           calculated_price=None,
-                           adjusted_price=None,
-                           actual_price=None,
-                           chart_data={})
+        # Render template with default values (or potentially last values if they were POSTed)
+        # Jinja will use the default values passed here on the first GET
+        return render_template("index.html",
+                               pasted_discogs_data='', # Default empty
+                               media=media_display, # Default 6
+                               sleeve=sleeve_display, # Default 6
+                               shop_var=shop_var_display, # Loaded from file
+                               start_date=start_date_display, # Default
+                               add_data=add_data_display, # Default False
+                               status_message="", # No status on initial load
+                               info_message=None,  # Default info for initial load
+                               error_message=None,  # Default error for initial load
+                               calculated_price=None,
+                               adjusted_price=None,
+                               actual_price=None,
+                               chart_data={})
 
 if __name__ == "__main__":
     #from werkzeug.serving import is_running_from_reloader
