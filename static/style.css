@@ -298,7 +298,7 @@ button[type="submit"]:active {
 
 .tooltip-text {
     visibility: hidden;
-    background-color: #333;
+    background-color: #4CAF50;
     color: #fff;
     text-align: center;
     padding: 8px 12px;
