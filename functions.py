@@ -163,7 +163,6 @@ def graph_logic(reqscore, shop_var, processed_grid):
     # gets percentile price above line
     # NOTE: The shop_var is now applied to this percentile price
     percentage_above_line, percentile_message = get_percentile_price_above_line(y, y_pred, X, reqscore,
-                                                                                predicted_price_at_reqscore=predicted_price,
                                                                                 predict_func=predict_price_exp,
                                                                                 percentile=90)
 
@@ -187,7 +186,8 @@ def graph_logic(reqscore, shop_var, processed_grid):
     return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message
 
 # Signature remains the same as previous version that accepted predict_func
-def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predicted_price_at_reqscore, predict_func, percentile=90):
+def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict_func,
+                                    percentile=90):
     """
     Calculates a percentage representing the average of percentile price
     increases (relative to predicted price at each unique quality score) for
@@ -210,10 +210,16 @@ def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict
                      Returns 0.0 if no points are above the line or insufficient data in any tier/band.
             - str: A message indicating which tier was used for calculation.
     """
-    all_residuals = y_true - y_pred
-    X_quality_flat = X_quality.flatten() # Flatten quality array for easier indexing
+
+    # Constants
+    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 3  # Minimum points needed at a specific score for percentile
+    MIN_SCORES_FOR_AVERAGE = 1  # Minimum unique quality scores with valid percentiles
+
+    # Flatten quality array for easier indexing
+    X_quality_flat = X_quality.flatten()
 
     # Identify points above the line of best fit (positive residuals)
+    all_residuals = y_true - y_pred
     points_above_line_indices = np.where(all_residuals > 0)[0]
 
     # If no points are above the line in the entire dataset, return 0.0
@@ -221,110 +227,91 @@ def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict
         print("Warning: No sales points found above the line of best fit anywhere. Returning 0.0 percentage.")
         return 0.0, "Max Price %: No points above line in dataset"
 
+    # Get all points above the line for later use
     y_true_above_all = y_true[points_above_line_indices]
-    X_quality_flat_above_all = X_quality_flat[points_above_line_indices]
+    X_quality_above_all = X_quality_flat[points_above_line_indices]
 
-    min_points_for_percentile_per_score = 3 # Minimum points needed at a specific unique score for its percentile
-    min_scores_for_average = 1 # Minimum unique quality scores with valid percentiles to calculate the overall average
-
-    # Helper function to calculate the average percentage increase across unique quality scores within a subset
-    # This helper operates on the subset of points *already identified as being above the line*
-    def calculate_average_percentage_for_subset(actual_prices_subset_above_line, quality_scores_subset_above_line, predict_func, percentile):
-        # Ensure the subset is not empty (already handled by outer check, but good for helper robustness)
-        if len(actual_prices_subset_above_line) == 0:
+    def calculate_average_percentage_for_subset(actual_prices, quality_scores):
+        """Helper function to calculate the average percentage increase across unique quality scores."""
+        if len(actual_prices) == 0:
             return None
 
-        unique_quality_scores_in_subset_above_line = np.unique(quality_scores_subset_above_line)
-        percentage_increases_per_unique_score_in_subset = []
+        unique_scores = np.unique(quality_scores)
+        percentage_increases = []
 
-        for unique_score in unique_quality_scores_in_subset_above_line:
-            # Find points within this subset *above the line* that match the current unique score
-            indices_at_unique_score_in_subset_above_line = np.where(np.isclose(quality_scores_subset_above_line, unique_score))[0]
-            subset_actual_prices_at_score_above_line = actual_prices_subset_above_line[indices_at_unique_score_in_subset_above_line]
+        for score in unique_scores:
+            # Find points within this subset above the line that match the current score
+            indices = np.where(np.isclose(quality_scores, score))[0]
+            prices_at_score = actual_prices[indices]
 
-            if len(subset_actual_prices_at_score_above_line) >= min_points_for_percentile_per_score:
-                # Calculate 90th percentile price for points at this unique score *above the line* within the subset
-                percentile_price_at_score = np.percentile(subset_actual_prices_at_score_above_line, percentile)
+            if len(prices_at_score) >= MIN_POINTS_FOR_PERCENTILE_PER_SCORE:
+                # Calculate percentile price for points at this score above the line
+                percentile_price = np.percentile(prices_at_score, percentile)
+                predicted_price = predict_func(score)
 
-                # Calculate the predicted price at this unique quality score
-                predicted_price_at_score = predict_func(unique_score)
+                # Calculate percentage increase for this score
+                percentage_increase = 0.0
+                if predicted_price > 0:
+                    percentage_increase = max(0.0, ((percentile_price - predicted_price) / predicted_price) * 100.0)
 
-                # Calculate percentage increase for this unique s core band
-                percentage_increase_at_score = 0.0
-                if predicted_price_at_score > 0:
-                    percentage_increase_at_score = (
-                        (percentile_price_at_score - predicted_price_at_score) / predicted_price_at_score
-                    ) * 100.0
-                    # Ensure the percentage is not negative
-                    percentage_increase_at_score = max(0.0, percentage_increase_at_score)
-                # If predicted_price_at_score is 0 or negative, percentage_increase_at_score remains 0.0
+                percentage_increases.append(percentage_increase)
 
+        # Return average if we have enough scores with valid percentiles
+        if len(percentage_increases) >= MIN_SCORES_FOR_AVERAGE:
+            return np.mean(percentage_increases)
+        return None
 
-                percentage_increases_per_unique_score_in_subset.append(percentage_increase_at_score)
+    # Define the tiers with their bounds and descriptions
+    tiers = [
+        # (lower_bound_func, upper_bound_func, description_func)
+        (lambda r: r, lambda r: r, lambda n, r: f"Max Price calculated using {n} prices at score {round(r, 2)}"),
+        (lambda r: r - 0.5, lambda r: r + 0.5, lambda n, lb,
+                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}"),
+        (lambda r: r - 1.0, lambda r: r + 1.0, lambda n, lb,
+                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}"),
+        (lambda r: float('-inf'), lambda r: float('inf'),
+         lambda n: f"Max Price calculated using {n} prices across all scores")
+    ]
 
-        # If we have enough unique quality scores with valid percentiles, calculate the average
-        if len(percentage_increases_per_unique_score_in_subset) >= min_scores_for_average:
-            average_percentage = np.mean(percentage_increases_per_unique_score_in_subset)
-            return average_percentage
+    # Try each tier in order
+    for tier_index, tier_bounds in enumerate(tiers):
+        if tier_index < 3:  # For the first three tiers with specific bounds
+            lower_bound = tier_bounds[0](reqscore)
+            upper_bound = tier_bounds[1](reqscore)
+
+            # Filter points within this tier's bounds
+            indices_in_band = np.where(
+                (X_quality_above_all >= lower_bound) & (X_quality_above_all <= upper_bound)
+            )[0]
+
+            y_true_in_band = y_true_above_all[indices_in_band]
+            X_quality_in_band = X_quality_above_all[indices_in_band]
+
+            average_percentage = calculate_average_percentage_for_subset(y_true_in_band, X_quality_in_band)
+
+            if average_percentage is not None:
+                tier_type = "exact reqscore" if tier_index == 0 else f"{0.5 if tier_index == 1 else 1.0} band around reqscore"
+                print(
+                    f"Using {tier_type} ({len(y_true_in_band)} points above line in total in this tier) for average percentage calculation.")
+
+                # Generate appropriate message based on tier
+                if tier_index == 0:
+                    message = tier_bounds[2](len(y_true_in_band), reqscore)
+                else:
+                    message = tier_bounds[2](len(y_true_in_band), lower_bound, upper_bound)
+
+                return average_percentage, message
         else:
-            # Not enough unique quality scores with sufficient points above the line for percentile calculation in this subset
-            return None
+            # Last tier - use all points above the line
+            average_percentage = calculate_average_percentage_for_subset(y_true_above_all, X_quality_above_all)
 
-    # --- Tier 1: Exact reqscore ---
-    # Filter points above the line (y_true_above_all, X_quality_flat_above_all) to find those exactly at reqscore
-    indices_at_reqscore_above = np.where(np.isclose(X_quality_flat_above_all, reqscore))[0]
-    y_true_at_reqscore_above = y_true_above_all[indices_at_reqscore_above]
-    X_quality_at_reqscore_above = X_quality_flat_above_all[indices_at_reqscore_above] # Get quality scores for this subset
-    average_percentage = calculate_average_percentage_for_subset(y_true_at_reqscore_above, X_quality_at_reqscore_above, predict_func, percentile)
-    if average_percentage is not None:
-        print(f"Using exact reqscore {reqscore} ({len(y_true_at_reqscore_above)} points above line in total in this tier) for average percentage calculation.")
-        # Count how many unique scores within this tier's points above the line contributed to the average for the message
-        min_score = min(X_quality_at_reqscore_above)
-        max_score = max(X_quality_at_reqscore_above)
-        return average_percentage, f"Max Price calculated using {len(y_true_at_reqscore_above)} prices at score {round(reqscore,2)}"
+            if average_percentage is not None:
+                print(
+                    f"Using all points above line ({len(y_true_above_all)} points in total in this tier) for average percentage calculation.")
+                message = tier_bounds[2](len(y_true_above_all))
+                return average_percentage, message
 
-
-    # --- Tier 2: 0.5 Band around reqscore ---
-    lower_bound_tier2 = reqscore - 0.5
-    upper_bound_tier2 = reqscore + 0.5
-    # Filter points above the line (y_true_above_all, X_quality_flat_above_all) to find those within the 0.5 band
-    indices_in_band_tier2_above = np.where(
-        (X_quality_flat_above_all >= lower_bound_tier2) & (X_quality_flat_above_all <= upper_bound_tier2)
-    )[0]
-    y_true_in_band_tier2_above = y_true_above_all[indices_in_band_tier2_above]
-    X_quality_in_band_tier2_above = X_quality_flat_above_all[indices_in_band_tier2_above] # Get quality scores for this subset
-    average_percentage = calculate_average_percentage_for_subset(y_true_in_band_tier2_above, X_quality_in_band_tier2_above, predict_func, percentile)
-    if average_percentage is not None:
-        print(f"Using 0.5 band around reqscore ({len(y_true_in_band_tier2_above)} points above line in total in this tier) for average percentage calculation.")
-        # Count how many unique scores within this tier's points above the line contributed to the average for the message
-        return average_percentage, f"Max Price calculated using {len(y_true_in_band_tier2_above)} prices between scores {round(lower_bound_tier2,2):.2f} and {round(upper_bound_tier2,2):.2f}"
-
-    # --- Tier 3: 1.0 Band around reqscore ---
-    lower_bound_tier3 = reqscore - 1.0
-    upper_bound_tier3 = reqscore + 1.0
-    # Filter points above the line (y_true_above_all, X_quality_flat_above_all) to find those within the 1.0 band
-    indices_in_band_tier3_above = np.where(
-        (X_quality_flat_above_all >= lower_bound_tier3) & (X_quality_flat_above_all <= upper_bound_tier3)
-    )[0]
-    y_true_in_band_tier3_above = y_true_above_all[indices_in_band_tier3_above]
-    X_quality_in_band_tier3_above = X_quality_flat_above_all[indices_in_band_tier3_above] # Get quality scores for this subset
-    average_percentage = calculate_average_percentage_for_subset(y_true_in_band_tier3_above, X_quality_in_band_tier3_above, predict_func, percentile)
-    if average_percentage is not None:
-        print(f"Using 1.0 band around reqscore ({len(y_true_in_band_tier3_above)} points above line in total in this tier) for average percentage calculation.")
-        # Count how many unique scores within this tier's points above the line contributed to the average for the message
-        return average_percentage, f"Max Price calculated using {len(y_true_in_band_tier3_above)} prices between scores {round(lower_bound_tier3,2):.2f} and {round(upper_bound_tier3,2):.2f}"
-
-
-    # --- Tier 4: All points above line ---
-    # Use all points that were initially identified as being above the line
-    average_percentage = calculate_average_percentage_for_subset(y_true_above_all, X_quality_flat_above_all, predict_func, percentile) # Use all points and their qualities
-    if average_percentage is not None:
-        print(f"Using all points above line ({len(y_true_above_all)} points in total in this tier) for average percentage calculation.")
-         # Count how many unique scores within this tier's points above the line contributed to the average for the message
-        min_score = min(X_quality_in_band_tier2_above)
-        max_score = max(X_quality_in_band_tier2_above)
-        return average_percentage, f"Max Price calculated using {len(y_true_in_band_tier3_above)} prices across all scores]"
-
-    # --- Fallback: Insufficient data in any tier/band for the average percentile calculation ---
-    print("Warning: Insufficient points above line in any relevant unique quality score bands within tiers for average percentile calculation. Returning 0.0 percentage.")
+    # Fallback: Insufficient data in any tier
+    print(
+        "Warning: Insufficient points above line in any relevant unique quality score bands within tiers for average percentile calculation. Returning 0.0 percentage.")
     return 0.0, "Max Price %: Insufficient unique quality data in bands"
