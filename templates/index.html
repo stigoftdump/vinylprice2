@@ -273,21 +273,21 @@
                 onClick: handlePointClick,
                 plugins: {
                     title: {
-                        display: true,
+                        display: false,
                         text: 'Price Calculation',
                         font: { size: 16, weight: '500' },
                         padding: { top: 10, bottom: 20 }
                     },
                 legend: {
-                    position: 'bottom',
+                    position: 'top',
                     labels: {
                         usePointStyle: true,
                         generateLabels: function(chart) {
                             const customLabels = [
                                 {
                                     text: 'Items Sold',
-                                    fillStyle: 'red',
-                                    strokeStyle: 'red',
+                                    fillStyle: '#CC0000',
+                                    strokeStyle: '#CC0000',
                                     lineWidth: 0,
                                     hidden: false,
                                     pointStyle: 'circle',
@@ -527,7 +527,7 @@
                                 y: prices[index]
                             })),
                             borderColor: 'rgba(255, 0, 0, 0.3)', // Example color
-                            backgroundColor: Array(prices.length).fill('red'), // Example color, fill an array
+                            backgroundColor: Array(prices.length).fill('#CC0000'),
                             pointRadius: 5,
                             pointHoverRadius: 7,
                         },
