@@ -3,6 +3,14 @@
 /* Import Google Font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
+@font-face {
+    font-family: 'TStarPro Headline'; /* You can choose the name, this seems appropriate */
+    src: url('fonts/TSTARPRO-Headline.ttf') format('truetype');
+    /* You can add font-weight and font-style here if you know them,
+       e.g., font-weight: bold; font-style: normal;
+       Otherwise, the browser will use its defaults for this font. */
+}
+
 /* Define CSS Variables for Colors and Styles */
 :root {
     --primary-color: #4CAF50;
@@ -80,7 +88,9 @@ header {
 .header-title-container h1 {
     margin: 0;
     color: var(--primary-color);
-    font-weight: 700;
+    /* ---- MODIFY THIS FONT-FAMILY ---- */
+    font-family: 'TStarPro Headline', sans-serif; /* Use the name you defined in @font-face and add a fallback */
+    font-weight: 7100; /* Adjust if TSTARPRO-Headline is not inherently bold or if you want a different weight */
 }
 
 .header-spacer {
