@@ -130,15 +130,16 @@
                     <input type="hidden" id="selected_points_to_delete" name="selected_points_to_delete">
 
                     <div class="button-container">
-                        <button type="submit" name="action" value="calculate">Estimate Price</button>
+                        <button type="submit" name="action" value="calculate">Calculate Price</button>
                     </div>
 
+                </form>
                 </form>
             </div>
             <div class="right-column">
                  {% if calculated_price is not none or status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) %}
                  <div class="results-container">
-                     <h2>Estimation Results:</h2>
+                     <h2>Pricing Results:</h2>
                      {% if calculated_price == 'Error' %}
                         <p class="price-error"><strong>Calculation Error:</strong> {{ status_message }}</p>
                      {% elif status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) and calculated_price is none %}
