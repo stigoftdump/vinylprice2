@@ -11,7 +11,16 @@
 </head>
 
 <body>
-
+    <div id="splash-screen">
+        <div class="splash-content">
+            <h2>Hi! Welcome to the Vinyl Calculator.</h2>
+            <p>Would you like a tutorial?</p>
+            <div class="splash-buttons">
+                <button id="yes-button">Yes</button>
+                <button id="no-button">No</button>
+            </div>
+        </div>
+    </div>
     <div class="main-container">
         <header>
             <div class="header-top-row">
@@ -644,7 +653,38 @@
         });
         // --- END OF Toast Notification Logic ---
     </script>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const splashScreen = document.getElementById('splash-screen');
+                const yesButton = document.getElementById('yes-button');
+                const noButton = document.getElementById('no-button');
 
+                // *** IMPORTANT: Replace with the actual URL for your tutorial website ***
+                const tutorialUrl = 'http://www.google.com'; // <<< REPLACE THIS
+
+                // Function to hide the splash screen
+                function hideSplashScreen() {
+                    splashScreen.classList.add('splash-hidden');
+                    // Optional: Remove from DOM after transition for cleanup
+                    splashScreen.addEventListener('transitionend', function() {
+                        splashScreen.style.display = 'none';
+                    });
+                }
+
+                // Add event listeners to the buttons
+                yesButton.addEventListener('click', function() {
+                    window.open(tutorialUrl, '_blank'); // Open tutorial in new tab
+                    hideSplashScreen(); // Close splash screen
+                });
+
+                noButton.addEventListener('click', function() {
+                    hideSplashScreen(); // Just close splash screen
+                });
+
+                // The splash screen is initially visible by CSS.
+                // No need to explicitly show it here unless you change the initial CSS display to 'none'.
+            });
+        </script>
     <script>
         // --- START OF ORIGINAL beforeunload Logic ---
         let formSubmitted = false;

@@ -502,6 +502,86 @@ button[type="submit"]:active {
     }
 }
 
+/* splashscreen */
+#splash-screen {
+    position: fixed; /* Position over everything */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(244, 247, 246, 0.95); /* Light background with some opacity */
+    backdrop-filter: blur(5px); /* Optional: Add a blur effect */
+    z-index: 1000; /* Ensure it's on top */
+    display: flex;
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease-out, visibility 0.5s ease-out; /* Smooth fade out */
+}
+
+.splash-content {
+    background-color: #fff; /* White background for the content box */
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    text-align: center;
+    max-width: 400px; /* Limit the width */
+    width: 90%; /* Make it slightly responsive */
+}
+
+.splash-content h2 {
+    color: var(--primary-color); /* Use your primary color */
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.splash-content p {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.splash-buttons {
+    display: flex;
+    gap: 20px; /* Space between buttons */
+    justify-content: center; /* Center buttons */
+}
+
+.splash-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: 80px; /* Give buttons a minimum width */
+    text-align: center;
+}
+
+#yes-button {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+#yes-button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+#no-button {
+    background-color: var(--border-color); /* A neutral grey */
+    color: var(--text-color);
+}
+
+#no-button:hover {
+    background-color: #bbb; /* Slightly darker grey on hover */
+}
+
+/* Class to hide the splash screen */
+.splash-hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
 /* Styles for Chart Info Box */
 .chart-info-box {
     background-color: #eef7ff; /* A light, friendly background color, similar to 'info' toast */
