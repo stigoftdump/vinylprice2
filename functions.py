@@ -158,14 +158,16 @@ def graph_logic(reqscore, shop_var, processed_grid):
 
     y_pred = predict_price_exp(X.flatten())
 
+    predicted_price = predict_price_exp(reqscore)
+
     # gets percentile price above line
     # NOTE: The shop_var is now applied to this percentile price
-    percentile_price_above_line, percentile_message = get_percentile_price_above_line(y, y_pred, X, reqscore, percentile=90) # Using 90th percentile
-
+    percentage_above_line, percentile_message = get_percentile_price_above_line(y, y_pred, X, reqscore,
+                                                                                predicted_price_at_reqscore=predicted_price,
+                                                                                percentile=90)
     # calculates prices
-    predicted_price = predict_price_exp(reqscore)
-    upper_bound = percentile_price_above_line # Upper bound is now the calculated percentile price
-    adjusted_price = predicted_price + ((upper_bound-predicted_price) * shop_var) # Apply shop_var to the upper bound
+    upper_bound = predicted_price * ((percentage_above_line/100)+1)
+    adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
     actual_price = realprice(float(adjusted_price))
 
     # Create a smooth curve for plotting the fitted function
@@ -183,106 +185,100 @@ def graph_logic(reqscore, shop_var, processed_grid):
     return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message
 
 
-def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, percentile=90):
+def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predicted_price_at_reqscore, percentile=90):
     """
-    Calculates a localized percentile of the actual prices for data points
-    where the actual price is above the predicted price line.
-
-    It attempts to find the specified percentile of these actual prices for points
-    close to the requested quality score (reqscore) in increasing bin sizes.
-    If insufficient points are found locally, it falls back to calculating
-    the percentile from all points above the line.
+    Calculates a percentage representing the 90th percentile price above the
+    predicted line relative to the predicted price at reqscore, using a tiered
+    approach based on proximity to reqscore.
 
     Args:
         y_true (np.ndarray): The actual price values.
         y_pred (np.ndarray): The predicted price values from the model.
         X_quality (np.ndarray): The quality scores corresponding to y_true/y_pred.
                                 Expected to be a 2D array from reshape(-1,1).
-        reqscore (float): The target quality score around which to localize the percentile.
+        reqscore (float): The target quality score.
+        predicted_price_at_reqscore (float): The predicted price at the reqscore.
         percentile (float): The desired percentile to calculate (0 to 100).
 
     Returns:
-        float: The calculated local percentile of actual prices for points above
-               the best fit line, or the predicted price at reqscore if no points
-               are above the line or insufficient points are found. Returns 0.0 as a fallback
-               if no points are above the line.
+        tuple: A tuple containing:
+            - float: The calculated percentage above the predicted line relative to predicted_price_at_reqscore.
+                     Returns 0.0 if no points are above the line or insufficient data in any tier.
+            - str: A message indicating which tier was used for calculation.
     """
     all_residuals = y_true - y_pred
+    X_quality_flat = X_quality.flatten() # Flatten quality array for easier indexing
 
     # Identify points above the line of best fit (positive residuals)
     points_above_line_indices = np.where(all_residuals > 0)[0]
 
-    # Get the actual prices for points above the line
-    y_true_above = y_true[points_above_line_indices]
-    X_quality_flat_above = X_quality.flatten()[points_above_line_indices]
+    # If no points are above the line in the entire dataset, return 0.0
+    if len(points_above_line_indices) == 0:
+        print("Warning: No sales points found above the line of best fit anywhere. Returning 0.0 percentage.")
+        return 0.0, "Max Price %: No points above line in dataset"
 
-    # If no points are above the line, return 0.0 as a fallback
-    if len(y_true_above) == 0:
-        print("Warning: No sales points found above the line of best fit. Returning 0.0 as upper bound.")
-        return 0.0
+    # Get the actual prices and qualities for points above the line for the entire dataset
+    y_true_above_all = y_true[points_above_line_indices]
+    X_quality_flat_above_all = X_quality_flat[points_above_line_indices]
 
+    min_points_in_bin = 3 # Minimum points needed in a bin for percentile calculation
 
-    # Fallback percentile: percentile of *all* actual prices from points above the line
-    fallback_percentile_price = np.percentile(y_true_above, percentile) if len(y_true_above) > 0 else 0.0
+    # Helper function to calculate percentile and percentage increase for a given subset of actual prices
+    def calculate_percentage_for_subset(actual_prices_subset, predicted_price_at_reqscore, percentile):
+        if len(actual_prices_subset) < min_points_in_bin:
+            return None # Not enough points in this subset
 
-    local_percentile_price = fallback_percentile_price  # Default to the fallback
-    min_points_in_bin = 3  # Minimum points needed in a bin to calculate local percentile
+        percentile_price = np.percentile(actual_prices_subset, percentile)
 
-    # Tier 1: Exact reqscore (using X_quality_flat_above and y_true_above)
-    indices_in_bin_tier1 = np.where(np.isclose(X_quality_flat_above, reqscore))[0]
-    y_true_in_bin_tier1 = y_true_above[indices_in_bin_tier1]
+        # Calculate percentage increase relative to the predicted price at the reqscore
+        price_difference = percentile_price - predicted_price_at_reqscore
+        percentage_increase = 0.0
+        if predicted_price_at_reqscore > 0:
+            percentage_increase = (price_difference / predicted_price_at_reqscore) * 100.0
+        return percentage_increase
 
-    if len(y_true_in_bin_tier1) >= min_points_in_bin:
-        local_percentile_price = np.percentile(y_true_in_bin_tier1, percentile)
-        print(
-            f"Using local {percentile}th percentile ({local_percentile_price:.2f}) for points above line at exact quality score {reqscore} based on {len(y_true_in_bin_tier1)} points.")
-        percentile_message="Max Price calculated using exact quality"
-    else:
-        # Tier 2: 0.5 either side of reqscore
-        lower_bound_tier2 = reqscore - 0.5
-        upper_bound_tier2 = reqscore + 0.5
-        indices_in_bin_tier2 = np.where((X_quality_flat_above >= lower_bound_tier2) & (X_quality_flat_above <= upper_bound_tier2))[0]
-        y_true_in_bin_tier2 = y_true_above[indices_in_bin_tier2]
+    # --- Tier 1: Exact reqscore ---
+    # Filter points above the line to find those exactly at the reqscore
+    indices_at_reqscore_above = np.where(np.isclose(X_quality_flat_above_all, reqscore))[0]
+    y_true_at_reqscore_above = y_true_above_all[indices_at_reqscore_above]
+    percentage = calculate_percentage_for_subset(y_true_at_reqscore_above, predicted_price_at_reqscore, percentile)
+    if percentage is not None:
+        print(f"Using exact reqscore {reqscore} ({len(y_true_at_reqscore_above)} points above line) for percentage calculation.")
+        return percentage, f"Max Price %: Based on exact quality ({reqscore})"
 
+    # --- Tier 2: 0.5 Band around reqscore ---
+    lower_bound_tier2 = reqscore - 0.5
+    upper_bound_tier2 = reqscore + 0.5
+    # Filter points above the line to find those within the 0.5 band
+    indices_in_band_tier2_above = np.where(
+        (X_quality_flat_above_all >= lower_bound_tier2) & (X_quality_flat_above_all <= upper_bound_tier2)
+    )[0]
+    y_true_in_band_tier2_above = y_true_above_all[indices_in_band_tier2_above]
+    percentage = calculate_percentage_for_subset(y_true_in_band_tier2_above, predicted_price_at_reqscore, percentile)
+    if percentage is not None:
+        print(f"Using 0.5 band around reqscore ({len(y_true_in_band_tier2_above)} points above line) for percentage calculation.")
+        return percentage, f"Max Price %: Based on quality band [{lower_bound_tier2:.2f}, {upper_bound_tier2:.2f}]"
 
-        if len(y_true_in_bin_tier2) >= min_points_in_bin:
-            local_percentile_price = np.percentile(y_true_in_bin_tier2, percentile)
-            print(
-                f"Using local {percentile}th percentile ({local_percentile_price:.2f}) for points above line in quality range [{lower_bound_tier2:.2f}, {upper_bound_tier2:.2f}] based on {len(y_true_in_bin_tier2)} points.")
-            percentile_message = "Max Price calculated using narrow band quality"
-        else:
-            # Tier 3: 1.0 either side of reqscore
-            lower_bound_tier3 = reqscore - 1.0
-            upper_bound_tier3 = reqscore + 1.0
-            indices_in_bin_tier3 = np.where((X_quality_flat_above >= lower_bound_tier3) & (X_quality_flat_above <= upper_bound_tier3))[0]
-            y_true_in_bin_tier3 = y_true_above[indices_in_bin_tier3]
+    # --- Tier 3: 1.0 Band around reqscore ---
+    lower_bound_tier3 = reqscore - 1.0
+    upper_bound_tier3 = reqscore + 1.0
+    # Filter points above the line to find those within the 1.0 band
+    indices_in_band_tier3_above = np.where(
+        (X_quality_flat_above_all >= lower_bound_tier3) & (X_quality_flat_above_all <= upper_bound_tier3)
+    )[0]
+    y_true_in_band_tier3_above = y_true_above_all[indices_in_band_tier3_above]
+    percentage = calculate_percentage_for_subset(y_true_in_band_tier3_above, predicted_price_at_reqscore, percentile)
+    if percentage is not None:
+        print(f"Using 1.0 band around reqscore ({len(y_true_in_band_tier3_above)} points above line) for percentage calculation.")
+        return percentage, f"Max Price %: Based on quality band [{lower_bound_tier3:.2f}, {upper_bound_tier3:.2f}]"
 
-            if len(y_true_in_bin_tier3) >= min_points_in_bin:
-                local_percentile_price = np.percentile(y_true_in_bin_tier3, percentile)
-                print(
-                    f"Using local {percentile}th percentile ({local_percentile_price:.2f}) for points above line in quality range [{lower_bound_tier3:.2f}, {upper_bound_tier3:.2f}] based on {len(y_true_in_bin_tier3)} points.")
-                percentile_message = "Max Price calculated using wide band quality"
-            else:
-                # Fallback to percentile of all points above the line (already set as default)
-                if len(y_true_above) >= min_points_in_bin : # Only print if the fallback is based on a reasonable number of points
-                    print(
-                        f"Warning: Insufficient points above line in tiered bins for reqscore {reqscore}. "
-                        f"Falling back to {percentile}th percentile of all ({len(y_true_above)}) points above line: ({fallback_percentile_price:.2f}).")
+    # --- Tier 4: All points above line ---
+    # Use all points that were initially identified as being above the line
+    percentage = calculate_percentage_for_subset(y_true_above_all, predicted_price_at_reqscore, percentile)
+    if percentage is not None:
+        print(f"Using all points above line ({len(y_true_above_all)} points) for percentage calculation.")
+        return percentage, "Max Price %: Based on all points above line"
 
-                    percentile_message = "Max Price calculated using global quality"
-                elif len(y_true_above) > 0:
-                     #print(
-                     #   f"Warning: Insufficient points above line in tiered bins for reqscore {reqscore}. "
-                     #   f"Falling back to {percentile}th percentile of all ({len(y_true_above)}) points above line (value: {fallback_percentile_price:.2f}). Number of points is low.")
-
-                    percentile_message = "Max Price calculated using global quality"
-                # If fallback_percentile_price was based on 0 points (already handled by initial check) or 1-2 points, local_percentile_price is already correctly 0 or the calculated percentile.
-
-
-    # If local percentile price is 0.0 and fallback was also 0.0 due to no points above line,
-    # we might want a more informative fallback. However, based on the initial check,
-    # if len(y_true_above) is 0, we return 0.0 early.
-
-    # If local_percentile_price was calculated from a bin but was 0.0 (unlikely for prices),
-    # we return it. If fallback was used and was > 0.0, we return it.
-    return local_percentile_price, percentile_message
+    # --- Fallback: Insufficient data in any tier ---
+    print("Warning: Insufficient points above line in any tier for percentile calculation. Returning 0.0 percentage.")
+    return 0.0, "Max Price %: Insufficient data in relevant bands"
