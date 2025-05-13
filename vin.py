@@ -98,25 +98,34 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     }
 
     # Make overall status "Completed" if no error messages were set
-    if error_message is None:
-        status_message = "Completed"
-        info_messages_list = []  # Use a list to build info message parts
-        # Add info about points deleted
-        if percentile_message:
-            info_messages_list.append(f"{percentile_message}")
-        if deleted_count > 0:
-            info_messages_list.append(f"{deleted_count} points deleted")
-        # Add info about data added
-        if add_data == "True" and discogs_data:
-            info_messages_list.append("Data added to previous run")
+    status_message = "Completed"
+    info_messages_list = []  # Use a list to build info message parts
+    # Add info about points deleted
+    if percentile_message:
+        info_messages_list.append(f"{percentile_message}")
+    if deleted_count > 0:
+        info_messages_list.append(f"{deleted_count} points deleted")
+    # Add info about data added
+    if add_data == "True" and discogs_data:
+        info_messages_list.append(f"Data added to previous run")
 
-        # Join info messages with a newline if there are any
-        if info_messages_list:
-            info_message = "\n".join(info_messages_list)
+    # Join info messages with a newline if there are any
+    if info_messages_list:
+        info_message = "\n".join(info_messages_list)
 
-        # send an error message too if theer are less than 10 points
-        if len(processed_grid)<10:
-            error_message="Less than 10 data points. Add more data if possible"
+    error_messages_list = []
+    # send an error message too if there are less than 10 points
+    if len(processed_grid)<10:
+        error_messages_list.append(f"Less than 10 data points. Add more data if possible")
+
+    # send an error
+    if upper_bound<predicted_price:
+        error_messages_list.append(f"Max price calc error")
+
+    # Join info messages with a newline if there are any
+    if error_messages_list:
+        error_message = "\n".join(error_messages_list)
+
 
     # output for sending to flask
     output_data = {
