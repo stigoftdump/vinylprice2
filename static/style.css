@@ -11,6 +11,13 @@
        Otherwise, the browser will use its defaults for this font. */
 }
 
+@font-face {
+    font-family: 'Rodondo'; /* Name for your new font */
+    src: url('fonts/Rodondo.otf') format('opentype'); /* Path to your new font file */
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Define CSS Variables for Colors and Styles */
 :root {
     --primary-color: #4CAF50;
@@ -39,6 +46,7 @@
 /* General Body Styles */
 body {
     font-family: 'Inter', sans-serif;
+    /*     font-family: 'Rodondo', 'Inter', sans-serif; /* Rodondo is primary, Inter is fallback. Add to change the font tho it looks bad. */
     margin: 0;
     padding: 0;
     background-color: var(--secondary-color);
