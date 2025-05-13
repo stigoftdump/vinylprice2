@@ -112,7 +112,8 @@ def index():
                                chart_data=chart_data,
                                status_message=status_message,  # Overall status
                                info_message=info_message,  # Info message
-                               error_message=error_message)  # Error message
+                               error_message=error_message,  # Error message
+                               is_initial_load = False)  # Indicate not initial load
 
     else:
         # This block is for the initial GET request
@@ -130,7 +131,8 @@ def index():
                                calculated_price=None,
                                adjusted_price=None,
                                actual_price=None,
-                               chart_data={})
+                               chart_data={},
+                               is_initial_load=True)
 
 if __name__ == "__main__":
     #from werkzeug.serving import is_running_from_reloader

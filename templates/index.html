@@ -21,6 +21,8 @@
             </div>
         </div>
     </div>
+    <input type="hidden" id="is-initial-load-flag" value="{{ is_initial_load | tojson }}">
+
     <div class="main-container">
         <header>
             <div class="header-top-row">
@@ -658,31 +660,40 @@
                 const splashScreen = document.getElementById('splash-screen');
                 const yesButton = document.getElementById('yes-button');
                 const noButton = document.getElementById('no-button');
+                const isInitialLoadFlagInput = document.getElementById('is-initial-load-flag');
 
                 // *** IMPORTANT: Replace with the actual URL for your tutorial website ***
-                const tutorialUrl = 'http://www.google.com'; // <<< REPLACE THIS
+                const tutorialUrl = 'https://example.com/your-tutorial-page'; // <<< REPLACE THIS
 
-                // Function to hide the splash screen
-                function hideSplashScreen() {
-                    splashScreen.classList.add('splash-hidden');
-                    // Optional: Remove from DOM after transition for cleanup
-                    splashScreen.addEventListener('transitionend', function() {
-                        splashScreen.style.display = 'none';
+                const isInitialLoad = JSON.parse(isInitialLoadFlagInput.value);
+
+                // Only show the splash screen if it's the initial load (GET request)
+                if (isInitialLoad) {
+                    // Make the splash screen visible by changing its display style
+                    splashScreen.style.display = 'flex'; // Or 'block', or whatever display value centers your content
+                    // Remove the hidden class if it was somehow added initially
+                    splashScreen.classList.remove('splash-hidden');
+
+
+                    // Function to hide the splash screen after interaction
+                    function hideSplashScreen() {
+                         splashScreen.classList.add('splash-hidden'); // Add the class to start the fade out transition
+                         // Set display to none after the transition finishes to fully remove it from layout
+                         splashScreen.addEventListener('transitionend', function() {
+                             splashScreen.style.display = 'none';
+                         }, { once: true }); // Use { once: true } to ensure the listener is removed after it runs
+                    }
+
+                    // Add event listeners to the buttons
+                    yesButton.addEventListener('click', function() {
+                        window.open(tutorialUrl, '_blank'); // Open tutorial in new tab
+                        hideSplashScreen(); // Close splash screen
+                    });
+
+                    noButton.addEventListener('click', function() {
+                        hideSplashScreen(); // Just close splash screen
                     });
                 }
-
-                // Add event listeners to the buttons
-                yesButton.addEventListener('click', function() {
-                    window.open(tutorialUrl, '_blank'); // Open tutorial in new tab
-                    hideSplashScreen(); // Close splash screen
-                });
-
-                noButton.addEventListener('click', function() {
-                    hideSplashScreen(); // Just close splash screen
-                });
-
-                // The splash screen is initially visible by CSS.
-                // No need to explicitly show it here unless you change the initial CSS display to 'none'.
             });
         </script>
     <script>
