@@ -459,3 +459,23 @@ def delete_points(points_to_delete_json, processed_grid):
 
     # Modified line: Return deleted_count as well
     return processed_grid, deleted_count
+
+def extract_tuples(processed_grid):
+    # gets dates and comments from the processed_grid to go in the output
+    dates = []
+    comments = []
+    qualities = []
+    prices = []
+
+    # Ensure the loop handles the structure correctly, especially after filtering
+    for row in processed_grid:
+        dates.append(row[0]) # Date is index 0
+        qualities.append(row[5])  # Quality column (score)
+        prices.append(row[3])  # Price column
+
+        if row[6]:
+            comments.append(row[6]) # if no comment, add blank
+        else:
+            comments.append("") # Default comment
+
+    return qualities, prices, dates, comments

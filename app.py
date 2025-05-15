@@ -41,10 +41,10 @@ def index():
     chart_data = {}  # Initialize chart_data
 
     # Variables to hold form values for rendering (will be populated below)
-    media_display = 6
-    sleeve_display = 6
-    shop_var_display = read_save_value("shop_var", 0.8 ) # Load initial shop_var for GET
-    start_date_display = "2020-01-01"
+    media_display = read_save_value("media_quality",6)
+    sleeve_display = read_save_value("sleeve_quality",6)
+    shop_var_display = read_save_value("shop_var", 0.8 )
+    start_date_display = read_save_value("start_date","2020-01-01")
     add_data_display = False
 
     if request.method == "POST":

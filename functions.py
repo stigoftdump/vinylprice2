@@ -67,7 +67,7 @@ def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
     return first_rise + exponential_increase + d
 
-def graph_logic(reqscore, shop_var, processed_grid):
+def graph_logic(reqscore, shop_var, qualities, prices):
     """
     Performs curve fitting and price prediction based on processed sales data.
 
@@ -91,14 +91,6 @@ def graph_logic(reqscore, shop_var, processed_grid):
             - actual_price (float): The final price after applying shop_var and rounding.
     """
     # function that returns everything needed to make a chart
-
-    qualities = []
-    prices = []
-
-    for row in processed_grid:
-        if len(row) >= 5:  # Ensure there are at least 5 elements
-            qualities.append(row[5])  # Quality column (score)
-            prices.append(row[3])  # Price column
 
     # Convert to numpy arrays for regression
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
@@ -183,7 +175,7 @@ def graph_logic(reqscore, shop_var, processed_grid):
 
     y_smooth_pred = predict_price_exp(X_smooth)
 
-    return qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message
+    return X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message
 
 # Signature remains the same as previous version that accepted predict_func
 def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict_func,

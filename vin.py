@@ -1,5 +1,5 @@
 from functions import graph_logic, read_save_value, write_save_value
-from grid_functions import make_processed_grid, delete_points
+from grid_functions import make_processed_grid, delete_points, extract_tuples
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     """
@@ -57,26 +57,13 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # Save processed grid to file
     write_save_value(processed_grid, "processed_grid")
 
-    # gets dates and comments from the processed_grid to go in the output
-    dates = []
-    comments = []
-    # Ensure the loop handles the structure correctly, especially after filtering
-    for row in processed_grid:
-        # Check indices carefully
-        if len(row) > 0:
-            dates.append(row[0]) # Date is index 0
-        else:
-            dates.append(None) # Or handle error
-
-        if len(row) > 6:
-            comments.append(row[6]) # Comment is index 6
-        else:
-            comments.append("") # Default comment
+    # Extracts elements
+    qualities, prices, dates, comments = extract_tuples(processed_grid)
 
     # graph logic to get the variables for the output
     # Make sure graph_logic handles potentially empty lists gracefully if grid becomes empty
     try:
-        qualities, prices, X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message = graph_logic(reqscore, shop_var, processed_grid)
+        X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message = graph_logic(reqscore, shop_var, qualities, prices)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         error_message = f"Error during graph calculation: {e}"
@@ -125,7 +112,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # Join info messages with a newline if there are any
     if error_messages_list:
         error_message = "\n".join(error_messages_list)
-
 
     # output for sending to flask
     output_data = {
