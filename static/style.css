@@ -1,8 +1,5 @@
 /* static/style.css */
 
-/* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-
 @font-face {
     font-family: 'TStarPro Headline'; /* You can choose the name, this seems appropriate */
     src: url('fonts/TSTARPRO-Headline.ttf') format('truetype');
