@@ -63,7 +63,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # graph logic to get the variables for the output
     # Make sure graph_logic handles potentially empty lists gracefully if grid becomes empty
     try:
-        X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message = graph_logic(reqscore, shop_var, qualities, prices)
+        X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message, search_width = graph_logic(reqscore, shop_var, qualities, prices)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         error_message = f"Error during graph calculation: {e}"
@@ -81,7 +81,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         "comments": comments,
         "predicted_price": predicted_price,
         "upper_bound": upper_bound,
-        "actual_price": actual_price
+        "actual_price": actual_price,
+        "search_width": search_width
     }
 
     # Make overall status "Completed" if no error messages were set

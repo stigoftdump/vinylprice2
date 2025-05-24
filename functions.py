@@ -154,7 +154,7 @@ def graph_logic(reqscore, shop_var, qualities, prices):
 
     # gets percentile price above line
     # NOTE: The shop_var is now applied to this percentile price
-    percentage_above_line, percentile_message = get_percentile_price_above_line(y, y_pred, X, reqscore,
+    percentage_above_line, percentile_message, search_width = get_percentile_price_above_line(y, y_pred, X, reqscore,
                                                                                 predict_func=predict_price_exp,
                                                                                 percentile=90)
 
@@ -175,7 +175,7 @@ def graph_logic(reqscore, shop_var, qualities, prices):
 
     y_smooth_pred = predict_price_exp(X_smooth)
 
-    return X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message
+    return X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message, search_width
 
 # Signature remains the same as previous version that accepted predict_func
 def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict_func,
@@ -255,14 +255,14 @@ def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict
 
     # Define the tiers with their bounds and descriptions
     tiers = [
-        # (lower_bound_func, upper_bound_func, description_func)
-        (lambda r: r, lambda r: r, lambda n, r: f"Max Price calculated using {n} prices at score {round(r, 2)}"),
+        # (lower_bound_func, upper_bound_func, description_func, width_value)
+        (lambda r: r, lambda r: r, lambda n, r: f"Max Price calculated using {n} prices at score {round(r, 2)}", 0.2),
         (lambda r: r - 0.5, lambda r: r + 0.5, lambda n, lb,
-                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}"),
+                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}", 0.5),
         (lambda r: r - 1.0, lambda r: r + 1.0, lambda n, lb,
-                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}"),
+                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}", 1),
         (lambda r: float('-inf'), lambda r: float('inf'),
-         lambda n: f"Max Price calculated using {n} prices across all scores")
+         lambda n: f"Max Price calculated using {n} prices across all scores", 10)
     ]
 
     # Try each tier in order
@@ -292,7 +292,10 @@ def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict
                 else:
                     message = tier_bounds[2](len(y_true_in_band), lower_bound, upper_bound)
 
-                return average_percentage, message
+                # gets the width value
+                width_value = tier_bounds[3]
+
+                return average_percentage, message, width_value
         else:
             # Last tier - use all points above the line
             average_percentage = calculate_average_percentage_for_subset(y_true_above_all, X_quality_above_all)
@@ -301,7 +304,8 @@ def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict
                 print(
                     f"Using all points above line ({len(y_true_above_all)} points in total in this tier) for average percentage calculation.")
                 message = tier_bounds[2](len(y_true_above_all))
-                return average_percentage, message
+                width_value = tier_bounds[3]
+                return average_percentage, message, width_value
 
     # Fallback: Insufficient data in any tier
     print(

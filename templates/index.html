@@ -329,6 +329,16 @@
                                     index: 2
                                 },
                                 {
+                                    text: 'Max Price Range',
+                                    fillStyle: 'transparent', // No fill for the line itself
+                                    strokeStyle: 'orange', // Matching the search range line
+                                    lineWidth: 3, // Match line thickness
+                                    borderDash: [1, 2], // Very short dash and gap to simulate tiny markers
+                                    hidden: false,
+                                    // pointStyle: 'line', // 'line' is the default for line items, but can be specified
+                                    index: 5 // Assign a new index
+                                },
+                                {
                                     text: 'Max Price',
                                     fillStyle: 'transparent',
                                     strokeStyle: 'purple',
@@ -482,6 +492,45 @@
                                 yValue: actualPrice,
                                 backgroundColor: 'green', // var(--chart-actual-color)
                                 radius: 6
+                            },
+                            searchWidthIndicator: {
+                                type: 'line',
+                                yMin: 0, // Placeholder, will be updated dynamically
+                                yMax: 0, // Placeholder, will be updated dynamically
+                                xMin: chartData.search_width === 10 ? xAxisMin : Math.max(xAxisMin, reqscore - chartData.search_width),
+                                xMax: chartData.search_width === 10 ? xAxisMax : Math.min(xAxisMax, reqscore + chartData.search_width),
+                                borderColor: 'orange',
+                                borderWidth: 3,
+                                display: chartData.search_width > 0, // Only show if search_width > 0
+                                label: {
+                                    content: `Search Range: ±${chartData.search_width === 10 ? 'All' : chartData.search_width}`,
+                                    enabled: true,
+                                    position: 'center',
+                                    backgroundColor: 'rgba(255,165,0,0.8)',
+                                    color: 'black',
+                                    font: { size: 10 }
+                                }
+                            },
+                            // Add vertical markers at the ends
+                            searchWidthStartMarker: {
+                                type: 'line',
+                                xMin: chartData.search_width === 10 ? xAxisMin : Math.max(xAxisMin, reqscore - chartData.search_width),
+                                xMax: chartData.search_width === 10 ? xAxisMin : Math.max(xAxisMin, reqscore - chartData.search_width),
+                                yMin: 0, // Placeholder, will be updated dynamically
+                                yMax: 0, // Placeholder, will be updated dynamically
+                                borderColor: 'orange',
+                                borderWidth: 3,
+                                display: chartData.search_width > 0 && chartData.search_width !== 0.2 // Don't show for exact match
+                            },
+                            searchWidthEndMarker: {
+                                type: 'line',
+                                xMin: chartData.search_width === 10 ? xAxisMax : Math.min(xAxisMax, reqscore + chartData.search_width),
+                                xMax: chartData.search_width === 10 ? xAxisMax : Math.min(xAxisMax, reqscore + chartData.search_width),
+                                yMin: 0, // Placeholder, will be updated dynamically
+                                yMax: 0, // Placeholder, will be updated dynamically
+                                borderColor: 'orange',
+                                borderWidth: 3,
+                                display: chartData.search_width > 0 && chartData.search_width !== 0.2
                             }
                         }
                     }
@@ -564,6 +613,41 @@
                 },
                 options: chartOptions
             });
+
+            // Update searchWidthIndicator's y position after chart is initialized
+            const yAxis = myChart.scales.y;
+            if (yAxis) {
+                // Get the data min and max values of the Y-axis
+                const yAxisDataMin = yAxis.min;
+                const yAxisDataMax = yAxis.max;
+
+                // Calculate the data value that corresponds to 90% of the chart's height from the bottom.
+                const dataValueAt90PercentHeight = yAxisDataMin + (yAxisDataMax - yAxisDataMin) * 0.9;
+
+                // Accessing the annotation and updating its properties
+                if (myChart.options.plugins.annotation.annotations.searchWidthIndicator) {
+                    // Now, set yMin and yMax to this calculated *data value*
+                    myChart.options.plugins.annotation.annotations.searchWidthIndicator.yMin = dataValueAt90PercentHeight;
+                    myChart.options.plugins.annotation.annotations.searchWidthIndicator.yMax = dataValueAt90PercentHeight;
+
+                    // --- START OF MODIFIED MARKER CODE ---
+                    // For the markers, let's make them clearly visible.
+                    // Increased offset to 5% of the data range for marker size
+                    const markerOffset = (yAxisDataMax - yAxisDataMin) * 0.03;
+
+                    myChart.options.plugins.annotation.annotations.searchWidthStartMarker.yMin = dataValueAt90PercentHeight - markerOffset;
+                    myChart.options.plugins.annotation.annotations.searchWidthStartMarker.yMax = dataValueAt90PercentHeight + markerOffset;
+                    myChart.options.plugins.annotation.annotations.searchWidthEndMarker.yMin = dataValueAt90PercentHeight - markerOffset;
+                    myChart.options.plugins.annotation.annotations.searchWidthEndMarker.yMax = dataValueAt90PercentHeight + markerOffset;
+
+                    // Ensure the markers are displayed when search_width > 0
+                    myChart.options.plugins.annotation.annotations.searchWidthStartMarker.display = chartData.search_width > 0;
+                    myChart.options.plugins.annotation.annotations.searchWidthEndMarker.display = chartData.search_width > 0;
+                    // --- END OF MODIFIED MARKER CODE ---
+
+                    myChart.update(); // Redraw the chart to apply the changes
+                }
+            } // Moved this closing brace to fix the scope
 
             // --- ORIGINAL Form Submission Logic (for selected points) ---
             const form = document.querySelector('form');
