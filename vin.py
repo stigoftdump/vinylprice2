@@ -1,4 +1,4 @@
-from functions import get_actual_price, read_save_value, write_save_value, generate_smooth_curve_data, predict_price
+from functions import predict_price, get_actual_price, generate_smooth_curve_data, read_save_value, write_save_value
 from grid_functions import make_processed_grid, delete_points, extract_tuples
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
