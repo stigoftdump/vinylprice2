@@ -174,7 +174,16 @@ def graph_logic(reqscore, shop_var, qualities, prices):
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
     actual_price = realprice(float(adjusted_price))
 
-    return predicted_price, upper_bound, actual_price, percentile_message, search_width
+    return upper_bound, actual_price, percentile_message, search_width
+
+def predict_price(qualities, prices, reqscore):
+    # Get the fitted parameters and prediction function
+    params, predict_func, X, y = fit_curve_and_get_params(qualities, prices)
+
+    # gets the price from the predict function
+    predicted_price = predict_func(reqscore)
+
+    return predicted_price
 
 def generate_smooth_curve_data(qualities, prices, reqscore):
     """

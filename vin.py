@@ -1,4 +1,4 @@
-from functions import graph_logic, read_save_value, write_save_value, generate_smooth_curve_data
+from functions import graph_logic, read_save_value, write_save_value, generate_smooth_curve_data, predict_price
 from grid_functions import make_processed_grid, delete_points, extract_tuples
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
@@ -57,12 +57,26 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     write_save_value(processed_grid, "processed_grid")
 
     # Extracts elements
-    qualities, prices, dates, comments = extract_tuples(processed_grid)
+    try:
+        qualities, prices, dates, comments = extract_tuples(processed_grid)
+    except Exception as e:
+        # Handle potential errors in graph_logic if the grid is unusual after filtering
+        error_message = f"Error during grid processing: {e}"
+        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
+        return output_data
 
-    # graph logic to get the variables for the output
+    # gets the predicted price
+    try:
+        predicted_price = predict_price(qualities, prices, reqscore)
+    except Exception as e:
+        # Handle potential errors in graph_logic if the grid is unusual after filtering
+        error_message = f"Error during graph calculation, could not get predicted price: {e}"
+        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
+        return output_data
+
     # Make sure graph_logic handles potentially empty lists gracefully if grid becomes empty
     try:
-        predicted_price, upper_bound, actual_price, percentile_message, search_width = graph_logic(reqscore, shop_var, qualities, prices)
+        upper_bound, actual_price, percentile_message, search_width = graph_logic(reqscore, shop_var, qualities, prices)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         error_message = f"Error during graph calculation: {e}"
