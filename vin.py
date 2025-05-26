@@ -31,114 +31,109 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     info_message = None
     error_message = None
 
-    # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
-    if not discogs_data:
-        # load the saved file
-        processed_grid = read_save_value("processed_grid", {})
-    else:
-        # Gets the processed_grid from the discogs_data sent over
-        processed_grid, status_message = make_processed_grid(discogs_data, start_date)
+    output_data = {
+        "calculated_price": None,
+        "upper_bound": None,
+        "actual_price": None,
+        "status_message": None, # Will be set to "Completed" or an error later
+        "info_message": None,
+        "error_message": None,
+        "chart_data": {}
+    }
 
-    # deletes points if needed
-    processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
-
-    # If add_data is True, load the previously saved processed_grid and add it to the current one
-    if add_data == "True" and discogs_data:
-        saved_processed_grid = read_save_value("processed_grid", {})
-        processed_grid.extend(saved_processed_grid) # Add saved data *after* potential deletion
-
-    # Check again if the grid is empty after deleting or loading
-    if not processed_grid:
-         error_message = "No data points available for analysis."
-         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": status_message, "chart_data": {}}
-         return output_data
-
-    # Save processed grid to file
-    write_save_value(processed_grid, "processed_grid")
-
-    # Extracts elements
     try:
+        # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
+        if not discogs_data:
+            # load the saved file
+            processed_grid = read_save_value("processed_grid", {})
+        else:
+            # Gets the processed_grid from the discogs_data sent over
+            processed_grid, status_message = make_processed_grid(discogs_data, start_date)
+
+        # deletes points if needed
+        processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
+
+        # If add_data is True, load the previously saved processed_grid and add it to the current one
+        if add_data == "True" and discogs_data:
+            saved_processed_grid = read_save_value("processed_grid", {})
+            processed_grid.extend(saved_processed_grid) # Add saved data *after* potential deletion
+
+        # Check again if the grid is empty after deleting or loading
+        if not processed_grid:
+            raise ValueError("No data points available for analysis.")
+
+        # Save processed grid to file
+        write_save_value(processed_grid, "processed_grid")
+
+        # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
-    except Exception as e:
-        # Handle potential errors in graph_logic if the grid is unusual after filtering
-        error_message = f"Error during grid processing: {e}"
-        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
-        return output_data
 
-    # gets the predicted price
-    try:
+        # gets the predicted price
         predicted_price = predict_price(qualities, prices, reqscore)
-    except Exception as e:
-        # Handle potential errors in graph_logic if the grid is unusual after filtering
-        error_message = f"Error during graph calculation, could not get predicted price: {e}"
-        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
-        return output_data
 
-    # gets the actual price from the predicted price
-    try:
+        # gets the actual price from the predicted price
         upper_bound, actual_price, percentile_message, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
-    except Exception as e:
-        # Handle potential errors in graph_logic if the grid is unusual after filtering
-        error_message = f"Error during graph calculation: {e}"
-        output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
-        return output_data
 
-    # Gets the smoothed data for the chart
-    X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
+        # Gets the smoothed data for the chart
+        X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
 
         # Create chart data in JSON format
-    chart_data = {
-        "labels": [str(q) for q in qualities],  # Convert qualities to strings for labels
-        "prices": prices,
-        "predicted_prices": list(y_smooth_pred),  # Convert numpy array to list
-        "predicted_qualities": list(X_smooth),  # Add predicted qualities
-        "reqscore": reqscore,
-        "dates": dates,
-        "comments": comments,
-        "predicted_price": predicted_price,
-        "upper_bound": upper_bound,
-        "actual_price": actual_price,
-        "search_width": search_width
-    }
+        chart_data = {
+            "labels": [str(q) for q in qualities],  # Convert qualities to strings for labels
+            "prices": prices,
+            "predicted_prices": list(y_smooth_pred),  # Convert numpy array to list
+            "predicted_qualities": list(X_smooth),  # Add predicted qualities
+            "reqscore": reqscore,
+            "dates": dates,
+            "comments": comments,
+            "predicted_price": predicted_price,
+            "upper_bound": upper_bound,
+            "actual_price": actual_price,
+            "search_width": search_width
+        }
 
-    # Make overall status "Completed" if no error messages were set
-    status_message = "Completed"
-    info_messages_list = []  # Use a list to build info message parts
-    # Add info about points deleted
-    if percentile_message:
-        info_messages_list.append(f"{percentile_message}")
-    if deleted_count > 0:
-        info_messages_list.append(f"{deleted_count} points deleted")
-    # Add info about data added
-    if add_data == "True" and discogs_data:
-        info_messages_list.append(f"Data added to previous run")
+        # If all calculations are successful, populate output_data
+        output_data["calculated_price"] = round(predicted_price, 2)
+        output_data["upper_bound"] = round(upper_bound, 2)
+        output_data["actual_price"] = round(actual_price, 2)
+        output_data["chart_data"] = chart_data
 
-    # Join info messages with a newline if there are any
-    if info_messages_list:
-        info_message = "\n".join(info_messages_list)
+        # Make overall status "Completed" if no error messages were set
+        output_data["status_message"] = "Completed"
 
-    error_messages_list = []
-    # send an error message too if there are less than 10 points
-    if len(processed_grid)<10:
-        error_messages_list.append(f"Less than 10 data points. Add more data if possible")
+        # Build status and info messages if successful
+        info_messages_list = []  # Use a list to build info message parts
+        # Add info about points deleted
+        if percentile_message:
+            info_messages_list.append(f"{percentile_message}")
+        if deleted_count > 0:
+            info_messages_list.append(f"{deleted_count} points deleted")
+        # Add info about data added
+        if add_data == "True" and discogs_data:
+            info_messages_list.append(f"Data added to previous run")
 
-    # send an error
-    if upper_bound<predicted_price:
-        error_messages_list.append(f"Max price calc error")
+        # puts all the info messages together
+        if info_messages_list:
+            output_data["info_message"] = "\n".join(info_messages_list)
 
-    # Join info messages with a newline if there are any
-    if error_messages_list:
-        error_message = "\n".join(error_messages_list)
+        # Additional error checks
+        error_messages_list = []
+        if len(processed_grid) < 10:
+            error_messages_list.append(f"Less than 10 data points. Add more data if possible")
+        if upper_bound < predicted_price:
+            error_messages_list.append(f"Max price calc error")
+        if error_messages_list:
+            output_data["error_message"] = "\n".join(error_messages_list)
 
-    # output for sending to flask
-    output_data = {
-        "calculated_price": round(predicted_price, 2),
-        "upper_bound": round(upper_bound, 2),
-        "actual_price": round(actual_price, 2),
-        "status_message": status_message,
-        "info_message": info_message,
-        "error_message": error_message,
-        "chart_data": chart_data  # Include chart data in the output
-    }
+    except ValueError as e:
+        output_data["error_message"] = f"Validation Error: {e}"
+        output_data["status_message"] = "Failed"
+    except TypeError as e:
+        output_data["error_message"] = f"Type Error: {e}"
+        output_data["status_message"] = "Failed"
+    except Exception as e:
+        # Catch-all for any other unexpected errors
+        output_data["error_message"] = f"An unexpected error occurred: {e}"
+        output_data["status_message"] = "Failed"
 
     return output_data
