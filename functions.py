@@ -136,7 +136,7 @@ def fit_curve_and_get_params(qualities, prices):
 
     return params, predict_func, X, y
 
-def graph_logic(reqscore, shop_var, qualities, prices):
+def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     """
     Performs curve fitting and price prediction based on processed sales data.
 
@@ -162,10 +162,7 @@ def graph_logic(reqscore, shop_var, qualities, prices):
 
     y_pred = predict_func(X.flatten())
 
-    predicted_price = predict_func(reqscore)
-
     # gets percentile price above line
-    # NOTE: The shop_var is now applied to this percentile price
     percentage_above_line, percentile_message, search_width = get_percentile_price_above_line(y, y_pred, X, reqscore,
                                                                                 predict_func=predict_func,
                                                                                 percentile=90)

@@ -1,4 +1,4 @@
-from functions import graph_logic, read_save_value, write_save_value, generate_smooth_curve_data, predict_price
+from functions import get_actual_price, read_save_value, write_save_value, generate_smooth_curve_data, predict_price
 from grid_functions import make_processed_grid, delete_points, extract_tuples
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
@@ -74,9 +74,9 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
         return output_data
 
-    # Make sure graph_logic handles potentially empty lists gracefully if grid becomes empty
+    # gets the actual price from the predicted price
     try:
-        upper_bound, actual_price, percentile_message, search_width = graph_logic(reqscore, shop_var, qualities, prices)
+        upper_bound, actual_price, percentile_message, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         error_message = f"Error during graph calculation: {e}"
