@@ -56,7 +56,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         # If add_data is True, load the previously saved processed_grid and add it to the current one
         if add_data == "True" and discogs_data:
             saved_processed_grid = read_save_value("processed_grid", {})
-            processed_grid.extend(saved_processed_grid) # Add saved data *after* potential deletion
+            processed_grid.extend(saved_processed_grid)
 
         # Check again if the grid is empty after deleting or loading
         if not processed_grid:
@@ -72,7 +72,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         predicted_price = predict_price(qualities, prices, reqscore)
 
         # gets the actual price from the predicted price
-        upper_bound, actual_price, percentile_message, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
+        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
 
         # Gets the smoothed data for the chart
         X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
@@ -104,8 +104,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         # Build status and info messages if successful
         info_messages_list = []  # Use a list to build info message parts
         # Add info about points deleted
-        if percentile_message:
-            info_messages_list.append(f"{percentile_message}")
         if deleted_count > 0:
             info_messages_list.append(f"{deleted_count} points deleted")
         # Add info about data added

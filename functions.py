@@ -155,14 +155,14 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     """
 
     # gets percentile price above line
-    percentage_above_line, percentile_message, search_width = get_percentile_price_above_line(qualities, prices, reqscore,
+    percentage_above_line, search_width = get_percentile_price_above_line(qualities, prices, reqscore,
                                                                                 percentile=90)
     # calculates prices
     upper_bound = predicted_price * ((percentage_above_line/100)+1)
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
     actual_price = realprice(float(adjusted_price))
 
-    return upper_bound, actual_price, percentile_message, search_width
+    return upper_bound, actual_price, search_width
 
 def numpify_qualities_and_prices(qualities, prices):
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
@@ -297,21 +297,19 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
 
     # Define the tiers with their bounds and descriptions
     tiers = [
-        # (lower_bound_func, upper_bound_func, description_func, width_value)
-        (lambda r: r, lambda r: r, lambda n, r: f"Max Price calculated using {n} prices at score {round(r, 2)}", 0.2),
-        (lambda r: r - 0.5, lambda r: r + 0.5, lambda n, lb,
-                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}", 0.5),
-        (lambda r: r - 1.0, lambda r: r + 1.0, lambda n, lb,
-                                                      ub: f"Max Price calculated using {n} prices between scores {round(lb, 2):.2f} and {round(ub, 2):.2f}", 1),
-        (lambda r: float('-inf'), lambda r: float('inf'),
-         lambda n: f"Max Price calculated using {n} prices across all scores", 10)
+        # (lower_bound_func, upper_bound_func, width_value)
+        (lambda r: r, lambda r: r, 0.2),
+        (lambda r: r - 0.5, lambda r: r + 0.5, 0.5),
+        (lambda r: r - 1.0, lambda r: r + 1.0, 1),
+        (lambda r: float('-inf'), lambda r: float('inf'), 10)
     ]
 
     # Try each tier in order
-    for tier_index, tier_bounds in enumerate(tiers):
+    for tier_index, tier_info in enumerate(tiers):
         if tier_index < 3:  # For the first three tiers with specific bounds
-            lower_bound = tier_bounds[0](reqscore)
-            upper_bound = tier_bounds[1](reqscore)
+            lower_bound_func, upper_bound_func, width_value = tier_info
+            lower_bound = lower_bound_func(reqscore)
+            upper_bound = upper_bound_func(reqscore)
 
             # Filter points within this tier's bounds
             indices_in_band = np.where(
@@ -324,30 +322,14 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
             average_percentage = calculate_average_percentage_for_subset(y_true_in_band, X_quality_in_band)
 
             if average_percentage is not None:
-                tier_type = "exact reqscore" if tier_index == 0 else f"{0.5 if tier_index == 1 else 1.0} band around reqscore"
-                print(
-                    f"Using {tier_type} ({len(y_true_in_band)} points above line in total in this tier) for average percentage calculation.")
-
-                # Generate appropriate message based on tier
-                if tier_index == 0:
-                    message = tier_bounds[2](len(y_true_in_band), reqscore)
-                else:
-                    message = tier_bounds[2](len(y_true_in_band), lower_bound, upper_bound)
-
-                # gets the width value
-                width_value = tier_bounds[3]
-
-                return average_percentage, message, width_value
+                return average_percentage, width_value # Removed message from return
         else:
             # Last tier - use all points above the line
+            lower_bound_func, upper_bound_func, width_value = tier_info
             average_percentage = calculate_average_percentage_for_subset(y_true_above_all, X_quality_above_all)
 
             if average_percentage is not None:
-                print(
-                    f"Using all points above line ({len(y_true_above_all)} points in total in this tier) for average percentage calculation.")
-                message = tier_bounds[2](len(y_true_above_all))
-                width_value = tier_bounds[3]
-                return average_percentage, message, width_value
+                return average_percentage, width_value # Removed message from return
 
     # Fallback: Insufficient data in any tier
     print(
