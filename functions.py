@@ -67,32 +67,23 @@ def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     exponential_increase = a_exp * np.exp(b_exp * (x - c_exp))
     return first_rise + exponential_increase + d
 
-def graph_logic(reqscore, shop_var, qualities, prices):
+def fit_curve_and_get_params(qualities, prices):
     """
-    Performs curve fitting and price prediction based on processed sales data.
-
-    Fits a sigmoid-plus-exponential model to the quality vs. price data,
-    calculates predicted prices, error bounds, and generates data for plotting.
+    Performs curve fitting using the sigmoid_plus_exponential model
+    and returns the fitted parameters and a prediction function.
 
     Args:
-        reqscore (float): The target quality score for which to predict the price.
-        shop_var (float): A factor applied to the calculated upper price bound.
-        processed_grid (list): A list of tuples, where each tuple represents a processed
-                               sale record (containing price, quality score, etc.).
+        qualities (list): Original quality scores from the data.
+        prices (list): Original (inflation-adjusted) prices from the data.
 
     Returns:
         tuple: A tuple containing:
-            - qualities (list): Original quality scores from the data.
-            - prices (list): Original (inflation-adjusted) prices from the data.
-            - X_smooth (np.ndarray): Quality values for plotting the smooth fitted curve.
-            - y_smooth_pred (np.ndarray): Predicted prices corresponding to X_smooth.
-            - predicted_price (float): The predicted price for the reqscore based on the fitted curve.
-            - upper_bound (float): The calculated upper bound price based on percentiles.
-            - actual_price (float): The final price after applying shop_var and rounding.
+            - params (np.ndarray): The optimal parameters for the fitted curve.
+            - predict_func (function): A function that takes a quality value and returns
+                                       the predicted price based on the fitted parameters.
+            - X (np.ndarray): The quality scores converted to a numpy array for fitting.
+            - y (np.ndarray): The prices converted to a numpy array for fitting.
     """
-    # function that returns everything needed to make a chart
-
-    # Convert to numpy arrays for regression
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
     y = np.array(prices)  # Price as dependent variable
 
@@ -109,9 +100,6 @@ def graph_logic(reqscore, shop_var, qualities, prices):
     ]
 
     # Add bounds to ensure monotonicity and reasonable parameters
-    # --- Adjust Bounds for Sigmoid + Exponential ---
-    # Ensure bounds match the order: [a1, b1, c1, a_exp, b_exp, c_exp, d]
-    # Constraint ideas: c1 < 6, c_exp > 6, b_exp > 0
     lower_bounds = [
         0,      # a1 >= 0
         0.1,    # b1 >= 0.1 (avoid zero steepness)
@@ -132,38 +120,80 @@ def graph_logic(reqscore, shop_var, qualities, prices):
     ]
     bounds = (lower_bounds, upper_bounds)
 
-    # Fit the double sigmoid model
+    # Fit the sigmoid_plus_exponential model
     params, _ = curve_fit(
-        sigmoid_plus_exponential,  # Use the new function
+        sigmoid_plus_exponential,
         X.flatten(),
         y,
         p0=initial_guess,
         bounds=bounds,
-        maxfev=100000  # Keep high max iterations, might be needed
+        maxfev=100000
     )
 
-    # Calculate predictions for all data points
-    def predict_price_exp(quality_value):
+    def predict_func(quality_value):
         """Predicts price using the fitted sigmoid_plus_exponential model."""
-        # Ensure it calls the correct function with the fitted params
         return sigmoid_plus_exponential(quality_value, *params)
 
-    y_pred = predict_price_exp(X.flatten())
+    return params, predict_func, X, y
 
-    predicted_price = predict_price_exp(reqscore)
+def graph_logic(reqscore, shop_var, qualities, prices):
+    """
+    Performs curve fitting and price prediction based on processed sales data.
+
+    Fits a sigmoid-plus-exponential model to the quality vs. price data,
+    calculates predicted prices, error bounds, and generates data for plotting.
+
+    Args:
+        reqscore (float): The target quality score for which to predict the price.
+        shop_var (float): A factor applied to the calculated upper price bound.
+        qualities (list): A list ofall  qualities
+        prices (list): A list of all prices
+
+    Returns:
+        tuple: A tuple containing:
+            - predicted_price (float): The predicted price for the reqscore based on the fitted curve.
+            - upper_bound (float): The calculated upper bound price based on percentiles.
+            - actual_price (float): The final price after applying shop_var and rounding.
+    """
+    # function that returns everything needed to make a chart
+
+    # Get the fitted parameters and prediction function
+    params, predict_func, X, y = fit_curve_and_get_params(qualities, prices)
+
+    y_pred = predict_func(X.flatten())
+
+    predicted_price = predict_func(reqscore)
 
     # gets percentile price above line
     # NOTE: The shop_var is now applied to this percentile price
     percentage_above_line, percentile_message, search_width = get_percentile_price_above_line(y, y_pred, X, reqscore,
-                                                                                predict_func=predict_price_exp,
+                                                                                predict_func=predict_func,
                                                                                 percentile=90)
-
     # calculates prices
     upper_bound = predicted_price * ((percentage_above_line/100)+1)
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
     actual_price = realprice(float(adjusted_price))
 
-    # Create a smooth curve for plotting the fitted function
+    return predicted_price, upper_bound, actual_price, percentile_message, search_width
+
+def generate_smooth_curve_data(qualities, prices, reqscore):
+    """
+    Create a smooth curve for plotting the fitted function
+
+    Args:
+        qualities (list): A list of all  qualities
+        prices (list): A list of all prices
+        reqscore (float): The required score, only used if the reqscore is outside of bounds for the qualities
+
+    Returns:
+        tuple: A tuple containing:
+            X-smooth (numparray): Smoothed X values for the line of best fit
+            y_smooth_prted (numparray): Smoothed Y values for the line of best fit
+
+    """
+
+    params, predict_func, X, y = fit_curve_and_get_params(qualities, prices)
+
     # Determine the minimum x-value for the smooth curve
     min_x_for_smooth = min(min(X.flatten()), reqscore) if X.size > 0 else reqscore
 
@@ -173,9 +203,9 @@ def graph_logic(reqscore, shop_var, qualities, prices):
     # Create a smooth curve for plotting the fitted function, extending to reqscore if necessary
     X_smooth = np.linspace(min_x_for_smooth, max_x_for_smooth, 200)
 
-    y_smooth_pred = predict_price_exp(X_smooth)
+    y_smooth_pred = predict_func(X_smooth)
 
-    return X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message, search_width
+    return X_smooth, y_smooth_pred
 
 # Signature remains the same as previous version that accepted predict_func
 def get_percentile_price_above_line(y_true, y_pred, X_quality, reqscore, predict_func,

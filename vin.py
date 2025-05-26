@@ -1,4 +1,4 @@
-from functions import graph_logic, read_save_value, write_save_value
+from functions import graph_logic, read_save_value, write_save_value, generate_smooth_curve_data
 from grid_functions import make_processed_grid, delete_points, extract_tuples
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
@@ -13,7 +13,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         reqscore (float): The target quality score for price prediction.
         shop_var (float): The shop variance factor to apply to the price uncertainty.
         start_date (str): The start date ('YYYY-MM-DD') for filtering sales data.
-        add_data_str (str): String ('True' or 'False') indicating whether to merge
+        add_data (str): String ('True' or 'False') indicating whether to merge
                             current data with previously saved data.
         discogs_data (str): Raw text data pasted by the user (Discogs sales history).
         points_to_delete_json (str): JSON string array of points selected for deletion.
@@ -30,7 +30,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     status_message = None
     info_message = None
     error_message = None
-    deleted_count = 0
 
     # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
     if not discogs_data:
@@ -63,14 +62,17 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     # graph logic to get the variables for the output
     # Make sure graph_logic handles potentially empty lists gracefully if grid becomes empty
     try:
-        X_smooth, y_smooth_pred, predicted_price, upper_bound, actual_price, percentile_message, search_width = graph_logic(reqscore, shop_var, qualities, prices)
+        predicted_price, upper_bound, actual_price, percentile_message, search_width = graph_logic(reqscore, shop_var, qualities, prices)
     except Exception as e:
         # Handle potential errors in graph_logic if the grid is unusual after filtering
         error_message = f"Error during graph calculation: {e}"
         output_data = {"calculated_price": None, "upper_bound": None, "actual_price": None, "error_message": error_message, "chart_data": {}}
         return output_data
 
-    # Create chart data in JSON format
+    # Gets the smoothed data for the chart
+    X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
+
+        # Create chart data in JSON format
     chart_data = {
         "labels": [str(q) for q in qualities],  # Convert qualities to strings for labels
         "prices": prices,
