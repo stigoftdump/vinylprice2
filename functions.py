@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from grid_functions import realprice
 import pickle
+import statsmodels.api as sm
 
 unified_save_file = "vinylpricedata.pkl"
 
@@ -154,11 +155,27 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
             - actual_price (float): The final price after applying shop_var and rounding.
     """
 
-    # gets percentile price above line
-    percentage_above_line, search_width = get_percentile_price_above_line(qualities, prices, reqscore,
-                                                                                percentile=90)
+    # new percentile code
+    pi_details = get_prediction_interval_details(qualities, prices, reqscore, confidence_level=0.90)
+
+    upper_bound = 0.0 # Initialize upper_bound
+    search_width = "N/A" # Default message if PI calculation fails
+
+    if pi_details['error']:
+        print(f"Warning: Error calculating prediction interval: {pi_details['error']}")
+        # Fallback if prediction interval calculation fails
+        # You could adjust this fallback as needed, e.g., a fixed percentage
+        upper_bound = predicted_price * 1.15 # Fallback to 15% above predicted if PI fails
+        search_width = 0
+    else:
+        # Use the upper bound from the linear model's prediction interval
+        upper_bound = pi_details['upper_prediction_interval']
+        search_width = 100
+        # You might want to ensure the upper_bound is not less than predicted_price,
+        # especially if the linear model diverges significantly from the non-linear one.
+        upper_bound = max(upper_bound, predicted_price)
+
     # calculates prices
-    upper_bound = predicted_price * ((percentage_above_line/100)+1)
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
     actual_price = realprice(float(adjusted_price))
 
@@ -211,127 +228,82 @@ def generate_smooth_curve_data(qualities, prices, reqscore):
 
     return X_smooth, y_smooth_pred
 
-# Signature remains the same as previous version that accepted predict_func
-def get_percentile_price_above_line(qualities, prices, reqscore,
-                                    percentile=90):
+def get_prediction_interval_details(qualities, prices, target_quality, confidence_level=0.95):
     """
-    Calculates a percentage representing the average of percentile price
-    increases (relative to predicted price at each unique quality score) for
-    points above the line within the selected quality band, using a tiered
-    approach based on proximity to reqscore.
+    Calculates the predicted price and the upper bound of the prediction interval
+    for a given target quality, using linear regression. Also returns the percentage
+    difference between the upper prediction interval bound and the predicted price.
 
     Args:
-        y_true (np.ndarray): The actual price values.
-        y_pred (np.ndarray): The predicted price values from the model.
-        X_quality (np.ndarray): The quality scores corresponding to y_true/y_pred.
-                                Expected to be a 2D array from reshape(-1,1).
-        reqscore (float): The target quality score.
-        predicted_price_at_reqscore (float): The predicted price at the reqscore (kept for context/messaging).
-        predict_func (function): The function used to predict price for a given quality score.
-        percentile (float): The desired percentile to calculate (0 to 100).
+        qualities (list or np.array): List of quality scores (independent variable, X).
+        prices (list or np.array): List of corresponding prices (dependent variable, Y).
+        target_quality (float): The specific quality score for which to make the prediction.
+        confidence_level (float, optional): The desired confidence level for the
+                                           prediction interval (e.g., 0.95 for 95%).
+                                           Defaults to 0.95.
 
     Returns:
-        tuple: A tuple containing:
-            - float: The calculated average percentage above the predicted line for the selected band.
-                     Returns 0.0 if no points are above the line or insufficient data in any tier/band.
-            - str: A message indicating which tier was used for calculation.
+        dict: A dictionary containing:
+            'predicted_price_on_line' (float): The price predicted by the regression line for target_quality.
+            'lower_prediction_interval' (float): The lower bound of the prediction interval.
+            'upper_prediction_interval' (float): The upper bound of the prediction interval.
+            'percentage_over_predicted' (float): The percentage that the upper_prediction_interval
+                                                 is above the predicted_price_on_line.
+                                                 Returns float('inf') if predicted_price_on_line is 0.
+            'regression_summary' (str): A summary of the OLS regression (can be None if model fails).
+            'error' (str or None): An error message if calculations fail, otherwise None.
     """
+    results = {
+        'predicted_price_on_line': None,
+        'lower_prediction_interval': None,
+        'upper_prediction_interval': None,
+        'percentage_over_predicted': None,
+        'regression_summary': None,
+        'error': None
+    }
 
-    # Get the fitted parameters and prediction function
-    params, predict_func = fit_curve_and_get_params(qualities, prices)
+    if len(qualities) < 2 or len(prices) < 2 or len(qualities) != len(prices):
+        results['error'] = "Insufficient data or mismatched lengths for qualities and prices."
+        return results
 
-    # numpifies the tuples
-    X, y = numpify_qualities_and_prices(qualities, prices)
+    try:
 
-    y_pred = predict_func(X.flatten())
+        # turns into numpty arrays
+        X, y = numpify_qualities_and_prices(qualities, prices)
 
-    # Constants
-    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 3  # Minimum points needed at a specific score for percentile
-    MIN_SCORES_FOR_AVERAGE = 1  # Minimum unique quality scores with valid percentiles
+        # Prepare data for statsmodels (add constant for intercept)
+        X_with_const = sm.add_constant(X)
 
-    # Flatten quality array for easier indexing
-    X_quality_flat = X.flatten()
+        # Fit OLS (Ordinary Least Squares) regression model
+        model = sm.OLS(y, X_with_const)
+        fitted_model = model.fit()
+        results['regression_summary'] = str(fitted_model.summary())
 
-    # Identify points above the line of best fit (positive residuals)
-    all_residuals = y - y_pred
-    points_above_line_indices = np.where(all_residuals > 0)[0]
+        # Value for which to predict (must include constant)
+        target_X_with_const = np.array([1, target_quality])
 
-    # If no points are above the line in the entire dataset, return 0.0
-    if len(points_above_line_indices) == 0:
-        print("Warning: No sales points found above the line of best fit anywhere. Returning 0.0 percentage.")
-        return 0.0, "Max Price %: No points above line in dataset"
+        # Get prediction results object
+        prediction = fitted_model.get_prediction(target_X_with_const)
 
-    # Get all points above the line for later use
-    y_true_above_all = y[points_above_line_indices]
-    X_quality_above_all = X_quality_flat[points_above_line_indices]
+        # Prediction intervals are for a *new observation*
+        # The alpha for conf_int is 1 - confidence_level
+        alpha = 1 - confidence_level
+        pred_interval = prediction.conf_int(obs=True, alpha=alpha) # obs=True for prediction interval
 
-    def calculate_average_percentage_for_subset(actual_prices, quality_scores):
-        """Helper function to calculate the average percentage increase across unique quality scores."""
-        if len(actual_prices) == 0:
-            return None
+        results['predicted_price_on_line'] = prediction.predicted_mean[0]
+        results['lower_prediction_interval'] = pred_interval[0, 0]
+        results['upper_prediction_interval'] = pred_interval[0, 1]
 
-        unique_scores = np.unique(quality_scores)
-        percentage_increases = []
+        if results['predicted_price_on_line'] is not None and results['predicted_price_on_line'] != 0:
+            results['percentage_over_predicted'] = \
+                ((results['upper_prediction_interval'] - results['predicted_price_on_line']) /
+                 results['predicted_price_on_line']) * 100
+        elif results['predicted_price_on_line'] == 0 and results['upper_prediction_interval'] is not None:
+            results['percentage_over_predicted'] = float('inf') # Or handle as appropriate
 
-        for score in unique_scores:
-            # Find points within this subset above the line that match the current score
-            indices = np.where(np.isclose(quality_scores, score))[0]
-            prices_at_score = actual_prices[indices]
-
-            if len(prices_at_score) >= MIN_POINTS_FOR_PERCENTILE_PER_SCORE:
-                # Calculate percentile price for points at this score above the line
-                percentile_price = np.percentile(prices_at_score, percentile)
-                predicted_price = predict_func(score)
-
-                # Calculate percentage increase for this score
-                percentage_increase = 0.0
-                if predicted_price > 0:
-                    percentage_increase = max(0.0, ((percentile_price - predicted_price) / predicted_price) * 100.0)
-
-                percentage_increases.append(percentage_increase)
-
-        # Return average if we have enough scores with valid percentiles
-        if len(percentage_increases) >= MIN_SCORES_FOR_AVERAGE:
-            return np.mean(percentage_increases)
-        return None
-
-    # Define the tiers with their bounds and descriptions
-    tiers = [
-        # (lower_bound_func, upper_bound_func, width_value)
-        (lambda r: r, lambda r: r, 0.2),
-        (lambda r: r - 0.5, lambda r: r + 0.5, 0.5),
-        (lambda r: r - 1.0, lambda r: r + 1.0, 1),
-        (lambda r: float('-inf'), lambda r: float('inf'), 10)
-    ]
-
-    # Try each tier in order
-    for tier_index, tier_info in enumerate(tiers):
-        if tier_index < 3:  # For the first three tiers with specific bounds
-            lower_bound_func, upper_bound_func, width_value = tier_info
-            lower_bound = lower_bound_func(reqscore)
-            upper_bound = upper_bound_func(reqscore)
-
-            # Filter points within this tier's bounds
-            indices_in_band = np.where(
-                (X_quality_above_all >= lower_bound) & (X_quality_above_all <= upper_bound)
-            )[0]
-
-            y_true_in_band = y_true_above_all[indices_in_band]
-            X_quality_in_band = X_quality_above_all[indices_in_band]
-
-            average_percentage = calculate_average_percentage_for_subset(y_true_in_band, X_quality_in_band)
-
-            if average_percentage is not None:
-                return average_percentage, width_value # Removed message from return
-        else:
-            # Last tier - use all points above the line
-            lower_bound_func, upper_bound_func, width_value = tier_info
-            average_percentage = calculate_average_percentage_for_subset(y_true_above_all, X_quality_above_all)
-
-            if average_percentage is not None:
-                return average_percentage, width_value # Removed message from return
-
-    # Fallback: Insufficient data in any tier
-    print(
-        "Warning: Insufficient points above line in any relevant unique quality score bands within tiers for average percentile calculation. Returning 0.0 percentage.")
-    return 0.0, "Max Price %: Insufficient unique quality data in bands"
+    except Exception as e:
+        results['error'] = f"Error during prediction interval calculation: {str(e)}"
+        # You might want to print the full traceback for debugging
+        # import traceback
+        # print(traceback.format_exc())
+    return results
