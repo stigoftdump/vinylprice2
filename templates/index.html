@@ -329,16 +329,6 @@
                                     index: 2
                                 },
                                 {
-                                    text: 'Max Price Range',
-                                    fillStyle: 'transparent', // No fill for the line itself
-                                    strokeStyle: 'orange', // Matching the search range line
-                                    lineWidth: 3, // Match line thickness
-                                    borderDash: [1, 2], // Very short dash and gap to simulate tiny markers
-                                    hidden: false,
-                                    // pointStyle: 'line', // 'line' is the default for line items, but can be specified
-                                    index: 5 // Assign a new index
-                                },
-                                {
                                     text: 'Max Price',
                                     fillStyle: 'transparent',
                                     strokeStyle: 'purple',
@@ -493,45 +483,6 @@
                                 backgroundColor: 'green', // var(--chart-actual-color)
                                 radius: 6
                             },
-                            searchWidthIndicator: {
-                                type: 'line',
-                                yMin: 0, // Placeholder, will be updated dynamically
-                                yMax: 0, // Placeholder, will be updated dynamically
-                                xMin: chartData.search_width === 10 ? xAxisMin : Math.max(xAxisMin, reqscore - chartData.search_width),
-                                xMax: chartData.search_width === 10 ? xAxisMax : Math.min(xAxisMax, reqscore + chartData.search_width),
-                                borderColor: 'orange',
-                                borderWidth: 3,
-                                display: chartData.search_width > 0, // Only show if search_width > 0
-                                label: {
-                                    content: `Search Range: ±${chartData.search_width === 10 ? 'All' : chartData.search_width}`,
-                                    enabled: true,
-                                    position: 'center',
-                                    backgroundColor: 'rgba(255,165,0,0.8)',
-                                    color: 'black',
-                                    font: { size: 10 }
-                                }
-                            },
-                            // Add vertical markers at the ends
-                            searchWidthStartMarker: {
-                                type: 'line',
-                                xMin: chartData.search_width === 10 ? xAxisMin : Math.max(xAxisMin, reqscore - chartData.search_width),
-                                xMax: chartData.search_width === 10 ? xAxisMin : Math.max(xAxisMin, reqscore - chartData.search_width),
-                                yMin: 0, // Placeholder, will be updated dynamically
-                                yMax: 0, // Placeholder, will be updated dynamically
-                                borderColor: 'orange',
-                                borderWidth: 3,
-                                display: chartData.search_width > 0 && chartData.search_width !== 0.2 // Don't show for exact match
-                            },
-                            searchWidthEndMarker: {
-                                type: 'line',
-                                xMin: chartData.search_width === 10 ? xAxisMax : Math.min(xAxisMax, reqscore + chartData.search_width),
-                                xMax: chartData.search_width === 10 ? xAxisMax : Math.min(xAxisMax, reqscore + chartData.search_width),
-                                yMin: 0, // Placeholder, will be updated dynamically
-                                yMax: 0, // Placeholder, will be updated dynamically
-                                borderColor: 'orange',
-                                borderWidth: 3,
-                                display: chartData.search_width > 0 && chartData.search_width !== 0.2
-                            }
                         }
                     }
                 },
