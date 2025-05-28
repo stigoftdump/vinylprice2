@@ -66,7 +66,7 @@ def index():
         sleeve_display = sleeve
         shop_var_display = shop_var
         start_date_display = start_date
-        add_data_display = False
+        add_data_display = False # set to false every time it runs so the user has to check it each time
 
         # Calculate quality from media and sleeve
         quality = media - ((media - sleeve) / 3)
