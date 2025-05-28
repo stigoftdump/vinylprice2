@@ -231,6 +231,9 @@ def get_prediction_interval_details(qualities, prices, target_quality, confidenc
     for a given target quality, using linear regression. Also returns the percentage
     difference between the upper prediction interval bound and the predicted price.
 
+    Using linear regression than than tha actual non-liner regression is a compromise that means that we
+    can use the statsmodels to derive the
+
     Args:
         qualities (list or np.array): List of quality scores (independent variable, X).
         prices (list or np.array): List of corresponding prices (dependent variable, Y).
@@ -266,20 +269,37 @@ def get_prediction_interval_details(qualities, prices, target_quality, confidenc
     try:
 
         # turns into numpty arrays
-        X, y = numpify_qualities_and_prices(qualities, prices)
+        X_all, y_all = numpify_qualities_and_prices(qualities, prices)
 
-        # Prepare data for statsmodels (add constant for intercept)
-        X_with_const = sm.add_constant(X)
+        # 1. Fit an initial linear model to all data to get initial residuals
+        X_all_with_const = sm.add_constant(X_all)
+        model_all = sm.OLS(y_all, X_all_with_const)
+        fitted_model_all = model_all.fit()
+        y_pred_all = fitted_model_all.predict(X_all_with_const)
 
-        # Fit OLS (Ordinary Least Squares) regression model
-        model = sm.OLS(y, X_with_const)
+        # 2. Identify data points where actual price is higher than predicted price
+        positive_residuals_indices = np.where(y_all > y_pred_all)[0]
+
+        if len(positive_residuals_indices) < 2:
+            results['error'] = "Insufficient data points where actual price is above the predicted linear price to calculate prediction interval. Need at least 2 such points."
+            return results
+
+        # 3. Filter data to only include points with positive residuals
+        X_filtered = X_all[positive_residuals_indices]
+        y_filtered = y_all[positive_residuals_indices]
+
+        # Prepare filtered data for statsmodels (add constant for intercept)
+        X_filtered_with_const = sm.add_constant(X_filtered)
+
+        # 4. Fit OLS regression model *only on the filtered data*
+        model = sm.OLS(y_filtered, X_filtered_with_const)
         fitted_model = model.fit()
         results['regression_summary'] = str(fitted_model.summary())
 
         # Value for which to predict (must include constant)
         target_X_with_const = np.array([1, target_quality])
 
-        # Get prediction results object
+        # Get prediction results object from the model fitted on filtered data
         prediction = fitted_model.get_prediction(target_X_with_const)
 
         # Prediction intervals are for a *new observation*
