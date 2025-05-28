@@ -72,7 +72,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         predicted_price = predict_price(qualities, prices, reqscore)
 
         # gets the actual price from the predicted price
-        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
+        upper_bound, actual_price = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
 
         # Gets the smoothed data for the chart
         X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
@@ -88,8 +88,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             "comments": comments,
             "predicted_price": predicted_price,
             "upper_bound": upper_bound,
-            "actual_price": actual_price,
-            "search_width": search_width
+            "actual_price": actual_price
         }
 
         # If all calculations are successful, populate output_data

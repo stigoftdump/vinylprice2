@@ -159,18 +159,15 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     pi_details = get_prediction_interval_details(qualities, prices, reqscore, confidence_level=0.90)
 
     upper_bound = 0.0 # Initialize upper_bound
-    search_width = "N/A" # Default message if PI calculation fails
 
     if pi_details['error']:
         print(f"Warning: Error calculating prediction interval: {pi_details['error']}")
         # Fallback if prediction interval calculation fails
         # You could adjust this fallback as needed, e.g., a fixed percentage
         upper_bound = predicted_price * 1.15 # Fallback to 15% above predicted if PI fails
-        search_width = 0
     else:
         # Use the upper bound from the linear model's prediction interval
         upper_bound = pi_details['upper_prediction_interval']
-        search_width = 100
         # You might want to ensure the upper_bound is not less than predicted_price,
         # especially if the linear model diverges significantly from the non-linear one.
         upper_bound = max(upper_bound, predicted_price)
@@ -179,7 +176,7 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
     actual_price = realprice(float(adjusted_price))
 
-    return upper_bound, actual_price, search_width
+    return upper_bound, actual_price
 
 def numpify_qualities_and_prices(qualities, prices):
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
