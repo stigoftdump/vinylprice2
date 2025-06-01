@@ -1,5 +1,5 @@
 from functions import predict_price, get_actual_price, generate_smooth_curve_data
-from grid_functions import manage_processed_grid, extract_tuples
+from grid_functions import extract_tuples, manage_processed_grid
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     """
@@ -42,8 +42,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     }
 
     try:
-
-        # gets the complete processed grid
+        # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
+        # --- Refactored section for grid management ---
         processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
             discogs_data,
             start_date,
@@ -58,7 +58,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         predicted_price = predict_price(qualities, prices, reqscore)
 
         # gets the actual price from the predicted price
-        upper_bound, actual_price = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
+        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
 
         # Gets the smoothed data for the chart
         X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
@@ -74,7 +74,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             "comments": comments,
             "predicted_price": predicted_price,
             "upper_bound": upper_bound,
-            "actual_price": actual_price
+            "actual_price": actual_price,
+            "search_width": search_width
         }
 
         # If all calculations are successful, populate output_data

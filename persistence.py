@@ -21,16 +21,19 @@ def write_application_data(data):
 
 def read_save_value(datatype, default):
     """
-    Reads the data type from the saved file.
-    It returns the default if it cant read the file.
+    Reads the data type from the saved file
+
+    It returns the default if it cant read the file
+
     """
     data = read_application_data()
     datareturn = data.get(datatype, default)
+
     return datareturn
 
 def write_save_value(value, datatype):
     """
-    Write the value to the datatype in the save file.
+    Write the value to the datatype in the save file
     """
     data = read_application_data() # Read existing data
     data[datatype] = value

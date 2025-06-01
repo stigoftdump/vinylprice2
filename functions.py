@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from grid_functions import realprice
+import pickle
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """
@@ -116,7 +117,7 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
 
     # gets percentile price above line
     percentage_above_line, search_width = get_percentile_price_above_line(qualities, prices, reqscore,
-                                                                                percentile=100)
+                                                                                percentile=90)
     # calculates prices
     upper_bound = predicted_price * ((percentage_above_line/100)+1)
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
@@ -125,45 +126,11 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     return upper_bound, actual_price, search_width
 
 def numpify_qualities_and_prices(qualities, prices):
-    """
-    Converts lists of qualities and prices into NumPy arrays suitable for model fitting.
-
-    Qualities are reshaped into a 2D array (column vector) as the independent
-    variable (X), and prices are converted into a 1D array as the dependent
-    variable (y).
-
-    Args:
-        qualities (list or array-like): A list of quality scores.
-        prices (list or array-like): A list of corresponding prices.
-
-    Returns:
-        tuple: A tuple containing:
-            - X (np.ndarray): A 2D NumPy array of qualities.
-            - y (np.ndarray): A 1D NumPy array of prices.
-    """
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
     y = np.array(prices)  # Price as dependent variable
     return X, y
 
 def predict_price(qualities, prices, reqscore):
-    """
-    Fits a curve to the provided quality and price data and predicts a price
-    for a requested quality score.
-
-    This function utilizes `fit_curve_and_get_params` to determine the optimal
-    parameters for the `sigmoid_plus_exponential` model and then uses the
-    resulting prediction function to estimate the price for the `reqscore`.
-
-    Args:
-        qualities (list): A list of quality scores from historical sales data.
-        prices (list): A list of corresponding prices from historical sales data.
-        reqscore (float): The target quality score for which a price prediction
-                          is desired.
-
-    Returns:
-        float: The predicted price for the given `reqscore` based on the
-               fitted curve.
-    """
     # Get the fitted parameters and prediction function
     params, predict_func = fit_curve_and_get_params(qualities, prices)
 
@@ -240,7 +207,7 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
     y_pred = predict_func(X.flatten())
 
     # Constants
-    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 1  # Minimum points needed at a specific score for percentile
+    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 3  # Minimum points needed at a specific score for percentile
     MIN_SCORES_FOR_AVERAGE = 1  # Minimum unique quality scores with valid percentiles
 
     # Flatten quality array for easier indexing

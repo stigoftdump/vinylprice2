@@ -5,7 +5,7 @@ import json
 import sys
 from persistence import read_save_value, write_save_value
 
-# Mapping of quality to numeric value
+# Mapping of quality to numeric value - NO TRAILING SPACES IN KEYS
 quality_to_number = {
     'Mint (M)': 9,
     'Near Mint (NM or M-)': 8,
@@ -67,7 +67,7 @@ def adjust_for_inflation(price, sale_year):
                Returns the original price if adjustment cannot be fully completed
                due to missing inflation rates.
     """
-    target_inflation_year = 2024  # Adjust all prices to reflect their value at the end of 2024 / start of 2025.
+    target_inflation_year = 2024  # Adjust all prices to 2025 values
     adjustment_factor = 1.0
 
     # Iterate through years from sale_year up to the target year
@@ -147,7 +147,7 @@ def make_processed_grid(clipboard_content, start_date):
 
     Args:
         clipboard_content (str): The raw text data pasted by the user.
-        start_date (str): The earliest date ('YYYY-MM-DD') for sales data to include.
+        start_date_str (str): The earliest date ('YYYY-MM-DD') for sales data to include.
 
     Returns:
         tuple: A tuple containing:
@@ -377,9 +377,9 @@ def points_match(grid_row, point_to_delete, tolerance=0.001):
     and using tolerance for float comparisons.
 
     Args:
-        grid_row (tuple): A tuple representing a row from the processed_grid.
+        grid_row_tuple (tuple): A tuple representing a row from the processed_grid.
                                 Expected format matches make_processed_grid output.
-        point_to_delete (dict): A dictionary representing a point selected in the UI.
+        point_to_delete_dict (dict): A dictionary representing a point selected in the UI.
                                      Expected keys: 'quality', 'price', 'date', 'comment'.
         tolerance (float, optional): Tolerance for floating-point comparisons (score, price).
                                      Defaults to 0.001.
@@ -480,6 +480,8 @@ def extract_tuples(processed_grid):
             comments.append("") # Default comment
 
     return qualities, prices, dates, comments
+
+
 
 def merge_and_deduplicate_grids(grid1, grid2):
     """
