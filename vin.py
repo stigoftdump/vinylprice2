@@ -106,6 +106,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             error_messages_list.append(f"Less than 10 data points. Add more data if possible")
         if upper_bound < predicted_price:
             error_messages_list.append(f"Max price calc error")
+
+        # puts all the
         if error_messages_list:
             output_data["error_message"] = "\n".join(error_messages_list)
 
