@@ -116,7 +116,7 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
 
     # gets percentile price above line
     percentage_above_line, search_width = get_percentile_price_above_line(qualities, prices, reqscore,
-                                                                                percentile=90)
+                                                                                percentile=100)
     # calculates prices
     upper_bound = predicted_price * ((percentage_above_line/100)+1)
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
