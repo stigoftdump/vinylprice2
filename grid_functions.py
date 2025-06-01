@@ -481,7 +481,7 @@ def extract_tuples(processed_grid):
 
     return qualities, prices, dates, comments
 
-def _merge_and_deduplicate_grids(grid1, grid2):
+def merge_and_deduplicate_grids(grid1, grid2):
     """
     Helper function to merge two grids of data rows and remove duplicates.
     Assumes rows are lists that can be converted to tuples for set operations.
@@ -572,7 +572,7 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
             saved_grid = read_save_value("processed_grid", [])
             # Merge newly parsed data (which might be empty if parsing had issues but add_data is True)
             # with the saved grid.
-            current_grid_for_processing = _merge_and_deduplicate_grids(newly_parsed_data, saved_grid)
+            current_grid_for_processing = merge_and_deduplicate_grids(newly_parsed_data, saved_grid)
         else:
             # Use only the newly parsed data
             current_grid_for_processing = newly_parsed_data
