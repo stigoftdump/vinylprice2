@@ -3,7 +3,7 @@ import webbrowser
 import threading
 import time
 from vin import calculate_vin_data
-from functions import read_save_value, write_save_value
+from persistence import read_save_value, write_save_value
 import os
 
 app = Flask(__name__)

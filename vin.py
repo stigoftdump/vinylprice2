@@ -1,5 +1,5 @@
-from functions import predict_price, get_actual_price, generate_smooth_curve_data, read_save_value, write_save_value
-from grid_functions import make_processed_grid, delete_points, extract_tuples
+from functions import predict_price, get_actual_price, generate_smooth_curve_data
+from grid_functions import extract_tuples, manage_processed_grid
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
     """
@@ -43,27 +43,13 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
 
     try:
         # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
-        if not discogs_data:
-            # load the saved file
-            processed_grid = read_save_value("processed_grid", {})
-        else:
-            # Gets the processed_grid from the discogs_data sent over
-            processed_grid, status_message = make_processed_grid(discogs_data, start_date)
-
-        # deletes points if needed
-        processed_grid, deleted_count = delete_points(points_to_delete_json, processed_grid)
-
-        # If add_data is True, load the previously saved processed_grid and add it to the current one
-        if add_data == "True" and discogs_data:
-            saved_processed_grid = read_save_value("processed_grid", {})
-            processed_grid.extend(saved_processed_grid)
-
-        # Check again if the grid is empty after deleting or loading
-        if not processed_grid:
-            raise ValueError("No data points available for analysis.")
-
-        # Save processed grid to file
-        write_save_value(processed_grid, "processed_grid")
+        # --- Refactored section for grid management ---
+        processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
+            discogs_data,
+            start_date,
+            points_to_delete_json,
+            add_data
+        )
 
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
