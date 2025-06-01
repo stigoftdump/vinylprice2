@@ -280,7 +280,7 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
     y_pred = predict_func(X.flatten())
 
     # Constants
-    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 3  # Minimum points needed at a specific score for percentile
+    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 1  # Minimum points needed at a specific score for percentile
     MIN_SCORES_FOR_AVERAGE = 1  # Minimum unique quality scores with valid percentiles
 
     # Flatten quality array for easier indexing
