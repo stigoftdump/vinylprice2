@@ -1,4 +1,3 @@
-# /home/stigoftdump/PycharmProjects/PythonProject/vinylprice/persistence.py
 import pickle
 
 unified_save_file = "vinylpricedata.pkl"
