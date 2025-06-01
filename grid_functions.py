@@ -3,6 +3,7 @@ from datetime import datetime
 import math
 import json
 import sys
+from persistence import read_save_value, write_save_value
 
 # Mapping of quality to numeric value
 quality_to_number = {
@@ -479,3 +480,120 @@ def extract_tuples(processed_grid):
             comments.append("") # Default comment
 
     return qualities, prices, dates, comments
+
+def merge_and_deduplicate_grids(grid1, grid2):
+    """
+    Helper function to merge two grids of data rows and remove duplicates.
+    Assumes rows are lists that can be converted to tuples for set operations.
+    """
+    seen_rows = set()
+    merged_grid = []
+
+    # Process first grid
+    for row_list in grid1:
+        # Ensure row_list elements are hashable for tuple conversion, handle None for comments
+        # Example: (date, media, sleeve, price_float, native_price, score, comment or "")
+        # Assuming price_float can be None, but tuple() handles it.
+        # Comments (row_list[6]) can be None, ensure it's handled if it causes issues with tuple.
+        # A common practice is to ensure all elements are consistently typed or handled before tuple conversion.
+        # For simplicity here, direct tuple conversion is used.
+        try:
+            row_tuple = tuple(row_list)
+        except TypeError:
+            # Fallback if a row element is not hashable (e.g. a list itself)
+            # This shouldn't happen if processed_grid rows are flat lists/tuples of primitives.
+            # For robustness, convert to string representation or handle specific unhashable types.
+            # Here, we'll assume rows are simple enough for direct tuple conversion.
+            # If issues arise, this is a point for deeper inspection of row contents.
+            row_tuple = tuple(str(item) for item in row_list) # A basic fallback
+
+        if row_tuple not in seen_rows:
+            merged_grid.append(list(row_list)) # Store as list of lists
+            seen_rows.add(row_tuple)
+
+    # Process second grid
+    for row_list in grid2:
+        try:
+            row_tuple = tuple(row_list)
+        except TypeError:
+            row_tuple = tuple(str(item) for item in row_list)
+
+        if row_tuple not in seen_rows:
+            merged_grid.append(list(row_list))
+            seen_rows.add(row_tuple)
+    return merged_grid
+
+def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_data_str):
+    """
+    Manages the lifecycle of the processed sales data grid.
+
+    This includes parsing new data from `discogs_data`, optionally merging
+    it with previously saved data if `add_data_str` is 'True', deleting
+    specified points, and then saving the resulting grid. If `discogs_data`
+    is empty, it loads and works with the saved grid.
+
+    Args:
+        discogs_data (str): Raw text data from Discogs sales history.
+        start_date (str): The start date ('YYYY-MM-DD') for filtering sales data,
+                          used when parsing `discogs_data`.
+        points_to_delete_json (str): JSON string array of points selected for deletion.
+        add_data_str (str): String ('True' or 'False'). If 'True' and `discogs_data`
+                            is provided, newly parsed data is merged with saved data.
+                            If `discogs_data` is not provided, this flag is ignored
+                            and only saved data is loaded.
+
+    Returns:
+        tuple: A tuple containing:
+            - processed_grid (list): The final list of processed sale data tuples.
+            - deleted_count (int): The number of points removed from the grid.
+            - status_message_from_parsing (str or None): Status message from
+                                                         `make_processed_grid` if new
+                                                         data was parsed, otherwise None.
+
+    Raises:
+        ValueError: If no data points are available after all operations, or if
+                    initial parsing of `discogs_data` yields a critical error message
+                    (e.g., "No Discogs Data in text box") and `add_data_str` is not 'True'.
+    """
+    current_grid_for_processing = []
+    status_message_from_parsing = None
+
+    if discogs_data:
+        # New data is provided
+        newly_parsed_data, status_message_from_parsing = make_processed_grid(discogs_data, start_date)
+
+        # Handle critical parsing messages early if not adding to existing data
+        if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
+            if add_data_str != "True": # If not adding, and parsing failed critically, raise error
+                raise ValueError(status_message_from_parsing)
+            # If adding, newly_parsed_data might be empty, but we'll proceed to merge with saved.
+
+        if add_data_str == "True":
+            saved_grid = read_save_value("processed_grid", [])
+            # Merge newly parsed data (which might be empty if parsing had issues but add_data is True)
+            # with the saved grid.
+            current_grid_for_processing = merge_and_deduplicate_grids(newly_parsed_data, saved_grid)
+        else:
+            # Use only the newly parsed data
+            current_grid_for_processing = newly_parsed_data
+    else:
+        # No new discogs_data, load entirely from save.
+        # add_data_str is effectively ignored here as there's no new data to "add" to saved data.
+        current_grid_for_processing = read_save_value("processed_grid", [])
+        # status_message_from_parsing remains None
+
+    # Now, delete points from the assembled grid
+    final_grid, deleted_count = delete_points(points_to_delete_json, current_grid_for_processing)
+
+    # Check if the grid is empty after all operations
+    if not final_grid:
+        # If a critical parsing error occurred and we didn't load/merge any other data
+        if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
+            raise ValueError(status_message_from_parsing)
+        # Otherwise, it's a general "no data" error after all steps.
+        raise ValueError("No data points available for analysis after processing, loading, or deletion.")
+
+    # Save the final grid
+    write_save_value(final_grid, "processed_grid")
+
+    return final_grid, deleted_count, status_message_from_parsing
