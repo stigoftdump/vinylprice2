@@ -40,18 +40,9 @@ def index():
     status_message = ""
     chart_data = {}  # Initialize chart_data
 
-    # Variables to hold form values for rendering (will be populated below)
-    media_display = read_save_value("media_quality",6)
-    sleeve_display = read_save_value("sleeve_quality",6)
-    shop_var_display = read_save_value("shop_var", 0.8 )
-    start_date_display = read_save_value("start_date","2020-01-01")
-    add_data_display = False
-
+    # Changes depending on where it's POST or GET
     if request.method == "POST":
-        # Determine which button was clicked
-        action = request.form.get('action')
-
-        # --- Read form values regardless of action, except discogs_data for rerun ---
+        # Read form values to repopulate when reloading.
         media = int(request.form.get("media", 6))
         sleeve = int(request.form.get("sleeve", 6))
         shop_var = float(request.form.get("shop_var", 0.8))
@@ -61,7 +52,7 @@ def index():
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
         discogs_data = request.form.get('pasted_discogs_data', '') # Always get from form
 
-        # Update display variables with submitted values for rendering
+        # Put them into variables for displaying at POST render
         media_display = media
         sleeve_display = sleeve
         shop_var_display = shop_var
@@ -71,20 +62,18 @@ def index():
         # Calculate quality from media and sleeve
         quality = media - ((media - sleeve) / 3)
 
-        # Save the shop_var value for next session (using original save mechanism)
+        # Save the shop_var value for next session
         write_save_value(shop_var, "shop_var")
 
-        # --- Prepare vin.py arguments based on action ---
-        process_discogs_data = discogs_data # Use form data for calculate
+        # Calls the vin data function, it all gets returned as json
         status_message = "Calculating"
 
-        # Calls the vin data function
         output_data = calculate_vin_data(
             quality,
             shop_var,
             start_date,
             str(add_data_flag), # Pass boolean as string as it was expected by the original logic
-            process_discogs_data,
+            discogs_data,
             points_to_delete_json
         )
 
@@ -93,8 +82,8 @@ def index():
         adjusted_price = output_data.get("upper_bound")
         actual_price = output_data.get("actual_price")
         status_message = output_data.get("status_message", status_message)
-        info_message = output_data.get("info_message")  # Get the info message
-        error_message = output_data.get("error_message")  # Get the error message
+        info_message = output_data.get("info_message")
+        error_message = output_data.get("error_message")
         chart_data = output_data.get("chart_data", {})
 
         # Render template with results and the inputs that were used
@@ -105,34 +94,42 @@ def index():
                                sleeve=sleeve_display,
                                shop_var=shop_var_display,
                                start_date=start_date_display,
-                               add_data=add_data_display, # Pass boolean
+                               add_data=add_data_display,
                                calculated_price=calculated_price,
                                adjusted_price=adjusted_price,
                                actual_price=actual_price,
                                chart_data=chart_data,
-                               status_message=status_message,  # Overall status
-                               info_message=info_message,  # Info message
-                               error_message=error_message,  # Error message
+                               status_message=status_message,
+                               info_message=info_message,
+                               error_message=error_message,
                                is_initial_load = False)  # Indicate not initial load
 
     else:
         # This block is for the initial GET request
 
+        # Variables loaded from
+        media_display = read_save_value("media_quality", 6)
+        sleeve_display = read_save_value("sleeve_quality", 6)
+        shop_var_display = read_save_value("shop_var", 0.8)
+        start_date_display = read_save_value("start_date", "2020-01-01")
+        add_data_display = False
+
+        # Renders the initial template
         return render_template("index.html",
-                               pasted_discogs_data='', # Default empty
-                               media=media_display, # Default 6
-                               sleeve=sleeve_display, # Default 6
-                               shop_var=shop_var_display, # Loaded from file
-                               start_date=start_date_display, # Default
-                               add_data=add_data_display, # Default False
-                               status_message="", # No status on initial load
-                               info_message=None,  # Default info for initial load
-                               error_message=None,  # Default error for initial load
+                               pasted_discogs_data='',
+                               media=media_display,
+                               sleeve=sleeve_display,
+                               shop_var=shop_var_display,
+                               start_date=start_date_display,
+                               add_data=add_data_display,
+                               status_message="",
+                               info_message=None,
+                               error_message=None,
                                calculated_price=None,
                                adjusted_price=None,
                                actual_price=None,
                                chart_data={},
-                               is_initial_load=True)
+                               is_initial_load=True) # indicates initial load for the splash screen
 
 if __name__ == "__main__":
     #from werkzeug.serving import is_running_from_reloader
