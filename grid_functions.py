@@ -135,6 +135,42 @@ def realprice(pred_price):
         foundprice = nearest_divisible_by_10
     return foundprice
 
+def get_relevant_rows(clipboard_content):
+    # Split the input text into individual lines (rows)
+    all_rows = clipboard_content.splitlines()
+    # Initialize index for the start of relevant data (-1 means not found yet)
+    start_index = -1
+    # Initialize index for the end of relevant data (default to end of list)
+    end_index = len(all_rows)
+
+    # Iterate through the rows to find the header and footer markers
+    for i, row_text in enumerate(all_rows):
+        # Look for the header row containing specific column names
+        if "Order Date" in row_text and "Condition" in row_text and "Sleeve Condition" in row_text and start_index == -1:
+            # Set start_index to the line *after* the header
+            start_index = i + 1
+        # Look for the footer marker "Change Currency" after the header has been found
+        elif "Change Currency" in row_text and start_index != -1:
+            # Set end_index to the line *before* the footer
+            end_index = i
+            # Stop searching once the footer is found
+            break
+
+    # If the full header wasn't found, try a simpler check just for "Order Date"
+    if start_index == -1:
+        for i, row_text in enumerate(all_rows):
+             if "Order Date" in row_text and start_index == -1:
+                 start_index = i + 1
+                 break
+        # If even "Order Date" wasn't found, return an error
+        if start_index == -1:
+             return [], "Could not find 'Order Date' header row."
+
+    # Extract the rows between the header and footer
+    relevant_rows = all_rows[start_index:end_index]
+
+    return relevant_rows
+
 # creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
     """
@@ -175,38 +211,13 @@ def make_processed_grid(clipboard_content, start_date):
         # If the date format is invalid, return an error message
         return [], "Invalid start_date format. Please use YYYY-MM-DD."
 
-    # Split the input text into individual lines (rows)
-    all_rows = clipboard_content.splitlines()
-    # Initialize index for the start of relevant data (-1 means not found yet)
-    start_index = -1
-    # Initialize index for the end of relevant data (default to end of list)
-    end_index = len(all_rows)
+    # Gets the relevant rows
+    try:
+        relevant_rows = get_relevant_rows(clipboard_content)
+    except ValueError:
+        print("Cannot get relevant rows")
+        return [], "Error in data processing"
 
-    # Iterate through the rows to find the header and footer markers
-    for i, row_text in enumerate(all_rows):
-        # Look for the header row containing specific column names
-        if "Order Date" in row_text and "Condition" in row_text and "Sleeve Condition" in row_text and start_index == -1:
-            # Set start_index to the line *after* the header
-            start_index = i + 1
-        # Look for the footer marker "Change Currency" after the header has been found
-        elif "Change Currency" in row_text and start_index != -1:
-            # Set end_index to the line *before* the footer
-            end_index = i
-            # Stop searching once the footer is found
-            break
-
-    # If the full header wasn't found, try a simpler check just for "Order Date"
-    if start_index == -1:
-        for i, row_text in enumerate(all_rows):
-             if "Order Date" in row_text and start_index == -1:
-                 start_index = i + 1
-                 break
-        # If even "Order Date" wasn't found, return an error
-        if start_index == -1:
-             return [], "Could not find 'Order Date' header row."
-
-    # Extract the rows between the header and footer
-    relevant_rows = all_rows[start_index:end_index]
     # Compile a regular expression to match dates at the beginning of a line (YYYY-MM-DD)
     date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
 
@@ -480,8 +491,6 @@ def extract_tuples(processed_grid):
             comments.append("") # Default comment
 
     return qualities, prices, dates, comments
-
-
 
 def merge_and_deduplicate_grids(grid1, grid2):
     """
