@@ -226,6 +226,17 @@ def calculate_line_skip(part_length, iteration, rows_length, linux_comment_check
 
     return lines_to_skip_ahead
 
+def extract_native_price(part_length, linux_date, win_date):
+    # extracts native price
+    if part_length >= 5: # linux
+        native_price = linux_date.strip()
+    elif part_length == 4: # windows
+        native_price = win_date.strip()
+    else:
+        native_price = None
+
+    return native_price
+
 # creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
     """
@@ -336,11 +347,12 @@ def make_processed_grid(clipboard_content, start_date):
                 # gets the number of lines to skip ahead
                 lines_to_skip_ahead = calculate_line_skip(len(data_parts), i, len(relevant_rows), relevant_rows[i+1], relevant_rows[i+2])
 
+                # gets the native price
+                native_price_str_out = extract_native_price(len(data_parts), data_parts[4].strip(), relevant_rows[i + 1])
+
                 # --- Determine Format and Extract Native Price / Comment ---
                 # Check if the row has 5 or more parts (typical Linux copy-paste format)
                 if len(data_parts) >= 5: # Linux Format
-                    # The native price is in the 5th part
-                    native_price_str_out = data_parts[4].strip()
                     # Check if the *next* line exists
                     if i + 1 < len(relevant_rows):
                         # Get the next line
@@ -350,14 +362,10 @@ def make_processed_grid(clipboard_content, start_date):
                             # Extract the comment text after "Comments:"
                             comment_text = next_row_1.strip()
                             comment_str_out = comment_text[len("Comments:"):].strip()
-                            # We need to skip this comment line in the next iteration
-                            lines_to_skip_ahead = 1
                 # Check if the row has exactly 4 parts (typical Windows copy-paste format)
                 elif len(data_parts) == 4: # Windows Format
                     # Check if the *next* line exists (this should contain the native price)
                     if i + 1 < len(relevant_rows):
-                        # Extract the native price from the next line
-                        native_price_str_out = relevant_rows[i + 1].strip()
                         # We need to skip this native price line in the next iteration
                         lines_to_skip_ahead = 1
                         # Check if the line *after* the native price exists
@@ -369,8 +377,6 @@ def make_processed_grid(clipboard_content, start_date):
                                 # Extract the comment text
                                 comment_text = next_row_2.strip()
                                 comment_str_out = comment_text[len("Comments:"):].strip()
-                                # We need to skip both the native price and comment lines
-                                lines_to_skip_ahead = 2
                     else:
                         # Handle case where Windows format is expected but next line is missing
                         print(f"Warning: Windows format, line i+1 missing: {row}")
