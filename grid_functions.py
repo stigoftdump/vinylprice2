@@ -171,6 +171,41 @@ def get_relevant_rows(clipboard_content):
 
     return relevant_rows
 
+def extract_price(price_string, date_obj):
+    # --- Extract and Process Price ---
+    # Get the price string (potentially split by newline on Windows)
+    price_user_str = price_string
+    # If the price string contains a newline, take only the part before it
+    if '\n' in price_user_str:
+        price_user_str = price_user_str.split('\n')[0]
+
+    # Check if a price string was actually extracted
+    if price_user_str:
+        try:
+            # Remove currency symbols (£$€) and commas from the price string
+            cleaned_price = re.sub(r'[£$€,]', '', price_user_str)
+            # Convert the cleaned price string to a float
+            original_price = float(cleaned_price)
+            # Get the year from the sale date object
+            sale_year = date_obj.year
+            # Adjust the original price for inflation based on the sale year
+            price_float_out = adjust_for_inflation(original_price, sale_year)
+        except ValueError:
+            # Handle error if price conversion fails
+            print(f"Warning: Could not convert user price '{price_user_str}' to float.")
+            price_float_out = None
+        except Exception as e:
+            # Handle error during inflation adjustment
+            print(
+                f"Warning: Error during inflation adjustment for price '{price_user_str}' (year {date_obj.year}): {e}",
+                file=sys.stderr)
+            price_float_out = None  # Set price to None if adjustment fails
+    else:
+        # If no price string was found, set the output price to None
+        price_float_out = None
+
+    return price_float_out
+
 # creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
     """
@@ -275,35 +310,8 @@ def make_processed_grid(clipboard_content, start_date):
                 # Get the raw sleeve quality string (might have trailing spaces)
                 quality2_str_raw = data_parts[2]
 
-                # --- Extract and Process Price ---
-                # Get the price string (potentially split by newline on Windows)
-                price_user_str = data_parts[3]
-                # If the price string contains a newline, take only the part before it
-                if '\n' in price_user_str:
-                    price_user_str = price_user_str.split('\n')[0]
-
-                # Check if a price string was actually extracted
-                if price_user_str:
-                    try:
-                        # Remove currency symbols (£$€) and commas from the price string
-                        cleaned_price = re.sub(r'[£$€,]','', price_user_str)
-                        # Convert the cleaned price string to a float
-                        original_price = float(cleaned_price)
-                        # Get the year from the sale date object
-                        sale_year = date_obj.year
-                        # Adjust the original price for inflation based on the sale year
-                        price_float_out = adjust_for_inflation(original_price, sale_year)
-                    except ValueError:
-                        # Handle error if price conversion fails
-                        print(f"Warning: Could not convert user price '{price_user_str}' to float.")
-                        price_float_out = None
-                    except Exception as e:
-                        # Handle error during inflation adjustment
-                        print(f"Warning: Error during inflation adjustment for price '{price_user_str}' (year {date_obj.year}): {e}", file=sys.stderr)
-                        price_float_out = None # Set price to None if adjustment fails
-                else:
-                     # If no price string was found, set the output price to None
-                     price_float_out = None
+                #Extracts the price
+                price_float_out = extract_price(data_parts[3], date_obj)
 
                 # --- Determine Format and Extract Native Price / Comment ---
                 # Check if the row has 5 or more parts (typical Linux copy-paste format)
