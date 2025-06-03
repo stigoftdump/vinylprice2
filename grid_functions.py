@@ -206,7 +206,7 @@ def extract_price(price_string, date_obj):
 
     return price_float_out
 
-def calculate_line_skip(part_length, iteration, rows_length, linux_comment_check, win_comment_check):
+def calculate_line_skip(part_length, iteration, relevant_rows):
     # Determines how many lines to skip
 
     # Assume no lines to skip ahead unless stated
@@ -214,24 +214,27 @@ def calculate_line_skip(part_length, iteration, rows_length, linux_comment_check
 
     # Checks to see where we are
     if part_length>= 5: # linux
-        # are weat the end?
-        if iteration + 1 < rows_length:
-            if linux_comment_check.strip().startswith('Comments:'): # does the next line start with "comments:"?
+        # are wet the end?
+        if iteration + 1 < len(relevant_rows):
+            if relevant_rows[iteration + 1].strip().startswith('Comments:'): # does the next line start with "comments:"?
                 lines_to_skip_ahead = 1
     elif part_length == 4:# windows
         # the end?
-        if iteration + 2 < rows_length:
-            if win_comment_check.strip().startswith('Comments:'): # does the next line start with "comments:"?
+        if iteration + 1 < len(relevant_rows):
+            lines_to_skip_ahead = 1
+        elif iteration + 2 < len(relevant_rows):
+            if relevant_rows[iteration + 2].strip().startswith('Comments:'): # does the next line start with "comments:"?
                 lines_to_skip_ahead = 2
 
     return lines_to_skip_ahead
 
-def extract_native_price(part_length, linux_date, win_date):
+def extract_native_price(part_length, linux_date, relevant_rows, iteration):
     # extracts native price
     if part_length >= 5: # linux
         native_price = linux_date.strip()
     elif part_length == 4: # windows
-        native_price = win_date.strip()
+        if iteration+1 < len(relevant_rows):
+            native_price = relevant_rows[iteration + 1].strip()
     else:
         native_price = None
 
@@ -345,10 +348,10 @@ def make_processed_grid(clipboard_content, start_date):
                 price_float_out = extract_price(data_parts[3], date_obj)
 
                 # gets the number of lines to skip ahead
-                lines_to_skip_ahead = calculate_line_skip(len(data_parts), i, len(relevant_rows), relevant_rows[i+1], relevant_rows[i+2])
+                lines_to_skip_ahead = calculate_line_skip(len(data_parts), i, relevant_rows)
 
                 # gets the native price
-                native_price_str_out = extract_native_price(len(data_parts), data_parts[4].strip(), relevant_rows[i + 1])
+                native_price_str_out = extract_native_price(len(data_parts), data_parts[4].strip(), relevant_rows, i)
 
                 # --- Determine Format and Extract Native Price / Comment ---
                 # Check if the row has 5 or more parts (typical Linux copy-paste format)

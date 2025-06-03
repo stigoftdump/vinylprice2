@@ -136,4 +136,4 @@ if __name__ == "__main__":
 
     #if not is_running_from_reloader():
     threading.Thread(target=open_browser_once).start()
-    app.run(debug=False, port=5002)
+    app.run(debug=True, port=5002)
