@@ -206,6 +206,26 @@ def extract_price(price_string, date_obj):
 
     return price_float_out
 
+def calculate_line_skip(part_length, iteration, rows_length, linux_comment_check, win_comment_check):
+    # Determines how many lines to skip
+
+    # Assume no lines to skip ahead unless stated
+    lines_to_skip_ahead = 0
+
+    # Checks to see where we are
+    if part_length>= 5: # linux
+        # are weat the end?
+        if iteration + 1 < rows_length:
+            if linux_comment_check.strip().startswith('Comments:'): # does the next line start with "comments:"?
+                lines_to_skip_ahead = 1
+    elif part_length == 4:# windows
+        # the end?
+        if iteration + 2 < rows_length:
+            if win_comment_check.strip().startswith('Comments:'): # does the next line start with "comments:"?
+                lines_to_skip_ahead = 2
+
+    return lines_to_skip_ahead
+
 # creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
     """
@@ -312,6 +332,9 @@ def make_processed_grid(clipboard_content, start_date):
 
                 #Extracts the price
                 price_float_out = extract_price(data_parts[3], date_obj)
+
+                # gets the number of lines to skip ahead
+                lines_to_skip_ahead = calculate_line_skip(len(data_parts), i, len(relevant_rows), relevant_rows[i+1], relevant_rows[i+2])
 
                 # --- Determine Format and Extract Native Price / Comment ---
                 # Check if the row has 5 or more parts (typical Linux copy-paste format)
