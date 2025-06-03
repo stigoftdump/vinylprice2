@@ -207,8 +207,7 @@ def extract_price(price_string, date_obj):
     return price_float_out
 
 def calculate_line_skip(part_length, iteration, relevant_rows):
-    # Determines how many lines to skip
-
+    """Determines how many extra lines (beyond the current one) to skip."""
     # Assume no lines to skip ahead unless stated
     lines_to_skip_ahead = 0
 
@@ -222,9 +221,9 @@ def calculate_line_skip(part_length, iteration, relevant_rows):
         # the end?
         if iteration + 1 < len(relevant_rows):
             lines_to_skip_ahead = 1
-        elif iteration + 2 < len(relevant_rows):
-            if relevant_rows[iteration + 2].strip().startswith('Comments:'): # does the next line start with "comments:"?
-                lines_to_skip_ahead = 2
+            if iteration + 2 < len(relevant_rows):
+                if relevant_rows[iteration + 2].strip().startswith('Comments:'): # does the next line start with "comments:"?
+                    lines_to_skip_ahead = 2
 
     return lines_to_skip_ahead
 
@@ -275,147 +274,144 @@ def extract_comments(part_length, relevant_rows, iteration):
 
     return comment_str_out
 
+def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_obj):
+    """
+    Attempts to parse a single Discogs sales entry starting from current_index.
+    A single entry might span multiple lines due to format differences.
+
+    Args:
+        relevant_rows (list): List of strings, each a line from the relevant data block.
+        current_index (int): The index in relevant_rows to start parsing from.
+        date_pattern (re.Pattern): Compiled regex pattern to match dates.
+        start_date_obj (datetime.date): The parsed start date for filtering.
+
+    Returns:
+        tuple: (parsed_data_tuple, lines_consumed, error_message_for_entry)
+               - parsed_data_tuple (tuple or None): The structured tuple of the parsed entry,
+                                                    or None if parsing failed or no entry found.
+               - lines_consumed (int): Number of lines from relevant_rows processed for this attempt.
+                                       Will be at least 1.
+               - error_message_for_entry (str or None): Error message if parsing this specific
+                                                        entry failed, otherwise None.
+    """
+    if current_index >= len(relevant_rows):
+        return None, 0, None  # Should not happen if loop is correct, but defensive
+
+    row = relevant_rows[current_index]
+    match = date_pattern.match(row)
+
+    if not match:
+        return None, 1, None  # No date found at the start of this line, consume 1 line
+
+    try:
+        data_parts = row.split('\t')
+
+        # --- Extract Date ---
+        date_str_raw = data_parts[0].strip()
+        date_obj = datetime.strptime(date_str_raw, '%Y-%m-%d').date()
+
+        # --- Filter by Date ---
+        if date_obj < start_date_obj:
+            return None, 1, None  # Entry is too old, consume 1 line (the date line)
+
+        date_str_out = date_str_raw
+
+        # --- Extract Quality Grades (assuming at least 3 parts if date matched) ---
+        if len(data_parts) < 3:
+            raise ValueError(f"Row '{row[:50]}...' started with a date but had less than 3 tab-separated parts.")
+        quality1_str_raw = data_parts[1]
+        quality2_str_raw = data_parts[2]
+
+        # --- Extract Price (from 4th part if available) ---
+        price_string_from_data = data_parts[3] if len(data_parts) > 3 else ""
+        price_float_out = extract_price(price_string_from_data, date_obj)
+
+        # --- Determine lines to skip ahead & extract native price/comments ---
+        # This uses the existing helper functions
+        lines_to_skip_ahead = calculate_line_skip(len(data_parts), current_index, relevant_rows)
+
+        native_price_data_part = data_parts[4].strip() if len(data_parts) > 4 else ""
+        native_price_str_out = extract_native_price(len(data_parts), native_price_data_part, relevant_rows,
+                                                    current_index)
+
+        comment_str_out = extract_comments(len(data_parts), relevant_rows, current_index)
+
+        # --- Calculate Score ---
+        score_out = calculate_score(quality1_str_raw, quality2_str_raw)
+
+        # --- Assemble Output Tuple ---
+        processed_row_tuple = (
+            date_str_out,
+            quality1_str_raw.strip(),
+            quality2_str_raw.strip(),
+            price_float_out,
+            native_price_str_out,
+            score_out,
+            comment_str_out
+        )
+
+        return processed_row_tuple, 1 + lines_to_skip_ahead, None
+
+    except Exception as e:
+        error_msg = f"Error processing entry at line {current_index} ('{row[:50]}...'): {e}"
+        # On error, we consume at least the current line.
+        # If lines_to_skip_ahead was determined before the error, it might be more,
+        # but for simplicity and to avoid skipping valid data after an error,
+        # consuming just 1 line on error is safer.
+        return None, 1, error_msg
+
 # creates the processed grid data from imported data
-def make_processed_grid(clipboard_content, start_date):
+def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed param to avoid clash with variable
     """
     Parses raw text data (presumably pasted from Discogs sales history)
     into a structured grid format.
-
-    Extracts date, media/sleeve condition, price, native price, comments,
-    calculates a quality score, and adjusts price for inflation. Filters
-    entries based on the start date.
-
-    Args:
-        clipboard_content (str): The raw text data pasted by the user.
-        start_date_str (str): The earliest date ('YYYY-MM-DD') for sales data to include.
-
-    Returns:
-        tuple: A tuple containing:
-            - processed_grid (list): A list of tuples, each representing a processed sale.
-                                     Format: (date_str, media_grade, sleeve_grade,
-                                             adjusted_price_float, native_price_str,
-                                             score_float, comment_str)
-            - status_message (str or None): An error message if parsing fails, otherwise None.
+    (Keep existing Args and Returns docstring, but update start_date_str to start_date_str_param if you rename)
     """
-    # Initialize status message to None (no error initially)
-    status_message = None
-    # Initialize an empty list to store the processed rows
+    status_message = None  # For overall status, not individual row errors
     processed_grid = []
 
-    # Basic validation: Check if essential keywords are present in the input text
     if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
-        # If keywords are missing, assume it's not valid Discogs data
         return [], "No Discogs Data in text box"
 
-    # Validate and parse the start_date string
     try:
-        # Convert the start_date string ('YYYY-MM-DD') into a date object
-        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+        start_date_obj = datetime.strptime(start_date_str_param, '%Y-%m-%d').date()
     except ValueError:
-        # If the date format is invalid, return an error message
         return [], "Invalid start_date format. Please use YYYY-MM-DD."
 
-    # Gets the relevant rows
-    try:
-        relevant_rows = get_relevant_rows(clipboard_content)
-    except ValueError:
-        print("Cannot get relevant rows")
-        return [], "Error in data processing"
+    relevant_rows_or_error = get_relevant_rows(clipboard_content)
+    if isinstance(relevant_rows_or_error, tuple) and len(
+            relevant_rows_or_error) == 2:  # Error case from get_relevant_rows
+        return relevant_rows_or_error  # Returns ([], "Error message")
 
-    # Compile a regular expression to match dates at the beginning of a line (YYYY-MM-DD)
+    relevant_rows = relevant_rows_or_error
+
     date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
-
-    # Initialize loop counter for iterating through relevant rows
     i = 0
-    # Loop through the relevant rows
     while i < len(relevant_rows):
-        # Get the current row
-        row = relevant_rows[i]
-        # Try to match the date pattern at the start of the row
-        match = date_pattern.match(row)
+        parsed_tuple, lines_consumed, entry_error = _parse_single_entry(
+            relevant_rows,
+            i,
+            date_pattern,
+            start_date_obj
+        )
 
-        # If a date is found at the beginning of the row
-        if match:
-            # Initialize variables for the extracted data for this sale entry
-            date_str_out = None
-            quality1_str_raw = None # Raw media quality string from input
-            quality2_str_raw = None # Raw sleeve quality string from input
-            price_float_out = None  # Inflation-adjusted price
-            native_price_str_out = None # Price in original currency
-            score_out = None        # Calculated quality score
-            comment_str_out = None  # Sale comment
-            lines_to_skip_ahead = 0 # How many extra lines to skip (for multi-line entries)
+        if parsed_tuple:
+            processed_grid.append(parsed_tuple)
 
-            # Use a try-except block to handle potential errors during row processing
-            try:
-                # Split the row into parts based on tab characters
-                data_parts = row.split('\t')
+        if entry_error:  # Log individual entry errors
+            print(entry_error, file=sys.stderr)
+            # You might want to collect these errors for a more comprehensive status_message
 
-                # --- Extract Date ---
-                date_str_raw = data_parts[0].strip()
-                # Convert the date string to a date object
-                date_obj = datetime.strptime(date_str_raw, '%Y-%m-%d').date()
-
-                # --- Filter by Date ---
-                # Check if the sale date is before the specified start date
-                if date_obj < start_date_obj:
-                    # If too early, skip this row and move to the next
-                    i += 1
-                    continue
-
-                # Format the date string for output (add a trailing space, though this might be unnecessary)
-                date_str_out = date_str_raw # Removed the trailing space addition + ' '
-
-                # --- Extract Quality Grades ---
-                # Get the raw media quality string (might have trailing spaces)
-                quality1_str_raw = data_parts[1]
-                # Get the raw sleeve quality string (might have trailing spaces)
-                quality2_str_raw = data_parts[2]
-
-                #Extracts the price
-                price_float_out = extract_price(data_parts[3], date_obj)
-
-                # gets the number of lines to skip ahead, depending on the format and whether it's a comment or not
-                lines_to_skip_ahead = calculate_line_skip(len(data_parts), i, relevant_rows)
-
-                # gets the native price
-                native_price_str_out = extract_native_price(len(data_parts), data_parts[4].strip(), relevant_rows, i)
-
-                # gets the comments
-                comment_str_out = extract_comments(len(data_parts), relevant_rows, i)
-
-                # Calculate the quality score using the raw quality strings
-                score_out = calculate_score(quality1_str_raw, quality2_str_raw)
-
-                # --- Assemble Output Tuple ---
-                # Create a tuple containing all the processed data for this sale
-                # Note: Quality strings are stripped *before* adding to the tuple for consistency
-                processed_row_tuple = (
-                    date_str_out,
-                    quality1_str_raw.strip(), # Use stripped string for output
-                    quality2_str_raw.strip(), # Use stripped string for output
-                    price_float_out,
-                    native_price_str_out,
-                    score_out,
-                    comment_str_out
-                )
-                # Add the processed tuple to the results list
-                processed_grid.append(processed_row_tuple)
-
-                # Increment the loop counter by 1 (for the current row) plus any extra lines skipped
-                i += (1 + lines_to_skip_ahead)
-
-            # --- Error Handling for Row Processing ---
-            except Exception as e:
-                # Print an error message if any unexpected error occurs while processing a row
-                print(f"Error processing data row starting with '{row[:50]}...': {e}")
-                # Increment the counter to move to the next line even if an error occurred
-                i += 1
-        # If the row does not start with a date, simply skip it
-        else:
+        if lines_consumed == 0:  # Should not happen with current _parse_single_entry logic
+            print(
+                f"Warning: _parse_single_entry consumed 0 lines at index {i}. Incrementing by 1 to avoid infinite loop.",
+                file=sys.stderr)
             i += 1
+        else:
+            i += lines_consumed
 
-    # Return the list of processed sale tuples and the status message (which is likely still None)
+    # The original status_message was only for initial validation.
+    # You could enhance it here based on accumulated entry_errors if desired.
     return processed_grid, status_message
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
