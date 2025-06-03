@@ -229,6 +229,7 @@ def calculate_line_skip(part_length, iteration, relevant_rows):
     return lines_to_skip_ahead
 
 def extract_native_price(part_length, linux_date, relevant_rows, iteration):
+    native_price = None
     # extracts native price
     if part_length >= 5: # linux
         native_price = linux_date.strip()
@@ -239,6 +240,40 @@ def extract_native_price(part_length, linux_date, relevant_rows, iteration):
         native_price = None
 
     return native_price
+
+def extract_comments(part_length, relevant_rows, iteration):
+    # extracts comments
+    comment_str_out = ""
+
+    # Check if the row has 5 or more parts (typical Linux copy-paste format)
+    if part_length >= 5:  # Linux Format
+        # Check if the *next* line exists
+        if iteration + 1 < len(relevant_rows):
+            # Get the next line
+            next_row_1 = relevant_rows[iteration + 1]
+            # Check if the next line starts with "Comments:"
+            if next_row_1.strip().startswith('Comments:'):
+                # Extract the comment text after "Comments:"
+                comment_text = next_row_1.strip()
+                comment_str_out = comment_text[len("Comments:"):].strip()
+    # Check if the row has exactly 4 parts (typical Windows copy-paste format)
+    elif part_length == 4:  # Windows Format
+        # Check if the *next* line exists (this should contain the native price)
+        if iteration + 1 < len(relevant_rows):
+            # Check if the line *after* the native price exists
+            if iteration + 2 < len(relevant_rows):
+                # Get the line after the native price
+                next_row_2 = relevant_rows[iteration + 2]
+                # Check if this line starts with "Comments:"
+                if next_row_2.strip().startswith('Comments:'):
+                    # Extract the comment text
+                    comment_text = next_row_2.strip()
+                    comment_str_out = comment_text[len("Comments:"):].strip()
+        else:
+            # Handle case where Windows format is expected but next line is missing
+            print(f"Warning: Windows format, line i+1 missing")
+
+    return comment_str_out
 
 # creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date):
@@ -315,15 +350,8 @@ def make_processed_grid(clipboard_content, start_date):
             try:
                 # Split the row into parts based on tab characters
                 data_parts = row.split('\t')
-                # Check if there are enough parts (at least date, media, sleeve, price)
-                if len(data_parts) < 4:
-                    # If not enough parts, print a warning and skip the row
-                    print(f"Warning: Skipping row, expected >= 4 tab parts: {row}")
-                    i += 1
-                    continue # Move to the next iteration of the while loop
 
                 # --- Extract Date ---
-                # Get the date string from the first part and remove leading/trailing whitespace
                 date_str_raw = data_parts[0].strip()
                 # Convert the date string to a date object
                 date_obj = datetime.strptime(date_str_raw, '%Y-%m-%d').date()
@@ -347,46 +375,16 @@ def make_processed_grid(clipboard_content, start_date):
                 #Extracts the price
                 price_float_out = extract_price(data_parts[3], date_obj)
 
-                # gets the number of lines to skip ahead
+                # gets the number of lines to skip ahead, depending on the format and whether it's a comment or not
                 lines_to_skip_ahead = calculate_line_skip(len(data_parts), i, relevant_rows)
 
                 # gets the native price
                 native_price_str_out = extract_native_price(len(data_parts), data_parts[4].strip(), relevant_rows, i)
 
-                # --- Determine Format and Extract Native Price / Comment ---
-                # Check if the row has 5 or more parts (typical Linux copy-paste format)
-                if len(data_parts) >= 5: # Linux Format
-                    # Check if the *next* line exists
-                    if i + 1 < len(relevant_rows):
-                        # Get the next line
-                        next_row_1 = relevant_rows[i + 1]
-                        # Check if the next line starts with "Comments:"
-                        if next_row_1.strip().startswith('Comments:'):
-                            # Extract the comment text after "Comments:"
-                            comment_text = next_row_1.strip()
-                            comment_str_out = comment_text[len("Comments:"):].strip()
-                # Check if the row has exactly 4 parts (typical Windows copy-paste format)
-                elif len(data_parts) == 4: # Windows Format
-                    # Check if the *next* line exists (this should contain the native price)
-                    if i + 1 < len(relevant_rows):
-                        # We need to skip this native price line in the next iteration
-                        lines_to_skip_ahead = 1
-                        # Check if the line *after* the native price exists
-                        if i + 2 < len(relevant_rows):
-                            # Get the line after the native price
-                            next_row_2 = relevant_rows[i + 2]
-                            # Check if this line starts with "Comments:"
-                            if next_row_2.strip().startswith('Comments:'):
-                                # Extract the comment text
-                                comment_text = next_row_2.strip()
-                                comment_str_out = comment_text[len("Comments:"):].strip()
-                    else:
-                        # Handle case where Windows format is expected but next line is missing
-                        print(f"Warning: Windows format, line i+1 missing: {row}")
+                # gets the comments
+                comment_str_out = extract_comments(len(data_parts), relevant_rows, i)
 
-                # --- Calculate Score ---
                 # Calculate the quality score using the raw quality strings
-                # (calculate_score function handles stripping whitespace)
                 score_out = calculate_score(quality1_str_raw, quality2_str_raw)
 
                 # --- Assemble Output Tuple ---
