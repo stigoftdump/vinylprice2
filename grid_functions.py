@@ -426,8 +426,7 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
 
 def machine_learning_save(processed_grid, artist, album, label, extra_comments):
     """
-    Appends processed sales data points to the ML data file, assigning a new
-    record ID for the batch and including extracted metadata,
+    Appends processed sales data points to the ML data file, including extracted metadata,
     while checking for duplicates based on date, artist, album, label,
     extra_comments, quality score, and native price.
 
@@ -440,12 +439,10 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
         label (str or None): The extracted label for this batch.
         extra_comments (str or None): The extracted extra comments/format details.
     """
-    # Read existing ML data
-    existing_ml_sales, last_record_id = read_ml_data()
+    # Read existing ML data (now just a list of sales)
+    existing_ml_sales = read_ml_data()
 
     # Create a set of identifiers for existing sales for quick lookup
-    # Identifier: (date, artist, album, label, extra_comments, quality, native_price)
-    # Ensure None values are handled consistently (e.g., convert to empty string or a specific placeholder)
     existing_identifiers = set()
     for sale in existing_ml_sales:
         identifier = (
@@ -454,42 +451,34 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
             sale.get('album', ''),
             sale.get('label', ''),
             sale.get('extra_comments', ''),
-            round(sale.get('quality', 0.0), 5), # Round float for consistent comparison
-            sale.get('native_price', '') # Add native_price
+            round(sale.get('quality', 0.0), 5),
+            sale.get('native_price', '')
         )
         existing_identifiers.add(identifier)
 
     new_ml_sales_to_add = []
-    current_batch_identifiers = set() # To track duplicates within the current paste session
+    current_batch_identifiers = set()
 
-    # Iterate through the data points from the current paste session
     for row in processed_grid:
-        # processed_grid tuples are (date, media_q, sleeve_q, price_float, native_price_str, score, comment)
-        if len(row) >= 7: # Ensure row has at least 7 elements (up to comment)
+        if len(row) >= 7:
             sale_date = row[0]
-            # price_float = row[3] # This is the inflation-adjusted price
-            native_price_from_row = row[4] # Native price string from the parsed data
-            quality_score = row[5]         # Calculated quality score
-            inflation_adjusted_price = row[3] # The price already adjusted and to be saved
+            native_price_from_row = row[4]
+            quality_score = row[5]
+            inflation_adjusted_price = row[3]
 
-            # Create the identifier for the current sale point
             current_sale_identifier = (
                 sale_date or '',
                 artist or '',
                 album or '',
                 label or '',
                 extra_comments or '',
-                round(quality_score, 5), # Round float for consistent comparison
+                round(quality_score, 5),
                 native_price_from_row or ''
             )
 
-            # Check if this sale point already exists
             if current_sale_identifier in existing_identifiers:
-                # print(f"Info: Skipping duplicate (already exists): {current_sale_identifier}", file=sys.stderr)
                 continue
-
             if current_sale_identifier in current_batch_identifiers:
-                # print(f"Info: Skipping duplicate (within current batch): {current_sale_identifier}", file=sys.stderr)
                 continue
 
             current_batch_identifiers.add(current_sale_identifier)
@@ -497,8 +486,8 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
             sale_data_dict = {
                 'date': sale_date,
                 'quality': quality_score,
-                'price': inflation_adjusted_price, # Save the inflation-adjusted price
-                'native_price': native_price_from_row, # Save the original native price
+                'price': inflation_adjusted_price,
+                'native_price': native_price_from_row,
                 'artist': artist,
                 'album': album,
                 'label': label,
@@ -509,14 +498,13 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
             print(f"Warning: Skipping row with unexpected structure for ML data: {row}", file=sys.stderr)
 
     if new_ml_sales_to_add:
-        current_record_id = last_record_id + 1
-        for sale_dict in new_ml_sales_to_add:
-            sale_dict['record_id'] = current_record_id
-
+        # Append new unique data to existing data
         combined_ml_sales = existing_ml_sales + new_ml_sales_to_add
-        write_ml_data(combined_ml_sales, current_record_id)
 
-        print(f"Info: Saved {len(new_ml_sales_to_add)} NEW data point(s) for ML training with record_id {current_record_id}.",
+        # Save the combined data
+        write_ml_data(combined_ml_sales)
+
+        print(f"Info: Saved {len(new_ml_sales_to_add)} NEW unique data point(s) for ML training.",
               file=sys.stderr)
         print(f"Info: Data saved for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}'.",
               file=sys.stderr)
