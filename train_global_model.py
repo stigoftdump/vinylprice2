@@ -12,6 +12,9 @@ from machine_learning import generate_features_for_ml_training
 MODEL_FILENAME = "global_price_model.pkl"
 FEATURES_FILENAME = "model_features.pkl"
 
+# sets the random state - set to None for truly random, or 42 to be consistent.
+random_state = 42
+
 def train_and_evaluate_model():
     """
     Loads feature-engineered data, trains a RandomForestRegressor model,
@@ -96,7 +99,7 @@ def train_and_evaluate_model():
     # 5. Split Data
     # test_size=0.2 means 20% of data is for testing, 80% for training.
     # random_state ensures reproducibility of the split.
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
     print(f"Data split into training and testing sets: X_train: {X_train.shape}, X_test: {X_test.shape}")
 
     # 6. Initialize Model
