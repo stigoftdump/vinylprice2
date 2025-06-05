@@ -3,7 +3,7 @@ from datetime import datetime
 import math
 import json
 import sys
-from persistence import read_save_value, write_save_value
+from persistence import read_save_value, write_save_value, read_ml_data, write_ml_data
 
 # Mapping of quality to numeric value - NO TRAILING SPACES IN KEYS
 quality_to_number = {
@@ -370,6 +370,9 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
     status_message = None  # For overall status, not individual row errors
     processed_grid = []
 
+    # set this to True or False depending on whether you want data saved or not.
+    ml_save_setting = True
+
     if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
         return [], "No Discogs Data in text box"
 
@@ -410,9 +413,49 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
         else:
             i += lines_consumed
 
-    # The original status_message was only for initial validation.
-    # You could enhance it here based on accumulated entry_errors if desired.
+    # save the processed grid for machine learning
+    if processed_grid and ml_save_setting is True:
+        try:
+            machine_learning_save(processed_grid)
+        except Exception as e:
+            print(f"Error saving ML data: {e}", file=sys.stderr)
+
     return processed_grid, status_message
+
+def machine_learning_save(processed_grid):
+    # Read existing ML data
+    existing_ml_sales, last_record_id = read_ml_data()
+
+    # Assign a new record ID for this batch of data
+    current_record_id = last_record_id + 1
+
+    # Prepare new sales data for ML format
+    new_ml_sales = []
+    for row in processed_grid:
+        # Ensure the row structure is as expected (at least 6 elements)
+        if len(row) > 5:
+            # Extract date, quality (score), and price
+            sale_date = row[0]  # YYYY-MM-DD string
+            quality_score = row[5]  # float
+            price_float = row[3]  # float (already checked for None above)
+
+            new_ml_sales.append({
+                'record_id': current_record_id,
+                'date': sale_date,
+                'quality': quality_score,
+                'price': price_float
+            })
+        else:
+            print(f"Warning: Skipping row with unexpected structure for ML data: {row}", file=sys.stderr)
+
+    # Append new data to existing data
+    combined_ml_sales = existing_ml_sales + new_ml_sales
+
+    # Save the combined data and the updated last ID
+    write_ml_data(combined_ml_sales, current_record_id)
+    print(f"Info: Saved {len(new_ml_sales)} data points for ML training with record_id {current_record_id}.",
+          file=sys.stderr)
+
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """

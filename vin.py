@@ -43,7 +43,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
 
     try:
         # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
-        # --- Refactored section for grid management ---
         processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
             discogs_data,
             start_date,
