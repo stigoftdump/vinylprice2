@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from grid_functions import realprice
-import pickle
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """
@@ -97,22 +96,23 @@ def fit_curve_and_get_params(qualities, prices):
 
 def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     """
-    Performs curve fitting and price prediction based on processed sales data.
-
-    Fits a sigmoid-plus-exponential model to the quality vs. price data,
-    calculates predicted prices, error bounds, and generates data for plotting.
+    Calculates the upper bound and final adjusted price based on the predicted
+    price and percentile analysis of points above the fitted curve.
 
     Args:
-        reqscore (float): The target quality score for which to predict the price.
-        shop_var (float): A factor applied to the calculated upper price bound.
-        qualities (list): A list of all  qualities
-        prices (list): A list of all prices
+        reqscore (float): The target quality score.
+        shop_var (float): A factor applied to the calculated price difference
+                          between the upper bound and the predicted price.
+        qualities (list): A list of all qualities from the data.
+        prices (list): A list of all inflation-adjusted prices from the data.
+        predicted_price (float): The predicted price for the reqscore
+                                 (calculated separately).
 
     Returns:
         tuple: A tuple containing:
-            - predicted_price (float): The predicted price for the reqscore based on the fitted curve.
-            - upper_bound (float): The calculated upper bound price based on percentiles.
-            - actual_price (float): The final price after applying shop_var and rounding.
+            - upper_bound (float): The calculated upper bound price based on percentile analysis.
+            - actual_price (float): The final rounded price after applying shop_var.
+            - search_width (float): The width of the quality band used for the percentile calculation.
     """
 
     # gets percentile price above line
@@ -126,11 +126,35 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     return upper_bound, actual_price, search_width
 
 def numpify_qualities_and_prices(qualities, prices):
+    """
+    Converts lists of qualities and prices into NumPy arrays suitable for fitting.
+
+    Args:
+        qualities (list): List of quality scores.
+        prices (list): List of prices.
+
+    Returns:
+        tuple: A tuple containing:
+            - X (np.ndarray): 2D NumPy array of quality scores (shape: (n_samples, 1)).
+            - y (np.ndarray): 1D NumPy array of prices (shape: (n_samples,)).
+    """
     X = np.array(qualities).reshape(-1, 1)  # Quality as independent variable
     y = np.array(prices)  # Price as dependent variable
     return X, y
 
 def predict_price(qualities, prices, reqscore):
+    """
+    Predicts the price for a given required quality score using the fitted curve.
+
+    Args:
+        qualities (list): A list of all qualities from the data.
+        prices (list): A list of all inflation-adjusted prices from the data.
+        reqscore (float): The target quality score for prediction.
+
+    Returns:
+        float: The predicted price at the reqscore based on the fitted curve.
+               Returns 0.0 if curve fitting fails.
+    """
     # Get the fitted parameters and prediction function
     params, predict_func = fit_curve_and_get_params(qualities, prices)
 
@@ -172,43 +196,25 @@ def generate_smooth_curve_data(qualities, prices, reqscore):
 
     return X_smooth, y_smooth_pred
 
-# Signature remains the same as previous version that accepted predict_func
-def get_percentile_price_above_line(qualities, prices, reqscore,
-                                    percentile=90):
+def get_points_above_line(qualities, prices, predict_func):
     """
-    Calculates a percentage representing the average of percentile price
-    increases (relative to predicted price at each unique quality score) for
-    points above the line within the selected quality band, using a tiered
-    approach based on proximity to reqscore.
+    Identifies and extracts the data points that lie above the fitted curve.
 
     Args:
-        y_true (np.ndarray): The actual price values.
-        y_pred (np.ndarray): The predicted price values from the model.
-        X_quality (np.ndarray): The quality scores corresponding to y_true/y_pred.
-                                Expected to be a 2D array from reshape(-1,1).
-        reqscore (float): The target quality score.
-        predicted_price_at_reqscore (float): The predicted price at the reqscore (kept for context/messaging).
+        qualities (list): A list of all qualities from the data.
+        prices (list): A list of all inflation-adjusted prices from the data.
         predict_func (function): The function used to predict price for a given quality score.
-        percentile (float): The desired percentile to calculate (0 to 100).
 
     Returns:
         tuple: A tuple containing:
-            - float: The calculated average percentage above the predicted line for the selected band.
-                     Returns 0.0 if no points are above the line or insufficient data in any tier/band.
-            - str: A message indicating which tier was used for calculation.
+            - y_true_above_all (np.ndarray): Actual prices for points above the line.
+            - X_quality_above_all (np.ndarray): Quality scores for points above the line.
+            Returns empty NumPy arrays if no points are found above the line.
     """
-
-    # Get the fitted parameters and prediction function
-    params, predict_func = fit_curve_and_get_params(qualities, prices)
-
     # numpifies the tuples
     X, y = numpify_qualities_and_prices(qualities, prices)
 
     y_pred = predict_func(X.flatten())
-
-    # Constants
-    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 1  # Minimum points needed at a specific score for percentile
-    MIN_SCORES_FOR_AVERAGE = 1  # Minimum unique quality scores with valid percentiles
 
     # Flatten quality array for easier indexing
     X_quality_flat = X.flatten()
@@ -226,35 +232,45 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
     y_true_above_all = y[points_above_line_indices]
     X_quality_above_all = X_quality_flat[points_above_line_indices]
 
-    def calculate_average_percentage_for_subset(actual_prices, quality_scores):
-        """Helper function to calculate the average percentage increase across unique quality scores."""
-        if len(actual_prices) == 0:
-            return None
+    return y_true_above_all, X_quality_above_all
 
-        unique_scores = np.unique(quality_scores)
-        percentage_increases = []
+def get_percentile_price_above_line(qualities, prices, reqscore,
+                                    percentile=90):
+    """
+    Calculates a percentage representing the average of percentile price
+    increases (relative to predicted price at each unique quality score) for
+    points above the line within the selected quality band, using a tiered
+    approach based on proximity to reqscore.
 
-        for score in unique_scores:
-            # Find points within this subset above the line that match the current score
-            indices = np.where(np.isclose(quality_scores, score))[0]
-            prices_at_score = actual_prices[indices]
+    It iterates through predefined quality tiers centered around the reqscore,
+    calculating the average percentile increase for points above the fitted
+    curve within each tier. The result from the first tier with sufficient
+    unique quality scores is returned.
 
-            if len(prices_at_score) >= MIN_POINTS_FOR_PERCENTILE_PER_SCORE:
-                # Calculate percentile price for points at this score above the line
-                percentile_price = np.percentile(prices_at_score, percentile)
-                predicted_price = predict_func(score)
+    Args:
+        qualities (list): A list of all qualities from the data.
+        prices (list): A list of all inflation-adjusted prices from the data.
+        reqscore (float): The target quality score.
+        percentile (float): The desired percentile to calculate (0 to 100).
 
-                # Calculate percentage increase for this score
-                percentage_increase = 0.0
-                if predicted_price > 0:
-                    percentage_increase = max(0.0, ((percentile_price - predicted_price) / predicted_price) * 100.0)
+    Returns:
+        tuple: A tuple containing:
+            - float: The calculated average percentage above the predicted line
+                     for the selected band. Returns 0.0 if no points are above
+                     the line or insufficient data in any tier/band.
+            - float: The width value associated with the tier that was used
+                     for calculation (e.g., 0.2, 0.5, 1, or 10).
 
-                percentage_increases.append(percentage_increase)
+    Note: This function refits the curve internally. For efficiency when called
+          multiple times with the same data, consider fitting the curve once
+          at a higher level and passing the predict_func.
+    """
 
-        # Return average if we have enough scores with valid percentiles
-        if len(percentage_increases) >= MIN_SCORES_FOR_AVERAGE:
-            return np.mean(percentage_increases)
-        return None
+    # Get the fitted parameters and prediction function
+    params, predict_func = fit_curve_and_get_params(qualities, prices)
+
+    # gets points above the lines
+    y_true_above_all, X_quality_above_all = get_points_above_line(qualities, prices, predict_func)
 
     # Define the tiers with their bounds and descriptions
     tiers = [
@@ -266,33 +282,106 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
     ]
 
     # Try each tier in order
-    for tier_index, tier_info in enumerate(tiers):
-        if tier_index < 3:  # For the first three tiers with specific bounds
-            lower_bound_func, upper_bound_func, width_value = tier_info
-            lower_bound = lower_bound_func(reqscore)
-            upper_bound = upper_bound_func(reqscore)
+    for tier_info in tiers:
+        # gets the average score for this tier
+        average_percentage, width_value = get_average_percentage(tier_info, X_quality_above_all, y_true_above_all, reqscore, predict_func)
 
-            # Filter points within this tier's bounds
-            indices_in_band = np.where(
-                (X_quality_above_all >= lower_bound) & (X_quality_above_all <= upper_bound)
-            )[0]
-
-            y_true_in_band = y_true_above_all[indices_in_band]
-            X_quality_in_band = X_quality_above_all[indices_in_band]
-
-            average_percentage = calculate_average_percentage_for_subset(y_true_in_band, X_quality_in_band)
-
-            if average_percentage is not None:
-                return average_percentage, width_value # Removed message from return
-        else:
-            # Last tier - use all points above the line
-            lower_bound_func, upper_bound_func, width_value = tier_info
-            average_percentage = calculate_average_percentage_for_subset(y_true_above_all, X_quality_above_all)
-
-            if average_percentage is not None:
-                return average_percentage, width_value # Removed message from return
+        if average_percentage is not None:
+            return average_percentage, width_value
 
     # Fallback: Insufficient data in any tier
     print(
         "Warning: Insufficient points above line in any relevant unique quality score bands within tiers for average percentile calculation. Returning 0.0 percentage.")
     return 0.0, "Max Price %: Insufficient unique quality data in bands"
+
+def get_average_percentage(tier_info, X_quality_above_all, y_true_above_all, reqscore, predict_func):
+    """
+    Calculates the average percentile price increase for points above the line
+    within a specific quality band defined by a tier.
+
+    Args:
+        tier_info (tuple): A tuple (lower_bound_func, upper_bound_func, width_value)
+                           defining the quality band relative to reqscore.
+        X_quality_above_all (np.ndarray): Quality scores for all points above the line.
+        y_true_above_all (np.ndarray): Actual prices for all points above the line.
+        reqscore (float): The target quality score.
+        predict_func (function): The function used to predict price for a given quality score.
+        percentile (float): The desired percentile to calculate (0 to 100).
+
+    Returns:
+        float or None: The calculated average percentage increase for the points
+                       in the band, or None if there are insufficient unique
+                       quality scores with data in this band.
+    """
+    # Unpack tier information
+    lower_bound_func, upper_bound_func, width_value = tier_info
+    lower_bound = lower_bound_func(reqscore)
+    upper_bound = upper_bound_func(reqscore)
+
+    # Filter points within this tier's bounds
+    indices_in_band = np.where(
+        (X_quality_above_all >= lower_bound) & (X_quality_above_all <= upper_bound)
+    )[0]
+
+    y_true_in_band = y_true_above_all[indices_in_band]
+    X_quality_in_band = X_quality_above_all[indices_in_band]
+
+    average_percentage = calculate_average_percentage_for_subset(y_true_in_band, X_quality_in_band, predict_func)
+
+    return average_percentage, width_value
+
+def calculate_average_percentage_for_subset(actual_prices, quality_scores, predict_func):
+    """
+    Helper function to calculate the average percentage increase across unique
+    quality scores within a given subset of data points (assumed to be above the line).
+
+    For each unique quality score in the subset, it calculates the specified
+    percentile price and determines its percentage increase relative to the
+    predicted price at that score. It then returns the average of these
+    percentage increases across all unique scores that meet the minimum point
+    requirement.
+
+    Args:
+        actual_prices (np.ndarray): Actual price values for the subset of points.
+        quality_scores (np.ndarray): Quality scores corresponding to actual_prices.
+        predict_func (function): The function used to predict price for a given quality score.
+        percentile (float): The desired percentile to calculate (0 to 100).
+
+    Returns:
+        float or None: The calculated average percentage increase for the subset,
+                       or None if there are insufficient unique quality scores
+                       with enough data points.
+    """
+    # defines constants
+    MIN_POINTS_FOR_PERCENTILE_PER_SCORE = 1  # Minimum points needed at a specific score for percentile
+    MIN_SCORES_FOR_AVERAGE = 1  # Minimum unique quality scores with valid percentiles
+    percentile = 90
+
+    if len(actual_prices) == 0:
+        return None
+
+    unique_scores = np.unique(quality_scores)
+    percentage_increases = []
+
+    for score in unique_scores:
+        # Find points within this subset above the line that match the current score
+        indices = np.where(np.isclose(quality_scores, score))[0]
+        prices_at_score = actual_prices[indices]
+
+        if len(prices_at_score) >= MIN_POINTS_FOR_PERCENTILE_PER_SCORE:
+            # Calculate percentile price for points at this score above the line
+            percentile_price = np.percentile(prices_at_score, percentile)
+            predicted_price = predict_func(score)
+
+            # Calculate percentage increase for this score
+            percentage_increase = 0.0
+            if predicted_price > 0:
+                percentage_increase = max(0.0, ((percentile_price - predicted_price) / predicted_price) * 100.0)
+
+            percentage_increases.append(percentage_increase)
+
+    # Return average if we have enough scores with valid percentiles
+    if len(percentage_increases) >= MIN_SCORES_FOR_AVERAGE:
+        return np.mean(percentage_increases)
+    return None
+
