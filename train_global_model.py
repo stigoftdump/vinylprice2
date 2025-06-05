@@ -9,6 +9,7 @@ import sys  # For printing to stderr
 import os  # For path joining
 from collections import defaultdict  # For grouping records
 from datetime import datetime  # For evaluate_model_on_training_data
+from sklearn.model_selection import KFold, cross_val_score
 
 # Assuming machine_learning.py is in the same directory or accessible in PYTHONPATH
 from machine_learning import (
@@ -55,11 +56,11 @@ MODEL_FEATURES_PATH = os.path.join(BASE_DIR, FEATURES_FILENAME)
 random_state = 42
 MIN_POINTS_PER_RECORD_FOR_FIT = 7  # Minimum sales for a record to be evaluated
 
-
 def train_and_evaluate_model():
     """
     Loads feature-engineered data, trains a RandomForestRegressor model,
-    evaluates it on a test set, and saves the model and its feature list.
+    evaluates it using cross-validation, and saves the model (trained on 80% of data)
+    and its feature list.
     """
     print("Starting model training process...")
 
@@ -74,7 +75,7 @@ def train_and_evaluate_model():
     df = pd.DataFrame(featured_data_list)
     print(f"Converted data to DataFrame. Shape: {df.shape}")
 
-    # 3. Prepare X (features) and y (target)
+    # 3. Prepare X (features) and y (target) - using the full processed data
     if 'price_adjusted' not in df.columns:
         print("Error: 'price_adjusted' (target variable) not found in the DataFrame.", file=sys.stderr)
         return
@@ -90,7 +91,7 @@ def train_and_evaluate_model():
         valid_indices = y.dropna().index
         X = X.loc[valid_indices]
         y = y.loc[valid_indices]
-        if X.empty:
+        if X.empty or y.empty: # Check both X and y
             print("Error: No valid data remaining after dropping rows with missing target values.", file=sys.stderr)
             return
         print(f"Shape after dropping rows with missing target: X={X.shape}, y={y.shape}")
@@ -99,9 +100,9 @@ def train_and_evaluate_model():
     median_year = 0
     if 'sale_year' in X.columns:
         if X['sale_year'].isnull().any():
-            median_year_calc = X['sale_year'].median()
+            median_year_calc = X['sale_year'].median() # Calculate median on the current X
             if pd.isna(median_year_calc):
-                print("Warning: All 'sale_year' values are missing in the full dataset. Filling with 0.",
+                print("Warning: All 'sale_year' values are missing in the dataset. Filling with 0.",
                       file=sys.stderr)
                 median_year = 0
             else:
@@ -126,45 +127,75 @@ def train_and_evaluate_model():
         print("Error: Feature set X is empty. Cannot proceed with training.", file=sys.stderr)
         return
 
-    print(f"Final feature set shape for training: {X.shape}")
+    print(f"Final feature set shape for evaluation: {X.shape}")
 
-    # 5. Split Data
+    # 5. Initialize Model (same as before)
+    model_for_cv = RandomForestRegressor(n_estimators=100, random_state=42, oob_score=False, n_jobs=-1)
+    # Note: oob_score for the model used in cross_val_score is not strictly necessary
+    # as CV provides its own out-of-sample estimates.
+    # We'll use a separate model instance for the final training with OOB.
+    print("RandomForestRegressor model initialized for Cross-Validation.")
+
+    # --- Cross-Validation Evaluation ---
+    print("\n--- Performing Cross-Validation Evaluation ---")
+    kf = KFold(n_splits=5, shuffle=True, random_state=random_state)
+
+    try:
+        # Use a list to store scores for different metrics if needed
+        cv_neg_mse_scores = cross_val_score(model_for_cv, X, y, cv=kf, scoring='neg_mean_squared_error', n_jobs=-1)
+        cv_r2_scores = cross_val_score(model_for_cv, X, y, cv=kf, scoring='r2', n_jobs=-1)
+
+        cv_mse_scores = -cv_neg_mse_scores
+        cv_rmse_scores = np.sqrt(cv_mse_scores)
+
+        print(f"Cross-Validation MSE scores for each fold: {cv_mse_scores.round(2)}")
+        print(f"Cross-Validation RMSE scores for each fold: {cv_rmse_scores.round(2)}")
+        print(f"Cross-Validation R2 scores for each fold: {cv_r2_scores.round(4)}")
+
+        print("\n--- Average Cross-Validation Metrics ---")
+        print(f"Average MSE: {np.mean(cv_mse_scores):.2f} (Std: {np.std(cv_mse_scores):.2f})")
+        print(f"Average RMSE: {np.mean(cv_rmse_scores):.2f} (Std: {np.std(cv_rmse_scores):.2f})")
+        print(f"Average R2 Score: {np.mean(cv_r2_scores):.4f} (Std: {np.std(cv_r2_scores):.4f})")
+        print("----------------------------------------")
+
+    except Exception as e:
+        print(f"Error during cross-validation: {e}", file=sys.stderr)
+        print("Skipping cross-validation due to error.", file=sys.stderr)
+        # If CV fails, we might not want to proceed or just note it.
+        # For now, we'll continue to train and save a model on a single split.
+
+    # --- Train final model on 80% of data and save (for actual use) ---
+    print("\n--- Training final model on 80% data for saving ---")
+    # This split is reproducible due to random_state=random_state
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=random_state)
-    print(f"Data split into training and testing sets: X_train: {X_train.shape}, X_test: {X_test.shape}")
 
-    # 6. Initialize Model
-    model = RandomForestRegressor(n_estimators=100, random_state=42, oob_score=True, n_jobs=-1)
-    print("RandomForestRegressor model initialized.")
+    # Use a new model instance for training the final model to get OOB score
+    final_model = RandomForestRegressor(n_estimators=100, random_state=42, oob_score=True, n_jobs=-1)
+    final_model.fit(X_train, y_train)
+    print("Final model training complete.")
 
-    # 7. Train Model
-    print("Training the model...")
-    model.fit(X_train, y_train)
-    print("Model training complete.")
+    if hasattr(final_model, 'oob_score_') and final_model.oob_score_:
+        print(f"Model Out-of-Bag (OOB) R^2 score (from final model): {final_model.oob_score_:.4f}")
 
-    if hasattr(model, 'oob_score_') and model.oob_score_:
-        print(f"Model Out-of-Bag (OOB) R^2 score: {model.oob_score_:.4f}")
-
-    # 8. Make Predictions on Test Set
-    y_pred_test = model.predict(X_test)
-
-    # 9. Evaluate Model on Test Set
+    # --- Evaluate the saved model on the specific 20% test set (Optional but good for comparison) ---
+    print("\n--- Global ML Model Evaluation on Specific Test Set (20%) ---")
+    y_pred_test = final_model.predict(X_test)
     mse_test = mean_squared_error(y_test, y_pred_test)
     rmse_test = np.sqrt(mse_test)
     r2_test = r2_score(y_test, y_pred_test)
 
-    print("\n--- Global ML Model Evaluation on Test Set ---")  # Clarified title
     print(f"Mean Squared Error (MSE): {mse_test:.2f}")
     print(f"Root Mean Squared Error (RMSE): {rmse_test:.2f}")
     print(f"R-squared (R2 Score): {r2_test:.4f}")
     print("------------------------------------")
 
-    # 10. Save the Model and Feature List
+    # 10. Save the Model and Feature List (using the model trained on 80%)
     try:
         with open(GLOBAL_MODEL_PATH, 'wb') as f:
-            pickle.dump(model, f)
+            pickle.dump(final_model, f) # Save the final_model
         print(f"Trained model saved to {GLOBAL_MODEL_PATH}")
 
-        feature_names = list(X_train.columns)
+        feature_names = list(X_train.columns) # Features from the training set of the final model
         with open(MODEL_FEATURES_PATH, 'wb') as f:
             pickle.dump(feature_names, f)
         print(f"Model feature list saved to {MODEL_FEATURES_PATH}")
@@ -172,11 +203,9 @@ def train_and_evaluate_model():
     except Exception as e:
         print(f"Error saving model or features: {e}", file=sys.stderr)
 
-    # --- Call the evaluation functions ---
-    # evaluate_local_model_on_ml_data() # Removed: Evaluates a single curve fit to ALL data
-    evaluate_per_record_local_curve_fitting()  # Evaluates curve fit per record
-    evaluate_model_on_training_data()  # Evaluates the trained Global ML model on ALL training data
-
+    # --- Call the other evaluation functions ---
+    evaluate_per_record_local_curve_fitting()
+    evaluate_model_on_training_data() # This evaluates the *saved* (final_model) on the full data
 
 def evaluate_model_on_training_data():
     """
