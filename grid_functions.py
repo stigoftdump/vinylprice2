@@ -416,13 +416,27 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
     # save the processed grid for machine learning
     if processed_grid and ml_save_setting is True:
         try:
-            machine_learning_save(processed_grid)
+            # gets metadata
+            artist, album, label, extra_comments = extract_record_metadata(clipboard_content)
+
+            machine_learning_save(processed_grid, artist, album, label, extra_comments)
         except Exception as e:
             print(f"Error saving ML data: {e}", file=sys.stderr)
 
     return processed_grid, status_message
 
-def machine_learning_save(processed_grid):
+def machine_learning_save(processed_grid, artist, album, label, extra_comments): # Added extra_comments
+    """
+    Appends processed sales data points to the ML data file, assigning a new
+    record ID for the batch and including extracted metadata.
+
+    Args:
+        processed_grid (list): The list of processed sale data tuples for the current batch.
+        artist (str or None): The extracted artist name for this batch.
+        album (str or None): The extracted album title for this batch.
+        label (str or None): The extracted label for this batch.
+        extra_comments (str or None): The extracted extra comments/format details.
+    """
     # Read existing ML data
     existing_ml_sales, last_record_id = read_ml_data()
 
@@ -432,30 +446,31 @@ def machine_learning_save(processed_grid):
     # Prepare new sales data for ML format
     new_ml_sales = []
     for row in processed_grid:
-        # Ensure the row structure is as expected (at least 6 elements)
         if len(row) > 5:
-            # Extract date, quality (score), and price
-            sale_date = row[0]  # YYYY-MM-DD string
-            quality_score = row[5]  # float
-            price_float = row[3]  # float (already checked for None above)
+            sale_date = row[0]
+            quality_score = row[5]
+            price_float = row[3]
 
             new_ml_sales.append({
                 'record_id': current_record_id,
                 'date': sale_date,
                 'quality': quality_score,
-                'price': price_float
+                'price': price_float,
+                'artist': artist,
+                'album': album,
+                'label': label,
+                'extra_comments': extra_comments
             })
         else:
             print(f"Warning: Skipping row with unexpected structure for ML data: {row}", file=sys.stderr)
 
-    # Append new data to existing data
     combined_ml_sales = existing_ml_sales + new_ml_sales
-
-    # Save the combined data and the updated last ID
     write_ml_data(combined_ml_sales, current_record_id)
+
     print(f"Info: Saved {len(new_ml_sales)} data points for ML training with record_id {current_record_id}.",
           file=sys.stderr)
-
+    print(f"Info: Saved data for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}'.", # Updated print
+          file=sys.stderr)
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """
@@ -685,3 +700,92 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
     write_save_value(final_grid, "processed_grid")
 
     return final_grid, deleted_count, status_message_from_parsing
+
+def extract_record_metadata(clipboard_content):
+    """
+    Extracts Artist, Album, Label, and Extra Comments from the line
+    following "Recent Sales History".
+
+    Args:
+        clipboard_content (str): The raw text pasted from Discogs.
+
+    Returns:
+        tuple: (artist, album, label, extra_comments) strings,
+               where any element can be None if it cannot be parsed.
+    """
+    lines = clipboard_content.splitlines()
+    recent_sales_history_index = -1
+
+    for i, line in enumerate(lines):
+        if "Recent Sales History" in line:
+            recent_sales_history_index = i
+            break
+
+    if recent_sales_history_index == -1 or recent_sales_history_index + 1 >= len(lines):
+        print("Warning: 'Recent Sales History' marker not found or no line follows it. Cannot extract metadata.", file=sys.stderr)
+        return None, None, None, None
+
+    metadata_line = lines[recent_sales_history_index + 1].strip()
+
+    if not metadata_line:
+        print("Warning: Metadata line after 'Recent Sales History' is empty.", file=sys.stderr)
+        return None, None, None, None
+
+    artist = None
+    album = None
+    label = None
+    extra_comments = None
+
+    last_dash_index = metadata_line.rfind(" - ")
+
+    if last_dash_index != -1:
+        artist = metadata_line[:last_dash_index].strip()
+        # Part after "Artist - "
+        title_label_extra_part = metadata_line[last_dash_index + len(" - "):].strip()
+
+        last_open_paren_index = title_label_extra_part.rfind("(")
+        last_close_paren_index = title_label_extra_part.rfind(")")
+
+        if last_open_paren_index != -1 and last_close_paren_index != -1 and last_close_paren_index > last_open_paren_index:
+            # Album is between " - " and last "("
+            album = title_label_extra_part[:last_open_paren_index].strip()
+            # Label is between last "(" and last ")"
+            label = title_label_extra_part[last_open_paren_index + 1:last_close_paren_index].strip()
+
+            # Extra comments are after last ")"
+            if last_close_paren_index + 1 < len(title_label_extra_part):
+                extra_comments = title_label_extra_part[last_close_paren_index + 1:].strip()
+                if extra_comments.endswith('*'):
+                    extra_comments = extra_comments[:-1].strip()
+        else:
+            # No parentheses for label, so the whole part after "Artist - " is the album
+            album = title_label_extra_part.strip()
+            # Label and extra_comments remain None
+    else:
+        # No " - " found, assume the whole line is the album/title
+        # According to user definition, artist cannot be found.
+        # We can try to parse label and extra_comments if parentheses exist
+        last_open_paren_index = metadata_line.rfind("(")
+        last_close_paren_index = metadata_line.rfind(")")
+
+        if last_open_paren_index != -1 and last_close_paren_index != -1 and last_close_paren_index > last_open_paren_index:
+            album = metadata_line[:last_open_paren_index].strip() # Part before label is album
+            label = metadata_line[last_open_paren_index + 1:last_close_paren_index].strip()
+            if last_close_paren_index + 1 < len(metadata_line):
+                extra_comments = metadata_line[last_close_paren_index + 1:].strip()
+                if extra_comments.endswith('*'):
+                    extra_comments = extra_comments[:-1].strip()
+        else:
+            # No " - " and no parentheses for label, so the whole line is the album
+            album = metadata_line.strip()
+            # Artist, Label, extra_comments remain None
+
+
+    # The previous specific regex cleanups for 'album' that might have removed
+    # format details are no longer strictly necessary here, as 'extra_comments'
+    # is now intended to capture those.
+    # You might still want a generic cleanup for album if needed.
+    if album:
+        album = album.strip() # Ensure album is stripped
+
+    return artist, album, label, extra_comments
