@@ -94,7 +94,7 @@ def fit_curve_and_get_params(qualities, prices):
 
     return params, predict_func
 
-def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
+def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price, predict_func):
     """
     Calculates the upper bound and final adjusted price based on the predicted
     price and percentile analysis of points above the fitted curve.
@@ -116,8 +116,7 @@ def get_actual_price(reqscore, shop_var, qualities, prices, predicted_price):
     """
 
     # gets percentile price above line
-    percentage_above_line, search_width = get_percentile_price_above_line(qualities, prices, reqscore,
-                                                                                percentile=90)
+    percentage_above_line, search_width = get_percentile_price_above_line(qualities, prices, reqscore, predict_func)
     # calculates prices
     upper_bound = predicted_price * ((percentage_above_line/100)+1)
     adjusted_price = predicted_price + ((upper_bound - predicted_price) * shop_var)
@@ -162,7 +161,7 @@ def predict_price(reqscore, predict_func):
 
     return predicted_price
 
-def generate_smooth_curve_data(qualities, prices, reqscore):
+def generate_smooth_curve_data(qualities, prices, reqscore, predict_func):
     """
     Create a smooth curve for plotting the fitted function
 
@@ -170,6 +169,7 @@ def generate_smooth_curve_data(qualities, prices, reqscore):
         qualities (list): A list of all  qualities
         prices (list): A list of all prices
         reqscore (float): The required score, only used if the reqscore is outside of bounds for the qualities
+        predict_func (function): The function used to predict price for a given quality score.
 
     Returns:
         tuple: A tuple containing:
@@ -177,9 +177,7 @@ def generate_smooth_curve_data(qualities, prices, reqscore):
             y_smooth_prted (numparray): Smoothed Y values for the line of best fit
 
     """
-
-    params, predict_func = fit_curve_and_get_params(qualities, prices)
-
+    # numpifies the qualities and prices
     X, y = numpify_qualities_and_prices(qualities, prices)
 
     # Determine the minimum x-value for the smooth curve
@@ -225,7 +223,7 @@ def get_points_above_line(qualities, prices, predict_func):
     # If no points are above the line in the entire dataset, return 0.0
     if len(points_above_line_indices) == 0:
         print("Warning: No sales points found above the line of best fit anywhere. Returning 0.0 percentage.")
-        return 0.0, "Max Price %: No points above line in dataset"
+        return np.array([]), np.array([])
 
     # Get all points above the line for later use
     y_true_above_all = y[points_above_line_indices]
@@ -233,8 +231,7 @@ def get_points_above_line(qualities, prices, predict_func):
 
     return y_true_above_all, X_quality_above_all
 
-def get_percentile_price_above_line(qualities, prices, reqscore,
-                                    percentile=90):
+def get_percentile_price_above_line(qualities, prices, reqscore, predict_func):
     """
     Calculates a percentage representing the average of percentile price
     increases (relative to predicted price at each unique quality score) for
@@ -250,6 +247,8 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
         qualities (list): A list of all qualities from the data.
         prices (list): A list of all inflation-adjusted prices from the data.
         reqscore (float): The target quality score.
+        predict_func (function): The function used to predict price for a given quality score.
+
 
     Returns:
         tuple: A tuple containing:
@@ -258,14 +257,7 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
                      the line or insufficient data in any tier/band.
             - float: The width value associated with the tier that was used
                      for calculation (e.g., 0.2, 0.5, 1, or 10).
-
-    Note: This function refits the curve internally. For efficiency when called
-          multiple times with the same data, consider fitting the curve once
-          at a higher level and passing the predict_func.
     """
-
-    # Get the fitted parameters and prediction function
-    params, predict_func = fit_curve_and_get_params(qualities, prices)
 
     # gets points above the lines
     y_true_above_all, X_quality_above_all = get_points_above_line(qualities, prices, predict_func)
@@ -286,11 +278,6 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
 
         if average_percentage is not None:
             return average_percentage, width_value
-
-    # Fallback: Insufficient data in any tier
-    print(
-        "Warning: Insufficient points above line in any relevant unique quality score bands within tiers for average percentile calculation. Returning 0.0 percentage.")
-    return 0.0, "Max Price %: Insufficient unique quality data in bands"
 
 def get_average_percentage(tier_info, X_quality_above_all, y_true_above_all, reqscore, predict_func):
     """

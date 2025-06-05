@@ -61,10 +61,10 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         predicted_price = predict_price(reqscore, predict_func)
 
         # gets the actual price from the predicted price
-        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)
+        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price, predict_func)
 
         # Gets the smoothed data for the chart
-        X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore)
+        X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore, predict_func)
 
         # Create chart data in JSON format
         chart_data = {
