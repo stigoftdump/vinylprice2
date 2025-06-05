@@ -360,7 +360,6 @@ def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_o
         # consuming just 1 line on error is safer.
         return None, 1, error_msg
 
-# creates the processed grid data from imported data
 def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed param to avoid clash with variable
     """
     Parses raw text data (presumably pasted from Discogs sales history)
@@ -750,7 +749,20 @@ def extract_record_metadata(clipboard_content):
             # Album is between " - " and last "("
             album = title_label_extra_part[:last_open_paren_index].strip()
             # Label is between last "(" and last ")"
-            label = title_label_extra_part[last_open_paren_index + 1:last_close_paren_index].strip()
+            extracted_label_raw = title_label_extra_part[last_open_paren_index + 1:last_close_paren_index].strip()
+
+            # --- New Label Cleaning Logic ---
+            if extracted_label_raw:
+                # Split by comma, strip whitespace from each part
+                label_parts = [part.strip() for part in extracted_label_raw.split(',')]
+                # Get unique parts
+                unique_label_parts = list(dict.fromkeys(label_parts)) # Preserves order
+                # If all unique parts are the same (meaning the original was like "Label, Label, Label")
+                if len(unique_label_parts) == 1:
+                    label = unique_label_parts[0] # Use the single unique part
+                else:
+                    # If there are multiple different parts, join them back with ", "
+                    label = ", ".join(unique_label_parts)
 
             # Extra comments are after last ")"
             if last_close_paren_index + 1 < len(title_label_extra_part):
