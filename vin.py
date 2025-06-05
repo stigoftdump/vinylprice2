@@ -54,8 +54,11 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
 
+        # Get the fitted parameters and prediction function
+        params, predict_func = fit_curve_and_get_params(qualities, prices)
+
         # gets the predicted price
-        predicted_price = predict_price(qualities, prices, reqscore)
+        predicted_price = predict_price(reqscore, predict_func)
 
         # gets the actual price from the predicted price
         upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price)

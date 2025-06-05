@@ -142,7 +142,7 @@ def numpify_qualities_and_prices(qualities, prices):
     y = np.array(prices)  # Price as dependent variable
     return X, y
 
-def predict_price(qualities, prices, reqscore):
+def predict_price(reqscore, predict_func):
     """
     Predicts the price for a given required quality score using the fitted curve.
 
@@ -150,14 +150,13 @@ def predict_price(qualities, prices, reqscore):
         qualities (list): A list of all qualities from the data.
         prices (list): A list of all inflation-adjusted prices from the data.
         reqscore (float): The target quality score for prediction.
+        predict_func (function): The function used to predict price for a given quality score.
+
 
     Returns:
         float: The predicted price at the reqscore based on the fitted curve.
                Returns 0.0 if curve fitting fails.
     """
-    # Get the fitted parameters and prediction function
-    params, predict_func = fit_curve_and_get_params(qualities, prices)
-
     # gets the price from the predict function
     predicted_price = predict_func(reqscore)
 
@@ -251,7 +250,6 @@ def get_percentile_price_above_line(qualities, prices, reqscore,
         qualities (list): A list of all qualities from the data.
         prices (list): A list of all inflation-adjusted prices from the data.
         reqscore (float): The target quality score.
-        percentile (float): The desired percentile to calculate (0 to 100).
 
     Returns:
         tuple: A tuple containing:
