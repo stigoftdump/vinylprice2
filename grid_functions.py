@@ -4,6 +4,8 @@ import math
 import json
 import sys
 from persistence import read_save_value, write_save_value, read_ml_data, write_ml_data
+import discogs_client
+from discogs_secrets import DISCOGS_USER_TOKEN # Import your token
 
 # Mapping of quality to numeric value - NO TRAILING SPACES IN KEYS
 quality_to_number = {
@@ -361,70 +363,101 @@ def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_o
         # consuming just 1 line on error is safer.
         return None, 1, error_msg
 
-def make_processed_grid(clipboard_content, start_date_str_param, discogs_release_id=None):
+
+def make_processed_grid(clipboard_content, start_date_str_param, discogs_release_id=None,
+                        api_data=None):  # Add api_data
     """
     Parses raw text data (presumably pasted from Discogs sales history)
     into a structured grid format.
-    (Keep existing Args and Returns docstring, but update start_date_str to start_date_str_param if you rename)
+    Now also accepts api_data to be passed to machine_learning_save.
+    Metadata (artist, album, etc.) is expected to come from api_data.
     """
-    status_message = None  # For overall status, not individual row errors
+    status_message = None
     processed_grid = []
-
-    # set this to True or False depending on whether you want data saved or not.
     ml_save_setting = True
 
-    # --- For now, just print the received ID to confirm it's being passed ---
     if discogs_release_id:
         print(f"GRID_FUNCTIONS.PY (make_processed_grid): Received Discogs Release ID: {discogs_release_id}")
-    # --- This print can be removed once API integration starts ---
+    if api_data:
+        print(
+            f"GRID_FUNCTIONS.PY (make_processed_grid): API data provided for {api_data.get('api_artist')} - {api_data.get('api_title')}")
+    else:
+        if discogs_release_id:  # Only print "no API data" if an ID was actually expected
+            print(f"GRID_FUNCTIONS.PY (make_processed_grid): No API data provided for Release ID: {discogs_release_id}")
 
-
-    if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
-        return [], "No Discogs Data in text box"
-
-    try:
-        start_date_obj = datetime.strptime(start_date_str_param, '%Y-%m-%d').date()
-    except ValueError:
-        return [], "Invalid start_date format. Please use YYYY-MM-DD."
-
-    relevant_rows_or_error = get_relevant_rows(clipboard_content)
-    if isinstance(relevant_rows_or_error, tuple) and len(
-            relevant_rows_or_error) == 2:  # Error case from get_relevant_rows
-        return relevant_rows_or_error  # Returns ([], "Error message")
-
-    relevant_rows = relevant_rows_or_error
-
-    date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
-    i = 0
-    while i < len(relevant_rows):
-        parsed_tuple, lines_consumed, entry_error = _parse_single_entry(
-            relevant_rows,
-            i,
-            date_pattern,
-            start_date_obj
-        )
-
-        if parsed_tuple:
-            processed_grid.append(parsed_tuple)
-
-        if entry_error:  # Log individual entry errors
-            print(entry_error, file=sys.stderr)
-
-        if lines_consumed == 0:
-            print(
-                f"Warning: _parse_single_entry consumed 0 lines at index {i}. Incrementing by 1 to avoid infinite loop.",
-                file=sys.stderr)
-            i += 1
+    # --- Parse Sales Data from clipboard_content ---
+    if clipboard_content and clipboard_content.strip():  # Only parse if there's actual content
+        if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
+            # This is a problem for parsing sales data.
+            # If API data is present, we might still want to save it.
+            # For now, if sales data is malformed, we'll return an error for sales parsing,
+            # but ML saving might still proceed if api_data is available (handled by manage_processed_grid).
+            status_message = "Sales data is malformed or missing headers."
+            print(f"Warning: {status_message}", file=sys.stderr)
+            # We don't return immediately if api_data might be present,
+            # as manage_processed_grid might still want to save API context.
+            # processed_grid will remain empty.
         else:
-            i += lines_consumed
+            try:
+                start_date_obj = datetime.strptime(start_date_str_param, '%Y-%m-%d').date()
+            except ValueError:
+                return [], "Invalid start_date format. Please use YYYY-MM-DD."  # Critical error for parsing
 
-    if processed_grid and ml_save_setting is True:
-        try:
-            artist, album, label, extra_comments = extract_record_metadata(clipboard_content)
-            # --- MODIFIED: Pass discogs_release_id to machine_learning_save ---
-            machine_learning_save(processed_grid, artist, album, label, extra_comments, discogs_release_id)
-        except Exception as e:
-            print(f"Error saving ML data: {e}", file=sys.stderr)
+            relevant_rows_or_error = get_relevant_rows(clipboard_content)
+            if isinstance(relevant_rows_or_error, tuple) and len(
+                    relevant_rows_or_error) == 2:  # Error case from get_relevant_rows
+                return relevant_rows_or_error  # Returns ([], "Error message")
+
+            relevant_rows = relevant_rows_or_error
+            date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
+            i = 0
+            while i < len(relevant_rows):
+                parsed_tuple, lines_consumed, entry_error = _parse_single_entry(
+                    relevant_rows,
+                    i,
+                    date_pattern,
+                    start_date_obj
+                )
+                if parsed_tuple:
+                    processed_grid.append(parsed_tuple)
+                if entry_error:
+                    print(entry_error, file=sys.stderr)  # Log individual entry errors
+
+                if lines_consumed == 0:  # Safety break for infinite loop
+                    print(f"Warning: _parse_single_entry consumed 0 lines at index {i}. Incrementing by 1.",
+                          file=sys.stderr)
+                    i += 1
+                else:
+                    i += lines_consumed
+    else:
+        print("GRID_FUNCTIONS.PY (make_processed_grid): No sales data in clipboard_content to parse.")
+        # processed_grid remains empty
+
+    # --- Save to ML data ---
+    # We save if ml_save_setting is True AND we have either:
+    # 1. API data (even if no sales were parsed from clipboard)
+    # 2. Parsed sales data (even if no API data, e.g., API call failed or no ID given)
+    if ml_save_setting:
+        if api_data or processed_grid:  # Only attempt to save if there's *something* to save
+            try:
+                # The old extract_record_metadata(clipboard_content) call is REMOVED.
+                # Artist, album, label, etc., for ML save will now come from api_data
+                # or be None if api_data is not available.
+                machine_learning_save(processed_grid, discogs_release_id, api_data)
+            except Exception as e:
+                print(f"Error during machine_learning_save call: {e}", file=sys.stderr)
+        else:
+            print(
+                "GRID_FUNCTIONS.PY (make_processed_grid): No API data and no processed sales data. Nothing to save for ML.",
+                file=sys.stderr)
+
+    # If status_message was set due to malformed sales data but API data was processed,
+    # we might want to clear it or make it more nuanced.
+    # For now, it reflects the sales parsing part.
+    if not processed_grid and status_message == "Sales data is malformed or missing headers.":
+        # If we ended up with no sales grid due to bad sales data, but API data might have been saved,
+        # the status_message should reflect that sales parsing failed.
+        pass  # Keep the status_message as is.
 
     return processed_grid, status_message
 
@@ -682,180 +715,154 @@ def merge_and_deduplicate_grids(grid1, grid2):
 def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_data_str, discogs_release_id=None):
     """
     Manages the lifecycle of the processed sales data grid.
-
-    This includes parsing new data from `discogs_data`, optionally merging
-    it with previously saved data if `add_data_str` is 'True', deleting
-    specified points, and then saving the resulting grid. If `discogs_data`
-    is empty, it loads and works with the saved grid.
-    It can also accept a Discogs release ID for future API integration.
-
-
-    Args:
-        discogs_data (str): Raw text data from Discogs sales history.
-        start_date (str): The start date ('YYYY-MM-DD') for filtering sales data,
-                          used when parsing `discogs_data`.
-        points_to_delete_json (str): JSON string array of points selected for deletion.
-        add_data_str (str): String ('True' or 'False'). If 'True' and `discogs_data`
-                            is provided, newly parsed data is merged with saved data.
-                            If `discogs_data` is not provided, this flag is ignored
-                            and only saved data is loaded.
-        discogs_release_id (str, optional): The Discogs release ID. Defaults to None.
-
-
-    Returns:
-        tuple: A tuple containing:
-            - processed_grid (list): The final list of processed sale data tuples.
-            - deleted_count (int): The number of points removed from the grid.
-            - status_message_from_parsing (str or None): Status message from
-                                                         `make_processed_grid` if new
-                                                         data was parsed, otherwise None.
-
-    Raises:
-        ValueError: If no data points are available after all operations, or if
-                    initial parsing of `discogs_data` yields a critical error message
-                    (e.g., "No Discogs Data in text box") and `add_data_str` is not 'True'.
+    ... (rest of docstring)
     """
     current_grid_for_processing = []
     status_message_from_parsing = None
+    api_data_for_release = None # Initialize api_data_for_release
 
-    # --- For now, just print the received ID to confirm it's being passed ---
     if discogs_release_id:
         print(f"GRID_FUNCTIONS.PY (manage_processed_grid): Received Discogs Release ID: {discogs_release_id}")
-    # --- This print can be removed once API integration starts ---
+        print(f"Attempting to fetch API data for release ID: {discogs_release_id}")
+        api_data_for_release = fetch_api_data(discogs_release_id) # Call the new function
+        if api_data_for_release:
+            print(f"Successfully fetched API data for: {api_data_for_release.get('api_artist')} - {api_data_for_release.get('api_title')}")
+        else:
+            print(f"Failed to fetch API data or ID not found for {discogs_release_id}.")
+    else:
+        print("GRID_FUNCTIONS.PY (manage_processed_grid): No Discogs Release ID provided.")
 
 
     if discogs_data:
-        # New data is provided
-        # --- MODIFIED: Pass discogs_release_id to make_processed_grid ---
         newly_parsed_data, status_message_from_parsing = make_processed_grid(
             discogs_data,
             start_date,
-            discogs_release_id # Pass it here
+            discogs_release_id,
+            api_data_for_release # --- NEW: Pass api_data_for_release ---
         )
-        # ... (rest of the manage_processed_grid logic remains the same for now) ...
-        # Handle critical parsing messages early if not adding to existing data
         if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
-            if add_data_str != "True": # If not adding, and parsing failed critically, raise error
+            if add_data_str != "True":
                 raise ValueError(status_message_from_parsing)
-            # If adding, newly_parsed_data might be empty, but we'll proceed to merge with saved.
 
         if add_data_str == "True":
             saved_grid = read_save_value("processed_grid", [])
             current_grid_for_processing = merge_and_deduplicate_grids(newly_parsed_data, saved_grid)
         else:
             current_grid_for_processing = newly_parsed_data
-    else:
+    else: # No new discogs_data pasted
         current_grid_for_processing = read_save_value("processed_grid", [])
+        # If no sales data pasted, but we have API data, we still need to trigger ML save
+        if api_data_for_release and discogs_release_id:
+             print("Info: No sales data pasted, but API data is available. Proceeding to save API data context for ML.")
+             # Call make_processed_grid with empty sales data but with API data
+             # This will ensure machine_learning_save is called with the API data.
+             _, status_message_from_parsing = make_processed_grid(
+                "", # Empty sales data
+                start_date,
+                discogs_release_id,
+                api_data_for_release
+            )
+        # else: no sales data pasted and no API data, so current_grid_for_processing (from save file) is used.
+
 
     final_grid, deleted_count = delete_points(points_to_delete_json, current_grid_for_processing)
 
     if not final_grid:
-        if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
-            raise ValueError(status_message_from_parsing)
-        raise ValueError("No data points available for analysis after processing, loading, or deletion.")
+        # If API data was fetched but sales parsing (or loading from file) resulted in an empty grid,
+        # we might still want to proceed if the goal is to save the API context.
+        # However, the current `vin.py` expects `processed_grid` to have data for charting.
+        # This needs careful consideration based on whether an ID-only entry (no sales) is useful.
+        # For now, maintaining original behavior: if final_grid is empty, it's an issue for charting.
+        if not (api_data_for_release and not discogs_data): # Allow empty final_grid if it's an API-only call with no sales data
+            if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
+                raise ValueError(status_message_from_parsing)
+            raise ValueError("No data points available for analysis after processing, loading, or deletion.")
 
-    write_save_value(final_grid, "processed_grid")
+
+    write_save_value(final_grid, "processed_grid") # This saves the sales data for charting
 
     return final_grid, deleted_count, status_message_from_parsing
 
-def extract_record_metadata(clipboard_content):
+def fetch_api_data(release_id):
     """
-    Extracts Artist, Album, Label, and Extra Comments from the line
-    following "Recent Sales History".
+    Fetches detailed information for a given release ID from the Discogs API.
 
     Args:
-        clipboard_content (str): The raw text pasted from Discogs.
+        release_id (str or int): The Discogs release ID.
 
     Returns:
-        tuple: (artist, album, label, extra_comments) strings,
-               where any element can be None if it cannot be parsed.
+        dict: A dictionary containing extracted release information (year, artist,
+              title, genres, styles, country, label, format_descriptions, notes,
+              community_have, community_want, community_rating_average,
+              community_rating_count), or None if an error occurs or ID is not found.
     """
-    lines = clipboard_content.splitlines()
-    recent_sales_history_index = -1
+    if not release_id:
+        return None
 
-    for i, line in enumerate(lines):
-        if "Recent Sales History" in line:
-            recent_sales_history_index = i
-            break
+    try:
+        # Initialize the Discogs client
+        # Replace 'YourAppName/1.0' with a unique name for your application
+        # This is good practice for API etiquette.
+        d = discogs_client.Client('VinylPriceCalculator/0.1', user_token=DISCOGS_USER_TOKEN)
 
-    if recent_sales_history_index == -1 or recent_sales_history_index + 1 >= len(lines):
-        print("Warning: 'Recent Sales History' marker not found or no line follows it. Cannot extract metadata.", file=sys.stderr)
-        return None, None, None, None
+        release = d.release(int(release_id))  # Ensure release_id is an integer
 
-    metadata_line = lines[recent_sales_history_index + 1].strip()
+        # Prepare a dictionary to store the extracted data
+        api_data = {}
 
-    if not metadata_line:
-        print("Warning: Metadata line after 'Recent Sales History' is empty.", file=sys.stderr)
-        return None, None, None, None
+        # --- Extract Key Information ---
+        api_data['api_year'] = getattr(release, 'year', None)
+        api_data['api_title'] = getattr(release, 'title', None)
 
-    artist = None
-    album = None
-    label = None
-    extra_comments = None
-
-    last_dash_index = metadata_line.rfind(" - ")
-
-    if last_dash_index != -1:
-        artist = metadata_line[:last_dash_index].strip()
-        # Part after "Artist - "
-        title_label_extra_part = metadata_line[last_dash_index + len(" - "):].strip()
-
-        last_open_paren_index = title_label_extra_part.rfind("(")
-        last_close_paren_index = title_label_extra_part.rfind(")")
-
-        if last_open_paren_index != -1 and last_close_paren_index != -1 and last_close_paren_index > last_open_paren_index:
-            # Album is between " - " and last "("
-            album = title_label_extra_part[:last_open_paren_index].strip()
-            # Label is between last "(" and last ")"
-            extracted_label_raw = title_label_extra_part[last_open_paren_index + 1:last_close_paren_index].strip()
-
-            # --- New Label Cleaning Logic ---
-            if extracted_label_raw:
-                # Split by comma, strip whitespace from each part
-                label_parts = [part.strip() for part in extracted_label_raw.split(',')]
-                # Get unique parts
-                unique_label_parts = list(dict.fromkeys(label_parts)) # Preserves order
-                # If all unique parts are the same (meaning the original was like "Label, Label, Label")
-                if len(unique_label_parts) == 1:
-                    label = unique_label_parts[0] # Use the single unique part
-                else:
-                    # If there are multiple different parts, join them back with ", "
-                    label = ", ".join(unique_label_parts)
-
-            # Extra comments are after last ")"
-            if last_close_paren_index + 1 < len(title_label_extra_part):
-                extra_comments = title_label_extra_part[last_close_paren_index + 1:].strip()
-                if extra_comments.endswith('*'):
-                    extra_comments = extra_comments[:-1].strip()
+        if release.artists:
+            api_data['api_artist'] = getattr(release.artists[0], 'name', None)
         else:
-            # No parentheses for label, so the whole part after "Artist - " is the album
-            album = title_label_extra_part.strip()
-            # Label and extra_comments remain None
-    else:
-        # No " - " found, assume the whole line is the album/title
-        # According to user definition, artist cannot be found.
-        # We can try to parse label and extra_comments if parentheses exist
-        last_open_paren_index = metadata_line.rfind("(")
-        last_close_paren_index = metadata_line.rfind(")")
+            api_data['api_artist'] = None
 
-        if last_open_paren_index != -1 and last_close_paren_index != -1 and last_close_paren_index > last_open_paren_index:
-            album = metadata_line[:last_open_paren_index].strip() # Part before label is album
-            label = metadata_line[last_open_paren_index + 1:last_close_paren_index].strip()
-            if last_close_paren_index + 1 < len(metadata_line):
-                extra_comments = metadata_line[last_close_paren_index + 1:].strip()
-                if extra_comments.endswith('*'):
-                    extra_comments = extra_comments[:-1].strip()
+        api_data['api_genres'] = getattr(release, 'genres', [])  # Returns a list
+        api_data['api_styles'] = getattr(release, 'styles', [])  # Returns a list
+        api_data['api_country'] = getattr(release, 'country', None)
+
+        if release.labels:
+            api_data['api_label'] = getattr(release.labels[0], 'name', None)
+            api_data['api_catno'] = getattr(release.labels[0], 'catno', None)
         else:
-            # No " - " and no parentheses for label, so the whole line is the album
-            album = metadata_line.strip()
-            # Artist, Label, extra_comments remain None
+            api_data['api_label'] = None
+            api_data['api_catno'] = None
 
+        # Extract format descriptions
+        format_descriptions = []
+        if release.formats:
+            for fmt in release.formats:
+                if fmt.get('descriptions'):
+                    format_descriptions.extend(fmt['descriptions'])
+        api_data['api_format_descriptions'] = list(set(format_descriptions))  # Store unique descriptions
 
-    # The previous specific regex cleanups for 'album' that might have removed
-    # format details are no longer strictly necessary here, as 'extra_comments'
-    # is now intended to capture those.
-    # You might still want a generic cleanup for album if needed.
-    if album:
-        album = album.strip() # Ensure album is stripped
+        api_data['api_notes'] = release.data.get('notes', None)  # Accessing notes from the raw data dictionary
 
-    return artist, album, label, extra_comments
+        # Community data
+        community_data = release.data.get('community', {})
+        api_data['api_community_have'] = community_data.get('have', None)
+        api_data['api_community_want'] = community_data.get('want', None)
+
+        rating_data = community_data.get('rating', {})
+        api_data['api_community_rating_average'] = rating_data.get('average', None)
+        api_data['api_community_rating_count'] = rating_data.get('count', None)
+
+        # You can add more fields here if needed, e.g., master_id
+        # api_data['api_master_id'] = getattr(release, 'master_id', None)
+
+        print(f"Successfully fetched API data for release ID: {release_id}")
+        return api_data
+
+    except discogs_client.exceptions.HTTPError as http_err:
+        if http_err.status_code == 404:
+            print(f"Discogs API Error: Release ID {release_id} not found (404).", file=sys.stderr)
+        elif http_err.status_code == 401:
+            print(f"Discogs API Error: Unauthorized (401). Check your User Token.", file=sys.stderr)
+        else:
+            print(f"Discogs API HTTP Error for ID {release_id}: {http_err}", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred while fetching API data for ID {release_id}: {e}", file=sys.stderr)
+        return None
