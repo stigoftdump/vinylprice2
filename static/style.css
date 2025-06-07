@@ -150,7 +150,7 @@ label, .paste-label {
 textarea,
 select,
 input[type="number"],
-input[type="date"] {
+input[type="date"] { /* This is your existing block */
     width: 100%;
     padding: calc(var(--spacing-unit) * 0.6) calc(var(--spacing-unit) * 0.8);
     border: 1px solid var(--border-color);
@@ -160,6 +160,31 @@ input[type="date"] {
     font-size: 1rem;
     background-color: var(--input-bg-color);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Add styles for the new Discogs URL input field to match the textarea */
+.discogs-url-input {
+    width: 100%; /* Make it take the full width of its container */
+    padding: calc(var(--spacing-unit) * 0.6) calc(var(--spacing-unit) * 0.8); /* Match existing input padding */
+    border: 1px solid var(--border-color); /* Match existing input border */
+    border-radius: var(--border-radius); /* Match existing input border-radius */
+    box-sizing: border-box; /* Important for width and padding to work together */
+    font-family: inherit; /* Inherit font from parent, like textarea often does */
+    font-size: 1rem; /* Match existing input font size */
+    background-color: var(--input-bg-color); /* Match existing input background */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease; /* Match existing input transition */
+    /* height: auto; /* Default height for input type=text is usually fine */
+}
+
+/* Ensure the focus style is also applied to the new input */
+textarea:focus,
+select:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+.discogs-url-input:focus { /* Added .discogs-url-input here */
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3); /* Consider changing this shadow to use primary color alpha */
 }
 
 textarea {

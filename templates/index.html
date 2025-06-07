@@ -40,6 +40,19 @@
         <div class="content-wrapper">
             <div class="left-column">
                 <form method="POST">
+                    <!-- START OF NEW INPUT FIELD -->
+                    <div class="paste-container">
+                        <label for="discogs_url" class="paste-label label-with-tooltip">
+                            <span>Discogs Release URL:</span>
+                            <div class="tooltip-container">
+                                <img src="{{ url_for('static', filename='images/info.svg') }}" alt="Info">
+                                <span class="tooltip-text">Paste the Discogs release URL (e.g., https://www.discogs.com/release/12345-Artist-Title or https://www.discogs.com/sell/history/12345). The number at the end is the important part.</span>
+                            </div>
+                        </label>
+                        <input type="text" id="discogs_url" name="discogs_url" class="discogs-url-input" placeholder="e.g., https://www.discogs.com/sell/history/1234567" value="{{ discogs_url or '' }}">
+                    </div>
+                    <!-- END OF NEW INPUT FIELD -->
+
                     <div class="paste-container">
                         <label for="pasted_discogs_data" class="paste-label label-with-tooltip">
                             <span>Paste Discogs Sales Data:</span>
