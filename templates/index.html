@@ -150,20 +150,56 @@
                 </form>
             </div>
             <div class="right-column">
-                 {% if calculated_price is not none or status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) %}
-                 <div class="results-container">
-                     <h2>Pricing Results:</h2>
-                     {% if calculated_price == 'Error' %}
-                        <p class="price-error"><strong>Calculation Error:</strong> {{ status_message }}</p>
-                     {% elif status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) and calculated_price is none %}
-                        <p class="price-error"><strong>Status:</strong> {{ status_message }}</p>
-                     {% elif calculated_price is not none %}
-                        <p class="price-calculated"><strong>Predicted Price:</strong> £{{ calculated_price }}</p>
-                        <p class="price-upper-bound"><strong>Max Price:</strong> £{{ adjusted_price }}</p>
-                        <p class="price-actual"><strong>Suggested Price:</strong> £{{ actual_price }}</p>
-                     {% endif %}
-                 </div>
-                 {% endif %}
+                    {% if calculated_price is not none or api_artist %} {# Show section if we have price or API data #}
+                    <div class="results-container" style="display: flex; justify-content: space-between; margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;">
+
+                        {# Left Column: API Info #}
+                        <div class="api-info-column" style="flex: 1; padding-right: 15px; border-right: 1px solid #ddd;">
+                            <h3>Release Information:</h3>
+                            {% if api_artist %}
+                                <p><strong>Artist:</strong> {{ api_artist }}</p>
+                            {% endif %}
+                            {% if api_title %}
+                                <p><strong>Title:</strong> {{ api_title }}</p>
+                            {% endif %}
+                            {% if api_year %}
+                                <p>
+                                    <strong>Year:</strong> {{ api_year }}
+                                    {% if api_original_year and api_original_year|string != api_year|string %}
+                                        (Original: {{ api_original_year }})
+                                    {% endif %}
+                                </p>
+                            {% elif api_original_year %} {# If only original year is available and api_year (pressing year) is not #}
+                                 <p><strong>Year:</strong> {{ api_original_year }} (Original)</p>
+                            {% endif %}
+                            {# You can add more API fields here if needed, e.g., Label, Country #}
+                            {% if not api_artist and not api_title and not api_year and not api_original_year and calculated_price is not none %}
+                                <p><em>No API data retrieved for this calculation.</em></p>
+                            {% elif not api_artist and not api_title and not api_year and not api_original_year and calculated_price is none and not status_message %}
+                                {# This case is for when the page first loads or no action has been taken #}
+                            {% elif not api_artist and not api_title and not api_year and not api_original_year %}
+                                <p><em>No API data to display.</em></p>
+                            {% endif %}
+                        </div>
+
+                        {# Right Column: Pricing Results #}
+                        <div class="pricing-results-column" style="flex: 1; padding-left: 15px;">
+                            <h3>Pricing Results:</h3>
+                            {% if calculated_price == 'Error' %}
+                                <p class="price-error"><strong>Calculation Error:</strong> {{ status_message }}</p>
+                            {% elif status_message and ('Error' in status_message or 'Missing' in status_message or 'failed' in status_message) and calculated_price is none %}
+                                <p class="price-error"><strong>Status:</strong> {{ status_message }}</p>
+                            {% elif calculated_price is not none %}
+                                <p class="price-calculated"><strong>Predicted Price:</strong> £{{ "%.2f"|format(calculated_price) }}</p>
+                                <p class="price-upper-bound"><strong>Max Price:</strong> £{{ "%.2f"|format(adjusted_price) }}</p>
+                                <p class="price-actual"><strong>Suggested Price:</strong> £{{ "%.2f"|format(actual_price) }}</p>
+                            {% else %}
+                                {# This case might be hit if api_artist is present but no price calculation happened and no error status #}
+                                <p><em>Pricing calculation not available for this run.</em></p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
 
                 {% if chart_data %}
                     <div class="chart-info-box">

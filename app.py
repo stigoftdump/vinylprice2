@@ -97,7 +97,11 @@ def index():
     actual_price = None
     status_message = ""
     chart_data = {}  # Initialize chart_data
-    # discogs_url_display is not needed here anymore as the field clears
+    # API data placeholders
+    api_artist_display = None
+    api_title_display = None
+    api_year_display = None
+    api_original_year_display = None
 
     # Changes depending on where it's POST or GET
     if request.method == "POST":
@@ -110,8 +114,6 @@ def index():
         add_data_flag = True if add_data == "on" else False
         points_to_delete_json = request.form.get('selected_points_to_delete', '[]')
         discogs_data = request.form.get('pasted_discogs_data', '')
-
-        # --- Get and Parse the Discogs URL ---
         discogs_url_from_form = request.form.get('discogs_url', '')
         discogs_release_id = parse_discogs_url_for_id(discogs_url_from_form)
 
@@ -133,7 +135,7 @@ def index():
             str(add_data_flag),
             discogs_data,
             points_to_delete_json,
-            discogs_release_id  # --- NEW: Pass the extracted ID ---
+            discogs_release_id
         )
 
         calculated_price = output_data.get("calculated_price")
@@ -143,6 +145,11 @@ def index():
         info_message = output_data.get("info_message")
         error_message = output_data.get("error_message")
         chart_data = output_data.get("chart_data", {})
+        api_artist_display = output_data.get("api_artist")
+        api_title_display = output_data.get("api_title")
+        api_year_display = output_data.get("api_year")
+        api_original_year_display = output_data.get("api_original_year")
+
 
         return render_template("index.html",
                                pasted_discogs_data='',
@@ -159,7 +166,13 @@ def index():
                                status_message=status_message,
                                info_message=info_message,
                                error_message=error_message,
+                               api_artist=api_artist_display,
+                               api_title=api_title_display,
+                               api_year=api_year_display,
+                               api_original_year=api_original_year_display,
                                is_initial_load=False)
+
+
 
     else:  # GET request
         media_display = read_save_value("media_quality", 6)
@@ -183,6 +196,10 @@ def index():
                                adjusted_price=None,
                                actual_price=None,
                                chart_data={},
+                               api_artist=None,
+                               api_title=None,
+                               api_year=None,
+                               api_original_year=None,
                                is_initial_load=True)
 
 

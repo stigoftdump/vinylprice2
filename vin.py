@@ -56,13 +56,23 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
 
     try:
         # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
-        processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
+        processed_grid, deleted_count, status_from_parsing, api_data = manage_processed_grid(
             discogs_data,
             start_date,
             points_to_delete_json,
             add_data,
             discogs_release_id  # --- NEW: Pass ID to manage_processed_grid ---
         )
+
+        # Store API data in output_data if available
+        if api_data:
+            output_data["api_artist"] = api_data.get("api_artist")
+            output_data["api_title"] = api_data.get("api_title")
+            output_data["api_year"] = api_data.get("api_year")
+            output_data["api_original_year"] = api_data.get("api_original_year")
+            # You can add more API fields here if needed later
+            if api_data.get("api_artist") or api_data.get("api_title"):
+                 print(f"VIN.PY: API Data processed: {api_data.get('api_artist', '')} - {api_data.get('api_title', '')}")
 
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
@@ -102,6 +112,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         output_data["chart_data"] = chart_data
 
         # Make overall status "Completed" if no error messages were set
+        output_data["status_message"] = "Completed"
         output_data["status_message"] = "Completed"
 
         # Build status and info messages if successful

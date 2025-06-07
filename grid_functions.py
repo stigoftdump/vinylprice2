@@ -795,7 +795,8 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
 
     write_save_value(final_grid_for_charting, "processed_grid")  # Saves the grid used for charting
 
-    return final_grid_for_charting, deleted_count, status_message_from_parsing
+
+    return final_grid_for_charting, deleted_count, status_message_from_parsing, api_data_for_release
 
 
 def fetch_api_data(release_id):
