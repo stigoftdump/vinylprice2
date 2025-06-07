@@ -84,8 +84,10 @@ def inspect_ml_data():
         for i, release_id in enumerate(releases_to_sample):
             release_entry = all_releases_data[release_id]
             print(f"\nRelease Sample #{i + 1}: ID = {release_id}")
+            print(f"  API Master ID: {release_entry.get('api_master_id', 'N/A')}")
             print(f"  API Artist: {release_entry.get('api_artist', 'N/A')}")
             print(f"  API Title:  {release_entry.get('api_title', 'N/A')}")
+            print(f"  API Original Year: {release_entry.get('api_original_year', 'N/A')}")
             print(f"  API Year:   {release_entry.get('api_year', 'N/A')}")
             print(f"  API Country: {release_entry.get('api_country', 'N/A')}")
             print(f"  API Label:  {release_entry.get('api_label', 'N/A')}")

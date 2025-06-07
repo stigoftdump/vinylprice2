@@ -810,32 +810,30 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
 
 def fetch_api_data(release_id):
     """
-    Fetches detailed information for a given release ID from the Discogs API.
+    Fetches detailed information for a given release ID from the Discogs API,
+    including the original year from its master release.
 
     Args:
         release_id (str or int): The Discogs release ID.
 
     Returns:
         dict: A dictionary containing extracted release information (year, artist,
-              title, genres, styles, country, label, format_descriptions, notes,
+              title, genres, styles, country, label, catno, format_descriptions, notes,
               community_have, community_want, community_rating_average,
-              community_rating_count), or None if an error occurs or ID is not found.
+              community_rating_count, master_id, api_original_year),
+              or None if an error occurs or ID is not found.
     """
     if not release_id:
         return None
 
     try:
         # Initialize the Discogs client
-        # Replace 'YourAppName/1.0' with a unique name for your application
-        # This is good practice for API etiquette.
         d = discogs_client.Client('VinylPriceCalculator/0.1', user_token=DISCOGS_USER_TOKEN)
-
         release = d.release(int(release_id))  # Ensure release_id is an integer
 
-        # Prepare a dictionary to store the extracted data
         api_data = {}
 
-        # --- Extract Key Information ---
+        # --- Extract Key Information from the specific release ---
         api_data['api_year'] = getattr(release, 'year', None)
         api_data['api_title'] = getattr(release, 'title', None)
 
@@ -844,8 +842,8 @@ def fetch_api_data(release_id):
         else:
             api_data['api_artist'] = None
 
-        api_data['api_genres'] = getattr(release, 'genres', [])  # Returns a list
-        api_data['api_styles'] = getattr(release, 'styles', [])  # Returns a list
+        api_data['api_genres'] = getattr(release, 'genres', [])
+        api_data['api_styles'] = getattr(release, 'styles', [])
         api_data['api_country'] = getattr(release, 'country', None)
 
         if release.labels:
@@ -855,17 +853,15 @@ def fetch_api_data(release_id):
             api_data['api_label'] = None
             api_data['api_catno'] = None
 
-        # Extract format descriptions
         format_descriptions = []
         if release.formats:
             for fmt in release.formats:
                 if fmt.get('descriptions'):
                     format_descriptions.extend(fmt['descriptions'])
-        api_data['api_format_descriptions'] = list(set(format_descriptions))  # Store unique descriptions
+        api_data['api_format_descriptions'] = list(set(format_descriptions))
 
-        api_data['api_notes'] = release.data.get('notes', None)  # Accessing notes from the raw data dictionary
+        api_data['api_notes'] = release.data.get('notes', None)
 
-        # Community data
         community_data = release.data.get('community', {})
         api_data['api_community_have'] = community_data.get('have', None)
         api_data['api_community_want'] = community_data.get('want', None)
@@ -874,8 +870,95 @@ def fetch_api_data(release_id):
         api_data['api_community_rating_average'] = rating_data.get('average', None)
         api_data['api_community_rating_count'] = rating_data.get('count', None)
 
-        # You can add more fields here if needed, e.g., master_id
-        # api_data['api_master_id'] = getattr(release, 'master_id', None)
+        # --- Fetch Master Release ID and Original Year ---
+        master_id = getattr(release, 'master_id', None)
+        print(f"Attempt 1: master_id from release object attribute for {release_id}: {master_id}")
+
+        if not master_id or master_id == 0:
+            master_id_from_data = release.data.get('master_id')
+            print(f"Attempt 2: master_id from release.data for {release_id}: {master_id_from_data}")
+            if master_id_from_data and master_id_from_data != 0:
+                master_id = master_id_from_data
+            else:
+                master_id = None
+
+        api_data['api_master_id'] = master_id
+        api_data['api_original_year'] = None  # Initialize
+
+        if master_id:
+            print(f"Found Master ID: {master_id} for Release ID: {release_id}. Fetching master release...")
+            try:
+                master_release = d.master(int(master_id))  # Ensure master_id is int for the call
+
+                # --- NEW: Explicitly refresh the master_release object to get all data ---
+                print(f"  Attempting to refresh master_release object (ID: {master_id}) to fetch full data...")
+                master_release.refresh()
+                print(f"  Refresh complete for master_release object (ID: {master_id}).")
+                # --- END OF REFRESH ---
+
+                # --- DETAILED INSPECTION OF master_release OBJECT (POST-REFRESH) ---
+                print(f"  INSPECTION (POST-REFRESH): Type of master_release object: {type(master_release)}")
+                print(f"  INSPECTION (POST-REFRESH): Type of master_release.data: {type(master_release.data)}")
+                if isinstance(master_release.data, dict):
+                    print(
+                        f"  INSPECTION (POST-REFRESH): Keys in master_release.data: {list(master_release.data.keys())}")
+                    if 'year' in master_release.data:
+                        print(
+                            f"  INSPECTION (POST-REFRESH): Value of master_release.data['year']: {master_release.data.get('year')}")
+                    else:
+                        print(f"  INSPECTION (POST-REFRESH): 'year' key NOT FOUND in master_release.data.")
+                else:
+                    print(f"  INSPECTION (POST-REFRESH): master_release.data is not a dictionary.")
+                # --- END OF DETAILED INSPECTION (POST-REFRESH) ---
+
+                # Attempt 1: Get year from master_release attribute
+                original_year_from_attr = getattr(master_release, 'year', None)
+                print(
+                    f"  Master Year (from attribute, post-refresh): {original_year_from_attr} for Master ID: {master_id}")
+
+                # Attempt 2: If attribute access fails or gives 0/None, try from master_release.data
+                if not original_year_from_attr or original_year_from_attr == 0:
+                    original_year_from_data = master_release.data.get('year')
+                    print(
+                        f"  Master Year (from .data.get('year'), post-refresh): {original_year_from_data} for Master ID: {master_id}")
+                    if original_year_from_data and original_year_from_data != 0:
+                        api_data['api_original_year'] = original_year_from_data
+                    else:
+                        if original_year_from_attr and original_year_from_attr != 0:
+                            api_data['api_original_year'] = original_year_from_attr
+                        else:
+                            api_data['api_original_year'] = None
+                else:
+                    api_data['api_original_year'] = original_year_from_attr
+
+                # Logging based on the final api_data['api_original_year']
+                if api_data['api_original_year'] is not None and api_data['api_original_year'] != 0:
+                    print(
+                        f"Successfully fetched original year: {api_data['api_original_year']} for Master ID: {master_id}")
+                elif api_data['api_original_year'] == 0:
+                    print(
+                        f"Master ID {master_id} (Release ID: {release_id}) has 'year' attribute as 0 (or resolved to 0).",
+                        file=sys.stderr)
+                else:
+                    print(
+                        f"Master ID {master_id} (Release ID: {release_id}) found, but 'year' attribute is missing or None on the master_release object (after checking attribute and .data, post-refresh).",
+                        file=sys.stderr)
+
+            except discogs_client.exceptions.HTTPError as master_http_err:
+                if master_http_err.status_code == 404:
+                    print(f"Discogs API Error: Master ID {master_id} (for Release ID: {release_id}) not found (404).",
+                          file=sys.stderr)
+                else:
+                    print(
+                        f"Discogs API HTTP Error for Master ID {master_id} (for Release ID: {release_id}): {master_http_err}",
+                        file=sys.stderr)
+            except Exception as master_e:
+                print(
+                    f"An unexpected error occurred while fetching Master ID {master_id} (for Release ID: {release_id}): {master_e}",
+                    file=sys.stderr)
+        else:
+            print(f"No valid Master ID found on Release ID: {release_id} after checking object attribute and .data.")
+        # --- End of Master Release Fetch ---
 
         print(f"Successfully fetched API data for release ID: {release_id}")
         return api_data
