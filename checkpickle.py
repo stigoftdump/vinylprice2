@@ -1,11 +1,8 @@
-# /home/stigoftdump/PycharmProjects/PythonProject/vinylprice/checkpickle.py
 from persistence import read_ml_data
-import pprint  # For pretty printing dictionaries and lists
 from collections import Counter, defaultdict
 import numpy as np
 import pandas as pd  # Added for DataFrame creation for ML model input
 import matplotlib.pyplot as plt
-from functions import fit_curve_and_get_params  # For the original overall curve plot
 import pickle  # For loading the ML model
 import os  # For path joining
 from datetime import datetime
@@ -17,12 +14,6 @@ try:
 except ImportError:
     print("Warning: Could not import _clean_element_for_feature_name from machine_learning.py.")
     print("ML model curve plotting might not correctly map artist/comment features.")
-
-
-    # Define a fallback/dummy if import fails, though it won't be as accurate
-    def _clean_element_for_feature_name(element_name):
-        return str(element_name).lower().replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '').replace(
-            '.', '').replace('&', 'and').replace('/', '_').replace('\'', '')
 
 # --- Constants ---
 MIN_POINTS_FOR_ALBUM_CURVE_FIT = 7  # For the original curve fitting function
@@ -36,256 +27,190 @@ MODEL_FEATURES_FILENAME_CKP = "model_features.pkl"
 GLOBAL_MODEL_PATH_CKP = os.path.join(BASE_DIR_CKP, GLOBAL_MODEL_FILENAME_CKP)
 MODEL_FEATURES_PATH_CKP = os.path.join(BASE_DIR_CKP, MODEL_FEATURES_FILENAME_CKP)
 
-
-# ... (inspect_ml_data, analyze_extra_comments, plot_overall_curve_shape functions remain as they are)
-# plot_overall_curve_shape still uses fit_curve_and_get_params for its specific purpose.
-# The user's feedback was about the "average album curve shape" visualization.
-
 def inspect_ml_data():
-    sales_list = read_ml_data()
+    """
+    Inspects the ML data stored in the new dictionary format.
+    Displays a summary of releases and a sample of their sales, including all saved fields.
+    """
+    all_releases_data = read_ml_data()  # This now returns a dictionary
 
-    print("--- ML Data Inspection ---")
+    print("--- ML Data Inspection (New Dictionary Format) ---")
 
-    if not sales_list:
-        print("The ML sales data list is empty.")
+    if not all_releases_data:
+        print("The ML releases data dictionary is empty.")
         return
 
-    print(f"Total individual sales entries in ML data: {len(sales_list)}")
+    print(f"Total unique releases in ML data: {len(all_releases_data)}\n")
 
-    # --- New: Sample of raw sales data including discogs_release_id ---
-    print("\n--- Sample of Raw Sales Entries (first 10) ---")
-    if sales_list:
-        # Define column widths for the sample table
-        s_artist_w = 25
-        s_album_w = 35
-        s_qual_w = 7
-        s_price_w = 7
-        s_id_w = 12
-        s_comments_w = 30
-        s_date_w = 10
+    # --- Release Overview ---
+    print("--- Release Overview ---")
+    # Define column widths for the release overview table
+    ro_id_w = 12
+    ro_artist_w = 30
+    ro_title_w = 40
+    ro_year_w = 6
+    ro_sales_count_w = 10
 
-        header_sample = (f"{'Artist':<{s_artist_w}} | {'Album':<{s_album_w}} | {'Date':<{s_date_w}} | "
-                         f"{'Quality':<{s_qual_w}} | {'Price':<{s_price_w}} | {'Discogs ID':<{s_id_w}} | {'Extra Comments':<{s_comments_w}}")
-        print(header_sample)
-        print("-" * (s_artist_w + s_album_w + s_date_w + s_qual_w + s_price_w + s_id_w + s_comments_w + 18)) # Adjust for separators
+    header_ro = (f"{'Discogs ID':<{ro_id_w}} | {'API Artist':<{ro_artist_w}} | {'API Title':<{ro_title_w}} | "
+                 f"{'Year':<{ro_year_w}} | {'# Sales':>{ro_sales_count_w}}")
+    print(header_ro)
+    print("-" * (ro_id_w + ro_artist_w + ro_title_w + ro_year_w + ro_sales_count_w + 10))
 
-        for i, sale_entry in enumerate(sales_list[:10]):
-            artist = sale_entry.get('artist', 'N/A')[:s_artist_w-2] # Truncate
-            album = sale_entry.get('album', 'N/A')[:s_album_w-2]
-            date_val = sale_entry.get('date', 'N/A')
-            quality = sale_entry.get('quality', 'N/A')
-            quality_str = f"{quality:.2f}" if isinstance(quality, (float, np.float64)) else str(quality)
-            price = sale_entry.get('price', 'N/A')
-            price_str = f"{price:.2f}" if isinstance(price, (float, np.float64)) else str(price)
-            discogs_id = sale_entry.get('discogs_release_id', 'N/A') # Get the ID
-            extra_comments = sale_entry.get('extra_comments', 'N/A')[:s_comments_w-2]
+    # Sort releases by ID for consistent display
+    sorted_release_ids = sorted(all_releases_data.keys(), key=lambda x: int(x) if x.isdigit() else x)
 
-            print(f"{artist:<{s_artist_w}} | {album:<{s_album_w}} | {str(date_val):<{s_date_w}} | "
-                  f"{quality_str:<{s_qual_w}} | {price_str:<{s_price_w}} | {str(discogs_id):<{s_id_w}} | {extra_comments:<{s_comments_w}}")
+    for release_id in sorted_release_ids:
+        release_entry = all_releases_data[release_id]
+        artist = str(release_entry.get('api_artist', 'N/A'))
+        title = str(release_entry.get('api_title', 'N/A'))
+        year = str(release_entry.get('api_year', 'N/A'))
+        sales_history = release_entry.get('sales_history', [])
+        sales_count = len(sales_history)
+
+        artist_display = (artist[:ro_artist_w - 3] + "...") if len(artist) > ro_artist_w else artist
+        title_display = (title[:ro_title_w - 3] + "...") if len(title) > ro_title_w else title
+
+        print(f"{str(release_id):<{ro_id_w}} | {artist_display:<{ro_artist_w}} | {title_display:<{ro_title_w}} | "
+              f"{year:<{ro_year_w}} | {sales_count:>{ro_sales_count_w}}")
+    print("--- End of Release Overview ---\n")
+
+    # --- Detailed Sample of Releases and Their Sales (First 5 Releases, First 5 Sales Each) ---
+    print("--- Detailed Sample of Releases and Their Sales ---")
+    releases_to_sample = sorted_release_ids[:5]  # Sample first 5 releases by ID
+
+    if not releases_to_sample:
+        print("No releases to sample in detail.")
     else:
-        print("No sales entries to sample.")
-    print("--- End of Sample ---\n")
+        for i, release_id in enumerate(releases_to_sample):
+            release_entry = all_releases_data[release_id]
+            print(f"\nRelease Sample #{i + 1}: ID = {release_id}")
+            print(f"  API Artist: {release_entry.get('api_artist', 'N/A')}")
+            print(f"  API Title:  {release_entry.get('api_title', 'N/A')}")
+            print(f"  API Year:   {release_entry.get('api_year', 'N/A')}")
+            print(f"  API Country: {release_entry.get('api_country', 'N/A')}")
+            print(f"  API Label:  {release_entry.get('api_label', 'N/A')}")
+            print(f"  API Cat#:   {release_entry.get('api_catno', 'N/A')}")
 
+            genres_list = release_entry.get('api_genres', [])
+            print(f"  API Genres: {', '.join(genres_list) if genres_list else 'N/A'}")
 
-    # --- Modified Unique Records Summary ---
-    print("--- Unique Records Summary (with Associated Discogs IDs) ---")
+            styles_list = release_entry.get('api_styles', [])
+            print(f"  API Styles: {', '.join(styles_list) if styles_list else 'N/A'}")
 
-    # Collect unique records and their associated Discogs IDs
-    # Key: (artist, album, extra_comments), Value: dict with "count" and "discogs_ids" (set)
-    unique_record_profiles = defaultdict(lambda: {"count": 0, "discogs_ids": set()})
-    for sale_entry in sales_list:
-        album_val = sale_entry.get('album', 'N/A')
-        artist_val = sale_entry.get('artist', 'N/A')
-        extra_comments_val = sale_entry.get('extra_comments', 'N/A')
-        record_key = (artist_val, album_val, extra_comments_val)
+            formats_list = release_entry.get('api_format_descriptions', [])
+            print(f"  API Formats: {', '.join(formats_list) if formats_list else 'N/A'}")
 
-        unique_record_profiles[record_key]["count"] += 1
-        discogs_id_val = sale_entry.get('discogs_release_id') # Get the ID
-        if discogs_id_val:  # Only add if it's not None or empty
-            unique_record_profiles[record_key]["discogs_ids"].add(str(discogs_id_val)) # Store as string
+            notes = str(release_entry.get('api_notes', 'N/A'))
+            notes_display = (notes[:70] + "...") if len(notes) > 73 else notes  # Truncate long notes
+            print(f"  API Notes:  {notes_display}")
 
-    print(f"Total unique records (Artist/Album/Extra Comments combinations): {len(unique_record_profiles)}\n")
+            print(f"  API Community Have: {release_entry.get('api_community_have', 'N/A')}")
+            print(f"  API Community Want: {release_entry.get('api_community_want', 'N/A')}")
+            avg_rating = release_entry.get('api_community_rating_average', 'N/A')
+            rating_count = release_entry.get('api_community_rating_count', 'N/A')
+            print(f"  API Community Rating: {avg_rating} (from {rating_count} ratings)")
 
-    # Define column widths for the unique records table
-    artist_col_width = 30
-    album_col_width = 40
-    extra_comments_col_width = 30
-    sales_count_col_width = 5
-    discogs_ids_col_width = 25 # Increased width for potentially multiple IDs
+            sales_history = release_entry.get('sales_history', [])
+            if not sales_history:
+                print("  No sales history for this release.")
+            else:
+                print(f"  Sales History (first 5 of {len(sales_history)}):")
+                # Define column widths for the sales table
+                s_date_w = 10
+                s_qual_w = 8
+                s_price_w = 10
+                s_native_w = 12
+                s_comment_w = 40
 
-    header_unique = (f"{'Artist':<{artist_col_width}} | "
-                     f"{'Album':<{album_col_width}} | "
-                     f"{'Extra Comments':<{extra_comments_col_width}} | "
-                     f"{'Sales':>{sales_count_col_width}} | "
-                     f"{'Associated Discogs IDs':<{discogs_ids_col_width}}")
-    print(header_unique)
-    print("-" * (artist_col_width + album_col_width + extra_comments_col_width + sales_count_col_width + discogs_ids_col_width + 12)) # Adjust for separators
+                sales_header = (f"    {'Date':<{s_date_w}} | {'Quality':<{s_qual_w}} | {'Price Adj.':<{s_price_w}} | "
+                                f"{'Native Price':<{s_native_w}} | {'Sale Comment':<{s_comment_w}}")
+                print(sales_header)
+                print("    " + "-" * (s_date_w + s_qual_w + s_price_w + s_native_w + s_comment_w + 10))
 
-    # Sort by Artist, then Album, then Extra Comments
-    sorted_unique_profiles = sorted(unique_record_profiles.items(),
-                                   key=lambda item: (
-                                       str(item[0][0]).lower(), # Artist
-                                       str(item[0][1]).lower(), # Album
-                                       str(item[0][2]).lower()  # Extra Comments
-                                   ))
+                for sale_idx, sale_data in enumerate(sales_history[:5]):
+                    date_val = sale_data.get('date', 'N/A')
+                    quality = sale_data.get('quality', 'N/A')
+                    quality_str = f"{quality:.2f}" if isinstance(quality, (float, np.float64)) else str(quality)
+                    price = sale_data.get('price', 'N/A')  # This is inflation-adjusted
+                    price_str = f"{price:.2f}" if isinstance(price, (float, np.float64)) else str(price)
+                    native_price = sale_data.get('native_price', 'N/A')
+                    sale_comment = str(sale_data.get('sale_comment', 'N/A'))
+                    comment_display = (sale_comment[:s_comment_w - 3] + "...") if len(
+                        sale_comment) > s_comment_w else sale_comment
 
-    for (artist, album, extra_comments), data in sorted_unique_profiles:
-        artist_display = (artist[:artist_col_width - 3] + "...") if len(str(artist)) > artist_col_width else str(artist)
-        album_display = (album[:album_col_width - 3] + "...") if len(str(album)) > album_col_width else str(album)
-        extra_display = (extra_comments[:extra_comments_col_width - 3] + "...") if len(str(extra_comments)) > extra_comments_col_width else str(extra_comments)
+                    print(f"    {str(date_val):<{s_date_w}} | {quality_str:<{s_qual_w}} | {price_str:<{s_price_w}} | "
+                          f"{str(native_price):<{s_native_w}} | {comment_display:<{s_comment_w}}")
+    print("--- End of Detailed Sample ---")
 
-        sales_count = data["count"]
-        discogs_ids_set = data["discogs_ids"]
-        # Join sorted list of unique IDs, or show N/A
-        discogs_ids_str = ", ".join(sorted(list(discogs_ids_set))) if discogs_ids_set else "N/A"
-        discogs_ids_display = (discogs_ids_str[:discogs_ids_col_width - 3] + "...") if len(discogs_ids_str) > discogs_ids_col_width else discogs_ids_str
-
-        print(f"{artist_display:<{artist_col_width}} | "
-              f"{album_display:<{album_col_width}} | "
-              f"{extra_display:<{extra_comments_col_width}} | "
-              f"{sales_count:>{sales_count_col_width}} | "
-              f"{discogs_ids_display:<{discogs_ids_col_width}}")
-
-
-def analyze_extra_comments():
+def analyze_extra_comments():  # Consider renaming to analyze_api_format_descriptions
     """
-    Analyzes the 'extra_comments' field from the ML data to count
-    occurrences of each element and provide an example including
-    Artist, Album, and the full extra_comments string, displayed in a table.
+    Analyzes the 'api_format_descriptions' field from the ML data to count
+    occurrences of each description element and provide an example context.
     """
-    sales_list = read_ml_data()
-    if not sales_list:
-        print("\n--- Extra Comments Analysis ---")
-        print("The ML sales data list is empty. No comments to analyze.")
+    all_releases_data = read_ml_data()  # This is a dictionary of releases
+    if not all_releases_data:
+        print("\n--- API Format Descriptions Analysis ---")
+        print("The ML releases data dictionary is empty. No descriptions to analyze.")
         return
 
     all_elements_counter = Counter()
-    # Store a tuple: (full_extra_comments, artist, album)
+    # Store a tuple: (full_list_of_descriptions_for_release, api_artist, api_title)
     first_example_details_for_element = {}
 
-    for sale_entry in sales_list:
-        extra_comments_str = sale_entry.get('extra_comments')
-        artist_name = sale_entry.get('artist', 'N/A')
-        album_name = sale_entry.get('album', 'N/A')
+    for release_id, release_entry in all_releases_data.items():
+        # 'api_format_descriptions' is expected to be a list of strings
+        format_descriptions_list = release_entry.get('api_format_descriptions', [])
+        api_artist = release_entry.get('api_artist', 'N/A')
+        api_title = release_entry.get('api_title', 'N/A')
 
-        if extra_comments_str:  # Check if the string is not None or empty
-            # Split the string by ", " and strip whitespace from each part
-            elements = [element.strip() for element in extra_comments_str.split(',')]
-            for element in elements:
-                if element:  # Ensure the element itself is not an empty string after stripping
-                    all_elements_counter[element] += 1
-                    if element not in first_example_details_for_element:
-                        first_example_details_for_element[element] = (extra_comments_str, artist_name, album_name)
+        if format_descriptions_list:  # Check if the list is not None or empty
+            for element in format_descriptions_list:  # Each element is a description string
+                if element and element.strip():  # Ensure the element itself is not an empty string
+                    stripped_element = element.strip()
+                    all_elements_counter[stripped_element] += 1
+                    if stripped_element not in first_example_details_for_element:
+                        # Store the original list and context for the first example
+                        first_example_details_for_element[stripped_element] = (
+                            format_descriptions_list, api_artist, api_title
+                        )
 
-    print("\n--- Extra Comments Analysis ---")
+    print("\n--- API Format Descriptions Analysis ---")  # Updated title
     if not all_elements_counter:
-        print("No 'extra_comments' found or all were empty.")
+        print("No 'api_format_descriptions' found or all were empty.")
         return
 
-    print(f"Found {len(all_elements_counter)} unique elements in 'extra_comments'.\n")
+    print(f"Found {len(all_elements_counter)} unique elements in 'api_format_descriptions'.\n")
 
     # Define column widths
     element_col_width = 30
     count_col_width = 10
-    # Example column will take the rest, but let's define a minimum for header
     example_col_header = "First Example Context"
 
     # Print table header
-    header = (f"{'Element':<{element_col_width}} | "
+    header = (f"{'Description Element':<{element_col_width}} | "  # Updated label
               f"{'Count':>{count_col_width}} | "
               f"{example_col_header}")
     print(header)
-    print("-" * len(header))
+    print("-" * (len(header) + 5))  # Adjusted separator length
 
-    # Sort elements alphabetically by element name (the key of the counter item)
-    # Convert counter items to a list of tuples and sort by the first element (element name)
+    # Sort elements alphabetically
     sorted_elements = sorted(all_elements_counter.items(), key=lambda item: item[0].lower())
 
     for element, count in sorted_elements:
         example_details = first_example_details_for_element.get(element)
         if example_details:
-            full_extra_comments, artist, album = example_details
-            example_context = f"Artist: '{artist}', Album: '{album}', Extra Comments: '{full_extra_comments}'"
+            full_descriptions_list, artist, title = example_details
+            # Join the list of descriptions for display
+            descriptions_str_for_example = ", ".join(full_descriptions_list)
+            example_context = f"Artist: '{artist}', Title: '{title}', Format Descriptions: '{descriptions_str_for_example}'"
         else:
             example_context = "N/A"
 
-        # Truncate element if it's too long for its column, or adjust column width
         element_display = (element[:element_col_width - 3] + "...") if len(element) > element_col_width else element
 
         print(f"{element_display:<{element_col_width}} | "
               f"{count:>{count_col_width}} | "
               f"{example_context}")
-
-
-def plot_overall_curve_shape():
-    """
-    Loads all ML data, fits the sigmoid_plus_exponential curve to it,
-    and plots the data points along with the fitted curve.
-    THIS FUNCTION USES THE ORIGINAL HARDCODED CURVE FITTING.
-    """
-    print("\n--- Overall Curve Shape Visualization (Fitted to ALL Data using original curve function) ---")
-    sales_list = read_ml_data()
-    if not sales_list:
-        print("The ML sales data list is empty. Cannot plot curve shape.")
-        return
-
-    qualities = []
-    prices = []
-    for sale_entry in sales_list:
-        quality = sale_entry.get('quality')
-        price = sale_entry.get('price')
-        if quality is not None and price is not None:
-            qualities.append(quality)
-            prices.append(price)
-
-    if not qualities or len(
-            qualities) < MIN_POINTS_FOR_ALBUM_CURVE_FIT:  # Using the constant for this original function
-        print(
-            f"Not enough data points ({len(qualities)}) with quality and price to fit the original curve. Need at least {MIN_POINTS_FOR_ALBUM_CURVE_FIT}.")
-        return
-
-    print(f"Attempting to fit original curve to {len(qualities)} data points...")
-    try:
-        params, predict_func = fit_curve_and_get_params(qualities, prices)
-
-        if params is None or predict_func is None:
-            print("Original curve fitting failed for the overall dataset. Cannot plot.")
-            return
-        print("Original curve fitting successful for overall data.")
-
-        min_q = min(qualities) if qualities else 0
-        max_q = max(qualities) if qualities else 10
-        plot_q_min = max(0, min_q - 0.5)
-        plot_q_max = min(10, max_q + 0.5)
-
-        quality_range_for_plot = np.linspace(plot_q_min, plot_q_max, 200)
-        predicted_prices_for_plot = predict_func(quality_range_for_plot)
-
-        plt.figure(figsize=(12, 7))
-        plt.scatter(qualities, prices, label='Actual Sales Data (All)', alpha=0.3, s=15, edgecolor='k', linewidth=0.5)
-        plt.plot(quality_range_for_plot, predicted_prices_for_plot, color='red', linewidth=2.5,
-                 label='Fitted Original Curve (to All Data)')
-
-        plt.title('Overall Price vs. Quality (Original Curve Fitted to All Data)', fontsize=16)
-        plt.xlabel('Quality Score', fontsize=14)
-        plt.ylabel('Price (Adjusted)', fontsize=14)
-        plt.legend(fontsize=12)
-        plt.grid(True, linestyle='--', alpha=0.7)
-        min_price = min(prices) if prices else 0
-        plot_y_min = 0 if min_price < 50 else max(0, min_price - 10)
-        plt.ylim(bottom=plot_y_min)
-        plt.xlim(left=0, right=10)
-        plt.xticks(fontsize=12)
-        plt.yticks(fontsize=12)
-        print("Displaying plot. Close the plot window to continue...")
-        plt.tight_layout()
-        plt.show()
-
-    except ImportError:
-        print("Matplotlib is not installed. Please install it to see the plot: pip install matplotlib")
-    except Exception as e:
-        print(f"An error occurred during plotting overall original curve: {e}")
-
 
 def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_outlier_curves=False,
                                             num_albums_to_plot=None):
@@ -538,12 +463,9 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
     except Exception as e:
         print(f"An error occurred during plotting ML model's average normalized album curve: {e}")
 
-
 if __name__ == "__main__":
     inspect_ml_data()
     analyze_extra_comments()
-    # This plot still uses the original curve fitting, as a baseline or for comparison
-    #plot_overall_curve_shape()
 
     # This is the new function that uses the ML model
     #plot_ml_model_average_album_curve_shape(plot_individual_curves=True, plot_outlier_curves=True, num_albums_to_plot=None)

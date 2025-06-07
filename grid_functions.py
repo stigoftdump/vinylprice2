@@ -461,102 +461,127 @@ def make_processed_grid(clipboard_content, start_date_str_param, discogs_release
 
     return processed_grid, status_message
 
-def machine_learning_save(processed_grid, artist, album, label, extra_comments, discogs_release_id=None):
+def machine_learning_save(processed_grid, discogs_release_id=None, api_data=None):
     """
-    Appends processed sales data points to the ML data file, including extracted metadata,
-    while checking for duplicates based on date, artist, album, label,
-    extra_comments, quality score, and native price.
-    It can also accept a Discogs release ID for future API integration.
-
-
-    Args:
-        processed_grid (list): The list of processed sale data tuples for the current batch.
-                               Each tuple: (date, media_q, sleeve_q, price_float,
-                                           native_price_str, score, comment)
-        artist (str or None): The extracted artist name for this batch.
-        album (str or None): The extracted album title for this batch.
-        label (str or None): The extracted label for this batch.
-        extra_comments (str or None): The extracted extra comments/format details.
-        discogs_release_id (str, optional): The Discogs release ID. Defaults to None.
+    Saves or updates release information and its associated sales data to the ML data file.
+    The ML data is structured as a dictionary keyed by discogs_release_id.
+    Each release entry contains API metadata and a list of its sales history.
     """
-    # Read existing ML data (now just a list of sales)
-    existing_ml_sales = read_ml_data()
+    all_releases_data = read_ml_data()  # Expects a dictionary, or {} if new/empty
 
-    # --- For now, just print the received ID to confirm it's being passed ---
-    if discogs_release_id:
-        print(f"GRID_FUNCTIONS.PY (machine_learning_save): Received Discogs Release ID: {discogs_release_id}")
-    # --- This print can be removed once API integration starts ---
+    if not isinstance(all_releases_data, dict):
+        print("Warning: ML data file is not a dictionary. Initializing as empty. "
+              "If you have old list-based data, it needs migration.", file=sys.stderr)
+        all_releases_data = {}
 
-    # Create a set of identifiers for existing sales for quick lookup
-    existing_identifiers = set()
-    for sale in existing_ml_sales:
-        identifier = (
+    if not discogs_release_id:
+        if processed_grid:
+            print("Warning: Sales data provided in processed_grid, but no discogs_release_id. "
+                  "These sales will not be saved in the new release-centric ML data structure.", file=sys.stderr)
+        else:
+            print("Info (machine_learning_save): No discogs_release_id and no sales data. Nothing to save.",
+                  file=sys.stderr)
+        return  # Cannot proceed without a release ID for the new structure
+
+    release_key = str(discogs_release_id)
+    new_sales_added_count = 0
+
+    # Get or create the entry for this release
+    release_entry = all_releases_data.get(release_key)
+
+    if release_entry is None:
+        release_entry = {}
+        if api_data:
+            release_entry.update(api_data)
+        release_entry['sales_history'] = []
+        all_releases_data[release_key] = release_entry
+        print(f"Info: Creating new entry for Release ID: {release_key}", file=sys.stderr)
+    else:
+        # Update existing API data if new API data is provided
+        if api_data:
+            # You might want a more sophisticated merge strategy here if needed,
+            # e.g., only update if new data is different or more complete.
+            # For now, a simple update will overwrite existing api_ fields with new ones.
+            release_entry.update(api_data)
+            print(f"Info: Updating API data for existing Release ID: {release_key}", file=sys.stderr)
+        if 'sales_history' not in release_entry or not isinstance(release_entry['sales_history'], list):
+            release_entry['sales_history'] = []  # Ensure sales_history list exists and is a list
+
+    # De-duplicate sales within this specific release's sales_history
+    # Create a set of identifiers for sales already in this release's history
+    existing_sale_identifiers_for_release = set()
+    for sale in release_entry['sales_history']:
+        # Key for a sale: (date, quality_score_rounded, native_price)
+        sale_identifier = (
             sale.get('date', ''),
-            sale.get('artist', ''),
-            sale.get('album', ''),
-            sale.get('label', ''),
-            sale.get('extra_comments', ''),
             round(sale.get('quality', 0.0), 5),
             sale.get('native_price', '')
-            # Note: discogs_release_id is NOT part of the old sales identifier
         )
-        existing_identifiers.add(identifier)
+        existing_sale_identifiers_for_release.add(sale_identifier)
 
-    new_ml_sales_to_add = []
-    current_batch_identifiers = set()
+    # For de-duping sales within the current processed_grid batch for this release
+    current_batch_sale_identifiers = set()
 
-    for row in processed_grid:
-        if len(row) >= 7:
-            sale_date = row[0]
-            native_price_from_row = row[4]
-            quality_score = row[5]
-            inflation_adjusted_price = row[3]
+    if processed_grid:
+        for row in processed_grid:
+            if len(row) >= 7:
+                sale_date = row[0]
+                native_price_from_row = row[4]
+                quality_score = row[5]
+                inflation_adjusted_price = row[3]
+                sale_specific_comment = row[6]
 
-            current_sale_identifier = (
-                sale_date or '',
-                artist or '',
-                album or '',
-                label or '',
-                extra_comments or '',
-                round(quality_score, 5),
-                native_price_from_row or ''
-                # Note: discogs_release_id is NOT part of this identifier for de-duplication
-                # of sales history. The API data will be *added* to these sales entries.
-            )
+                current_sale_de_dup_key = (
+                    sale_date or '',
+                    round(quality_score, 5),
+                    native_price_from_row or ''
+                )
 
-            if current_sale_identifier in existing_identifiers:
-                continue
-            if current_sale_identifier in current_batch_identifiers:
-                continue
+                if current_sale_de_dup_key in existing_sale_identifiers_for_release or \
+                        current_sale_de_dup_key in current_batch_sale_identifiers:
+                    continue  # Skip if already exists for this release or in current batch
 
-            current_batch_identifiers.add(current_sale_identifier)
+                current_batch_sale_identifiers.add(current_sale_de_dup_key)
 
-            sale_data_dict = {
-                'date': sale_date,
-                'quality': quality_score,
-                'price': inflation_adjusted_price,
-                'native_price': native_price_from_row,
-                'artist': artist,
-                'album': album,
-                'label': label,
-                'extra_comments': extra_comments,
-                'discogs_release_id': discogs_release_id  # --- ADDED: Include the ID here ---
-            }
-            new_ml_sales_to_add.append(sale_data_dict)
-        else:
-            print(f"Warning: Skipping row with unexpected structure for ML data: {row}", file=sys.stderr)
+                sale_dict = {
+                    'date': sale_date,
+                    'quality': quality_score,
+                    'price': inflation_adjusted_price,
+                    'native_price': native_price_from_row,
+                    'sale_comment': sale_specific_comment
+                }
+                release_entry['sales_history'].append(sale_dict)
+                new_sales_added_count += 1
+            else:
+                print(f"Warning: Skipping row with unexpected structure for ML data: {row}", file=sys.stderr)
+    elif api_data:  # No sales in processed_grid, but API data was provided (or updated)
+        print(f"Info: API data for Release ID {release_key} processed. No new sales from current input.",
+              file=sys.stderr)
 
-    if new_ml_sales_to_add:
-        combined_ml_sales = existing_ml_sales + new_ml_sales_to_add
-        write_ml_data(combined_ml_sales)
-        print(f"Info: Saved {len(new_ml_sales_to_add)} NEW unique data point(s) for ML training.", file=sys.stderr)
+    if new_sales_added_count > 0:
+        write_ml_data(all_releases_data)
+        artist_name_for_log = release_entry.get('api_artist', 'N/A')
+        album_title_for_log = release_entry.get('api_title', 'N/A')
+        print(f"Info: Added {new_sales_added_count} new sales to Release ID '{release_key}': "
+              f"Artist='{artist_name_for_log}', Album='{album_title_for_log}'. ML data updated.", file=sys.stderr)
+    elif api_data and release_key in all_releases_data and not processed_grid:
+        # This case means API data was potentially updated for an existing release, but no new sales were added.
+        # We should still save if the release_entry itself was modified (e.g. API data updated)
+        write_ml_data(all_releases_data)  # Save if API data was added/updated
+        artist_name_for_log = release_entry.get('api_artist', 'N/A')
+        album_title_for_log = release_entry.get('api_title', 'N/A')
         print(
-            f"Info: Data saved for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}', ReleaseID='{discogs_release_id}'.",
-            file=sys.stderr)
+            f"Info: API data for Release ID '{release_key}' (Artist='{artist_name_for_log}', Album='{album_title_for_log}') "
+            f"processed/updated. No new sales added in this batch. ML data updated.", file=sys.stderr)
     else:
-        print(
-            f"Info: No new unique sales found in pasted data for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}', ReleaseID='{discogs_release_id}'. ML data file was not updated.",
-            file=sys.stderr)
+        # This covers cases like:
+        # - No new sales and no API data to update for an existing release.
+        # - Release ID was new, API data was fetched, but processed_grid was empty (already logged).
+        artist_name_for_log = release_entry.get('api_artist', 'N/A') if release_entry else 'N/A'
+        album_title_for_log = release_entry.get('api_title', 'N/A') if release_entry else 'N/A'
+        print(f"Info: No new unique sales found in pasted data for Release ID '{release_key}': "
+              f"Artist='{artist_name_for_log}', Album='{album_title_for_log}'. "
+              f"ML data file not updated with new sales for this release.", file=sys.stderr)
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """
