@@ -237,11 +237,11 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
                                             num_albums_to_plot=None):
     """
     Uses the TRAINED ML MODEL to predict price vs. quality for unique albums.
-    Normalizes these ML-predicted curves, identifies and excludes outliers,
-    then averages the inlier curves and plots the result.
+    Normalizes these ML-predicted curves by the price at quality score 6,
+    identifies and excludes outliers, then averages the inlier curves and plots the result.
     Optionally plots individual normalized album curves.
     """
-    print("\n--- ML Model - Average Normalized Album Curve Shape (Outliers Excluded) ---")
+    print("\n--- ML Model - Average Normalized Album Curve Shape (Normalized by Price at Q6, Outliers Excluded) ---")
 
     # 1. Load ML Model and Features
     ml_model = None
@@ -276,7 +276,7 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
 
         if artist and album_name:
             profile_key = (str(artist).strip(), str(album_name).strip(), str(extra_comments).strip())
-            if profile_key[0] and profile_key[1]:
+            if profile_key[0] and profile_key[1]:  # Ensure artist and album are not empty
                 unique_album_profiles[profile_key].append(sale_entry)
 
     if not unique_album_profiles:
@@ -297,7 +297,19 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
         return
 
     all_normalized_ml_predictions = []
-    quality_plot_range = np.linspace(0, 9, 100)  # Max actual quality is 9
+    quality_plot_range = np.linspace(0, 9, 100)  # Max actual quality is 9. This range includes 6.0.
+    # Find the index corresponding to quality score 6
+    # This assumes 6.0 is representable in quality_plot_range.
+    # If quality_plot_range changes, this might need adjustment or use np.isclose.
+    try:
+        idx_q6 = np.where(np.isclose(quality_plot_range, 6.0))[0][0]
+    except IndexError:
+        print("Error: Quality score 6.0 not found in quality_plot_range. Check np.linspace parameters.")
+        # Fallback or error handling if 6.0 isn't exactly in the range
+        # For robustness, find the closest index:
+        idx_q6 = np.abs(quality_plot_range - 6.0).argmin()
+        print(f"Using closest quality score to 6.0: {quality_plot_range[idx_q6]:.2f}")
+
     processed_album_count = 0
     normalization_issues_count_ml = 0
     current_profile_index = 0
@@ -327,7 +339,6 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
         else:
             representative_sale_year = DEFAULT_SALE_YEAR_FOR_ML_PLOT
 
-        # --- Optimization: Batch feature creation ---
         feature_vectors_for_album = []
         for q_score in quality_plot_range:
             current_features = {feat: 0 for feat in ml_feature_names}
@@ -348,27 +359,25 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
             feature_vectors_for_album.append(current_features)
 
         if not feature_vectors_for_album:
-            continue  # Should not happen if quality_plot_range is not empty
+            continue
 
-        # Create a single DataFrame for all quality points of this album
         df_batch_input = pd.DataFrame(feature_vectors_for_album, columns=ml_feature_names)
-
         predicted_prices_for_album_profile = []
         try:
-            # --- Optimization: Single batch prediction ---
             predicted_prices_for_album_profile = ml_model.predict(df_batch_input)
         except Exception as e:
             # print(f"Warning: Error predicting batch for {profile_key}: {e}")
-            # This album profile will be skipped if batch prediction fails
             pass
 
         if len(predicted_prices_for_album_profile) == len(quality_plot_range):
-            max_predicted_price = np.max(predicted_prices_for_album_profile)
-            if max_predicted_price > 1e-6:
-                normalized_predictions = np.array(predicted_prices_for_album_profile) / max_predicted_price
+            price_at_quality_6 = predicted_prices_for_album_profile[idx_q6]
+
+            if price_at_quality_6 > 1e-6:  # Avoid division by zero or near-zero
+                normalized_predictions = np.array(predicted_prices_for_album_profile) / price_at_quality_6
                 all_normalized_ml_predictions.append(normalized_predictions)
                 processed_album_count += 1
             else:
+                # print(f"Warning: Price at Q6 for {profile_key} is too low ({price_at_quality_6:.2f}) for normalization. Skipping.")
                 normalization_issues_count_ml += 1
         # else: if prediction failed or returned unexpected length, this album profile is skipped
 
@@ -376,14 +385,14 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
         print(f"No ML-predicted album curves were successfully generated and normalized. Cannot plot average ML curve.")
         if normalization_issues_count_ml > 0:
             print(
-                f"{normalization_issues_count_ml} album profiles had issues during normalization (e.g., max ML-predicted price too low).")
+                f"{normalization_issues_count_ml} album profiles had issues during normalization (e.g., price at Q6 too low).")
         return
 
     print(f"Successfully generated and normalized ML-predicted curves for {processed_album_count} album profiles.")
     if normalization_issues_count_ml > 0:
-        print(f"{normalization_issues_count_ml} album profiles had issues during normalization.")
+        print(f"{normalization_issues_count_ml} album profiles had issues during normalization (price at Q6 too low).")
 
-    # --- Outlier Detection (same logic as before, applied to ML-generated curves) ---
+    # --- Outlier Detection ---
     if processed_album_count < 3:
         print("Too few ML-predicted curves to perform robust outlier detection. Averaging all.")
         inlier_ml_predictions = all_normalized_ml_predictions
@@ -439,20 +448,32 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
         plt.plot(quality_plot_range, final_average_ml_normalized_prices, color='dodgerblue', linewidth=3,
                  label=f'Average Normalized ML Curve Shape ({final_ml_curve_count} Inlier Album Profiles)')
 
-        plt.title(f'ML Model - Avg Normalized Album Price vs. Quality ({final_ml_curve_count} inlier profiles)',
+        title_suffix = f'Normalized by Price at Q6 ({final_ml_curve_count} inlier profiles)'
+        plt.title(f'ML Model - Avg Album Price vs. Quality ({title_suffix})',
                   fontsize=16)
         plt.xlabel('Quality Score (Input to ML Model)', fontsize=14)
-        plt.ylabel('Normalized Price (Proportion of Max ML-Predicted Price)', fontsize=14)
+        plt.ylabel('Normalized Price (Proportion of Price at Quality 6)', fontsize=14)  # Updated Y-axis label
 
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
         plt.legend(by_label.values(), by_label.keys(), fontsize=10)
 
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.ylim(bottom=-0.05, top=1.05)
+        # Adjust Y-axis limits if necessary, as values can now be > 1 or < 0 more easily
+        # For example, if price at Q9 is 2x price at Q6, value is 2.0.
+        # If price at Q3 is 0.5x price at Q6, value is 0.5.
+        # The price at Q6 itself will be 1.0.
+        # A good general range might be based on the min/max of final_average_ml_normalized_prices
+        min_norm_val = np.min(final_average_ml_normalized_prices) if final_average_ml_normalized_prices.size > 0 else 0
+        max_norm_val = np.max(
+            final_average_ml_normalized_prices) if final_average_ml_normalized_prices.size > 0 else 1.2
+        plt.ylim(bottom=min(0, min_norm_val - 0.1), top=max(1.1, max_norm_val + 0.1))
+
         plt.xlim(left=0, right=9)  # Max quality is 9
         plt.xticks(np.arange(0, 9.1, 1), fontsize=12)  # Ticks from 0 to 9
-        plt.yticks(np.arange(0, 1.1, 0.1), fontsize=12)
+        # Y-ticks might need to be more dynamic too, but let's start with this:
+        plt.yticks(np.arange(round(min(0, min_norm_val - 0.1), 1), round(max(1.1, max_norm_val + 0.1), 1) + 0.1, 0.2),
+                   fontsize=12)
 
         print("Displaying ML model's average normalized album curve plot. Close the plot window to continue...")
         plt.tight_layout()
@@ -462,6 +483,7 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
         print("Matplotlib is not installed. Please install it to see the plot: pip install matplotlib")
     except Exception as e:
         print(f"An error occurred during plotting ML model's average normalized album curve: {e}")
+
 
 if __name__ == "__main__":
     inspect_ml_data()
