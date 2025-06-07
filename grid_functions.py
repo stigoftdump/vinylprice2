@@ -164,7 +164,8 @@ def get_relevant_rows(clipboard_content):
                  break
         # If even "Order Date" wasn't found, return an error
         if start_index == -1:
-             return [], "Could not find 'Order Date' header row."
+            print("Could not find 'Order Date' header row.")
+            return []
 
     # Extract the rows between the header and footer
     relevant_rows = all_rows[start_index:end_index]
