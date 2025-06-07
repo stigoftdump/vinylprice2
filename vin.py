@@ -1,13 +1,18 @@
+# /home/stigoftdump/PycharmProjects/PythonProject/vinylprice/vin.py
 from functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params
 from grid_functions import extract_tuples, manage_processed_grid
 
-def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json):
+
+# --- MODIFIED function signature ---
+def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json,
+                       discogs_release_id=None):
     """
     Main calculation engine.
 
     Orchestrates the process of parsing input data, optionally merging with saved data,
     deleting selected points, performing graph fitting and price prediction,
     and preparing the output data including chart information.
+    It can also accept a Discogs release ID for future API integration.
 
     Args:
         reqscore (float): The target quality score for price prediction.
@@ -17,6 +22,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
                             current data with previously saved data.
         discogs_data (str): Raw text data pasted by the user (Discogs sales history).
         points_to_delete_json (str): JSON string array of points selected for deletion.
+        discogs_release_id (str, optional): The Discogs release ID. Defaults to None.
 
     Returns:
         dict: A dictionary containing the calculated results:
@@ -31,11 +37,18 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     info_message = None
     error_message = None
 
+    # --- For now, just print the received ID to confirm it's being passed ---
+    if discogs_release_id:
+        print(f"VIN.PY: Received Discogs Release ID: {discogs_release_id}")
+    else:
+        print("VIN.PY: No Discogs Release ID received.")
+    # --- This print can be removed once API integration starts ---
+
     output_data = {
         "calculated_price": None,
         "upper_bound": None,
         "actual_price": None,
-        "status_message": None, # Will be set to "Completed" or an error later
+        "status_message": None,  # Will be set to "Completed" or an error later
         "info_message": None,
         "error_message": None,
         "chart_data": {}
@@ -47,7 +60,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             discogs_data,
             start_date,
             points_to_delete_json,
-            add_data
+            add_data,
+            discogs_release_id  # --- NEW: Pass ID to manage_processed_grid ---
         )
 
         # Extracts elements
@@ -60,7 +74,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
         predicted_price = predict_price(reqscore, predict_func)
 
         # gets the actual price from the predicted price
-        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices, predicted_price, predict_func)
+        upper_bound, actual_price, search_width = get_actual_price(reqscore, shop_var, qualities, prices,
+                                                                   predicted_price, predict_func)
 
         # Gets the smoothed data for the chart
         X_smooth, y_smooth_pred = generate_smooth_curve_data(qualities, prices, reqscore, predict_func)

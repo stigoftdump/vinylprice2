@@ -361,7 +361,7 @@ def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_o
         # consuming just 1 line on error is safer.
         return None, 1, error_msg
 
-def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed param to avoid clash with variable
+def make_processed_grid(clipboard_content, start_date_str_param, discogs_release_id=None):
     """
     Parses raw text data (presumably pasted from Discogs sales history)
     into a structured grid format.
@@ -372,6 +372,12 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
 
     # set this to True or False depending on whether you want data saved or not.
     ml_save_setting = True
+
+    # --- For now, just print the received ID to confirm it's being passed ---
+    if discogs_release_id:
+        print(f"GRID_FUNCTIONS.PY (make_processed_grid): Received Discogs Release ID: {discogs_release_id}")
+    # --- This print can be removed once API integration starts ---
+
 
     if "Order Date" not in clipboard_content or "Change Currency" not in clipboard_content:
         return [], "No Discogs Data in text box"
@@ -403,9 +409,8 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
 
         if entry_error:  # Log individual entry errors
             print(entry_error, file=sys.stderr)
-            # You might want to collect these errors for a more comprehensive status_message
 
-        if lines_consumed == 0:  # Should not happen with current _parse_single_entry logic
+        if lines_consumed == 0:
             print(
                 f"Warning: _parse_single_entry consumed 0 lines at index {i}. Incrementing by 1 to avoid infinite loop.",
                 file=sys.stderr)
@@ -413,23 +418,23 @@ def make_processed_grid(clipboard_content, start_date_str_param):  # Renamed par
         else:
             i += lines_consumed
 
-    # save the processed grid for machine learning
     if processed_grid and ml_save_setting is True:
         try:
-            # gets metadata
             artist, album, label, extra_comments = extract_record_metadata(clipboard_content)
-
-            machine_learning_save(processed_grid, artist, album, label, extra_comments)
+            # --- MODIFIED: Pass discogs_release_id to machine_learning_save ---
+            machine_learning_save(processed_grid, artist, album, label, extra_comments, discogs_release_id)
         except Exception as e:
             print(f"Error saving ML data: {e}", file=sys.stderr)
 
     return processed_grid, status_message
 
-def machine_learning_save(processed_grid, artist, album, label, extra_comments):
+def machine_learning_save(processed_grid, artist, album, label, extra_comments, discogs_release_id=None):
     """
     Appends processed sales data points to the ML data file, including extracted metadata,
     while checking for duplicates based on date, artist, album, label,
     extra_comments, quality score, and native price.
+    It can also accept a Discogs release ID for future API integration.
+
 
     Args:
         processed_grid (list): The list of processed sale data tuples for the current batch.
@@ -439,9 +444,15 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
         album (str or None): The extracted album title for this batch.
         label (str or None): The extracted label for this batch.
         extra_comments (str or None): The extracted extra comments/format details.
+        discogs_release_id (str, optional): The Discogs release ID. Defaults to None.
     """
     # Read existing ML data (now just a list of sales)
     existing_ml_sales = read_ml_data()
+
+    # --- For now, just print the received ID to confirm it's being passed ---
+    if discogs_release_id:
+        print(f"GRID_FUNCTIONS.PY (machine_learning_save): Received Discogs Release ID: {discogs_release_id}")
+    # --- This print can be removed once API integration starts ---
 
     # Create a set of identifiers for existing sales for quick lookup
     existing_identifiers = set()
@@ -454,6 +465,7 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
             sale.get('extra_comments', ''),
             round(sale.get('quality', 0.0), 5),
             sale.get('native_price', '')
+            # Note: discogs_release_id is NOT part of the old sales identifier
         )
         existing_identifiers.add(identifier)
 
@@ -475,6 +487,8 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
                 extra_comments or '',
                 round(quality_score, 5),
                 native_price_from_row or ''
+                # Note: discogs_release_id is NOT part of this identifier for de-duplication
+                # of sales history. The API data will be *added* to these sales entries.
             )
 
             if current_sale_identifier in existing_identifiers:
@@ -492,25 +506,24 @@ def machine_learning_save(processed_grid, artist, album, label, extra_comments):
                 'artist': artist,
                 'album': album,
                 'label': label,
-                'extra_comments': extra_comments
+                'extra_comments': extra_comments,
+                'discogs_release_id': discogs_release_id  # --- ADDED: Include the ID here ---
             }
             new_ml_sales_to_add.append(sale_data_dict)
         else:
             print(f"Warning: Skipping row with unexpected structure for ML data: {row}", file=sys.stderr)
 
     if new_ml_sales_to_add:
-        # Append new unique data to existing data
         combined_ml_sales = existing_ml_sales + new_ml_sales_to_add
-
-        # Save the combined data
         write_ml_data(combined_ml_sales)
-
-        print(f"Info: Saved {len(new_ml_sales_to_add)} NEW unique data point(s) for ML training.",
-              file=sys.stderr)
-        print(f"Info: Data saved for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}'.",
-              file=sys.stderr)
+        print(f"Info: Saved {len(new_ml_sales_to_add)} NEW unique data point(s) for ML training.", file=sys.stderr)
+        print(
+            f"Info: Data saved for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}', ReleaseID='{discogs_release_id}'.",
+            file=sys.stderr)
     else:
-        print(f"Info: No new unique sales found in pasted data for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}'. ML data file was not updated.", file=sys.stderr)
+        print(
+            f"Info: No new unique sales found in pasted data for Record: Artist='{artist}', Album='{album}', Label='{label}', Extra='{extra_comments}', ReleaseID='{discogs_release_id}'. ML data file was not updated.",
+            file=sys.stderr)
 
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """
@@ -666,7 +679,7 @@ def merge_and_deduplicate_grids(grid1, grid2):
             seen_rows.add(row_tuple)
     return merged_grid
 
-def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_data_str):
+def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_data_str, discogs_release_id=None):
     """
     Manages the lifecycle of the processed sales data grid.
 
@@ -674,6 +687,8 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
     it with previously saved data if `add_data_str` is 'True', deleting
     specified points, and then saving the resulting grid. If `discogs_data`
     is empty, it loads and works with the saved grid.
+    It can also accept a Discogs release ID for future API integration.
+
 
     Args:
         discogs_data (str): Raw text data from Discogs sales history.
@@ -684,6 +699,8 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
                             is provided, newly parsed data is merged with saved data.
                             If `discogs_data` is not provided, this flag is ignored
                             and only saved data is loaded.
+        discogs_release_id (str, optional): The Discogs release ID. Defaults to None.
+
 
     Returns:
         tuple: A tuple containing:
@@ -701,10 +718,21 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
     current_grid_for_processing = []
     status_message_from_parsing = None
 
+    # --- For now, just print the received ID to confirm it's being passed ---
+    if discogs_release_id:
+        print(f"GRID_FUNCTIONS.PY (manage_processed_grid): Received Discogs Release ID: {discogs_release_id}")
+    # --- This print can be removed once API integration starts ---
+
+
     if discogs_data:
         # New data is provided
-        newly_parsed_data, status_message_from_parsing = make_processed_grid(discogs_data, start_date)
-
+        # --- MODIFIED: Pass discogs_release_id to make_processed_grid ---
+        newly_parsed_data, status_message_from_parsing = make_processed_grid(
+            discogs_data,
+            start_date,
+            discogs_release_id # Pass it here
+        )
+        # ... (rest of the manage_processed_grid logic remains the same for now) ...
         # Handle critical parsing messages early if not adding to existing data
         if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
             if add_data_str != "True": # If not adding, and parsing failed critically, raise error
@@ -713,30 +741,19 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
 
         if add_data_str == "True":
             saved_grid = read_save_value("processed_grid", [])
-            # Merge newly parsed data (which might be empty if parsing had issues but add_data is True)
-            # with the saved grid.
             current_grid_for_processing = merge_and_deduplicate_grids(newly_parsed_data, saved_grid)
         else:
-            # Use only the newly parsed data
             current_grid_for_processing = newly_parsed_data
     else:
-        # No new discogs_data, load entirely from save.
-        # add_data_str is effectively ignored here as there's no new data to "add" to saved data.
         current_grid_for_processing = read_save_value("processed_grid", [])
-        # status_message_from_parsing remains None
 
-    # Now, delete points from the assembled grid
     final_grid, deleted_count = delete_points(points_to_delete_json, current_grid_for_processing)
 
-    # Check if the grid is empty after all operations
     if not final_grid:
-        # If a critical parsing error occurred and we didn't load/merge any other data
         if status_message_from_parsing and "No Discogs Data in text box" in status_message_from_parsing:
             raise ValueError(status_message_from_parsing)
-        # Otherwise, it's a general "no data" error after all steps.
         raise ValueError("No data points available for analysis after processing, loading, or deletion.")
 
-    # Save the final grid
     write_save_value(final_grid, "processed_grid")
 
     return final_grid, deleted_count, status_message_from_parsing

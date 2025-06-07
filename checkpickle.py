@@ -44,7 +44,7 @@ MODEL_FEATURES_PATH_CKP = os.path.join(BASE_DIR_CKP, MODEL_FEATURES_FILENAME_CKP
 def inspect_ml_data():
     sales_list = read_ml_data()
 
-    print("--- ML Data Inspection (Unique Records Summary) ---")
+    print("--- ML Data Inspection ---")
 
     if not sales_list:
         print("The ML sales data list is empty.")
@@ -52,45 +52,99 @@ def inspect_ml_data():
 
     print(f"Total individual sales entries in ML data: {len(sales_list)}")
 
-    # Collect unique records first
-    unique_record_identifiers = set()
+    # --- New: Sample of raw sales data including discogs_release_id ---
+    print("\n--- Sample of Raw Sales Entries (first 10) ---")
+    if sales_list:
+        # Define column widths for the sample table
+        s_artist_w = 25
+        s_album_w = 35
+        s_qual_w = 7
+        s_price_w = 7
+        s_id_w = 12
+        s_comments_w = 30
+        s_date_w = 10
+
+        header_sample = (f"{'Artist':<{s_artist_w}} | {'Album':<{s_album_w}} | {'Date':<{s_date_w}} | "
+                         f"{'Quality':<{s_qual_w}} | {'Price':<{s_price_w}} | {'Discogs ID':<{s_id_w}} | {'Extra Comments':<{s_comments_w}}")
+        print(header_sample)
+        print("-" * (s_artist_w + s_album_w + s_date_w + s_qual_w + s_price_w + s_id_w + s_comments_w + 18)) # Adjust for separators
+
+        for i, sale_entry in enumerate(sales_list[:10]):
+            artist = sale_entry.get('artist', 'N/A')[:s_artist_w-2] # Truncate
+            album = sale_entry.get('album', 'N/A')[:s_album_w-2]
+            date_val = sale_entry.get('date', 'N/A')
+            quality = sale_entry.get('quality', 'N/A')
+            quality_str = f"{quality:.2f}" if isinstance(quality, (float, np.float64)) else str(quality)
+            price = sale_entry.get('price', 'N/A')
+            price_str = f"{price:.2f}" if isinstance(price, (float, np.float64)) else str(price)
+            discogs_id = sale_entry.get('discogs_release_id', 'N/A') # Get the ID
+            extra_comments = sale_entry.get('extra_comments', 'N/A')[:s_comments_w-2]
+
+            print(f"{artist:<{s_artist_w}} | {album:<{s_album_w}} | {str(date_val):<{s_date_w}} | "
+                  f"{quality_str:<{s_qual_w}} | {price_str:<{s_price_w}} | {str(discogs_id):<{s_id_w}} | {extra_comments:<{s_comments_w}}")
+    else:
+        print("No sales entries to sample.")
+    print("--- End of Sample ---\n")
+
+
+    # --- Modified Unique Records Summary ---
+    print("--- Unique Records Summary (with Associated Discogs IDs) ---")
+
+    # Collect unique records and their associated Discogs IDs
+    # Key: (artist, album, extra_comments), Value: dict with "count" and "discogs_ids" (set)
+    unique_record_profiles = defaultdict(lambda: {"count": 0, "discogs_ids": set()})
     for sale_entry in sales_list:
-        album = sale_entry.get('album', 'N/A')
-        artist = sale_entry.get('artist', 'N/A')
-        extra_comments = sale_entry.get('extra_comments', 'N/A')
-        # Store as (artist, album, extra_comments) for easier sorting later
-        record_identifier = (artist, album, extra_comments)
-        unique_record_identifiers.add(record_identifier)
+        album_val = sale_entry.get('album', 'N/A')
+        artist_val = sale_entry.get('artist', 'N/A')
+        extra_comments_val = sale_entry.get('extra_comments', 'N/A')
+        record_key = (artist_val, album_val, extra_comments_val)
 
-    print(f"Total unique records (Artist/Album/Extra Comments): {len(unique_record_identifiers)}\n")
+        unique_record_profiles[record_key]["count"] += 1
+        discogs_id_val = sale_entry.get('discogs_release_id') # Get the ID
+        if discogs_id_val:  # Only add if it's not None or empty
+            unique_record_profiles[record_key]["discogs_ids"].add(str(discogs_id_val)) # Store as string
 
-    print("Summary of unique records (Artist, Album, Extra Comments):")
+    print(f"Total unique records (Artist/Album/Extra Comments combinations): {len(unique_record_profiles)}\n")
 
-    # Define column widths for the table
+    # Define column widths for the unique records table
     artist_col_width = 30
     album_col_width = 40
-    extra_comments_col_header = "Extra Comments"
+    extra_comments_col_width = 30
+    sales_count_col_width = 5
+    discogs_ids_col_width = 25 # Increased width for potentially multiple IDs
 
-    # Print table header - Artist first, then Album
-    header = (f"{'Artist':<{artist_col_width}} | "
-              f"{'Album':<{album_col_width}} | "
-              f"{extra_comments_col_header}")
-    print(header)
-    print("-" * (artist_col_width + album_col_width + len(extra_comments_col_header) + 6))  # +6 for " | " separators
+    header_unique = (f"{'Artist':<{artist_col_width}} | "
+                     f"{'Album':<{album_col_width}} | "
+                     f"{'Extra Comments':<{extra_comments_col_width}} | "
+                     f"{'Sales':>{sales_count_col_width}} | "
+                     f"{'Associated Discogs IDs':<{discogs_ids_col_width}}")
+    print(header_unique)
+    print("-" * (artist_col_width + album_col_width + extra_comments_col_width + sales_count_col_width + discogs_ids_col_width + 12)) # Adjust for separators
 
-    # Convert set of tuples to a list and sort it
-    # Sort by Artist (index 0), then Album (index 1), then Extra Comments (index 2)
-    sorted_unique_records = sorted(list(unique_record_identifiers),
-                                   key=lambda x: (x[0].lower(), x[1].lower(), x[2].lower()))
+    # Sort by Artist, then Album, then Extra Comments
+    sorted_unique_profiles = sorted(unique_record_profiles.items(),
+                                   key=lambda item: (
+                                       str(item[0][0]).lower(), # Artist
+                                       str(item[0][1]).lower(), # Album
+                                       str(item[0][2]).lower()  # Extra Comments
+                                   ))
 
-    for artist, album, extra_comments in sorted_unique_records:
-        # Truncate fields if they are too long for their columns
-        artist_display = (artist[:artist_col_width - 3] + "...") if len(artist) > artist_col_width else artist
-        album_display = (album[:album_col_width - 3] + "...") if len(album) > album_col_width else album
+    for (artist, album, extra_comments), data in sorted_unique_profiles:
+        artist_display = (artist[:artist_col_width - 3] + "...") if len(str(artist)) > artist_col_width else str(artist)
+        album_display = (album[:album_col_width - 3] + "...") if len(str(album)) > album_col_width else str(album)
+        extra_display = (extra_comments[:extra_comments_col_width - 3] + "...") if len(str(extra_comments)) > extra_comments_col_width else str(extra_comments)
+
+        sales_count = data["count"]
+        discogs_ids_set = data["discogs_ids"]
+        # Join sorted list of unique IDs, or show N/A
+        discogs_ids_str = ", ".join(sorted(list(discogs_ids_set))) if discogs_ids_set else "N/A"
+        discogs_ids_display = (discogs_ids_str[:discogs_ids_col_width - 3] + "...") if len(discogs_ids_str) > discogs_ids_col_width else discogs_ids_str
 
         print(f"{artist_display:<{artist_col_width}} | "
               f"{album_display:<{album_col_width}} | "
-              f"{extra_comments}")
+              f"{extra_display:<{extra_comments_col_width}} | "
+              f"{sales_count:>{sales_count_col_width}} | "
+              f"{discogs_ids_display:<{discogs_ids_col_width}}")
 
 
 def analyze_extra_comments():
@@ -492,8 +546,4 @@ if __name__ == "__main__":
     #plot_overall_curve_shape()
 
     # This is the new function that uses the ML model
-    plot_ml_model_average_album_curve_shape(
-        plot_individual_curves=True,
-        plot_outlier_curves=True,
-        num_albums_to_plot=None  # Optional: Limit number of albums to speed up plotting, None for all
-    )
+    #plot_ml_model_average_album_curve_shape(plot_individual_curves=True, plot_outlier_curves=True, num_albums_to_plot=None)
