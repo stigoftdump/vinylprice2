@@ -1,5 +1,6 @@
 from scripts.chart.functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params, write_output
-from scripts.grid.grid_functions import extract_tuples, manage_processed_grid, machine_learning_save, delete_ml_sales_for_recalled_release
+from scripts.grid.grid_functions import extract_tuples, manage_processed_grid, machine_learning_save
+from scripts.grid.point_deletion import delete_ml_sales_for_recalled_release
 from scripts.grid.api_import import fetch_api_data, fake_api_data
 from scripts.persistence import remember_last_run
 
