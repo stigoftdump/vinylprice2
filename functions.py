@@ -370,3 +370,28 @@ def calculate_average_percentage_for_subset(actual_prices, quality_scores, predi
         return np.mean(percentage_increases)
     return None
 
+def write_output(api_data, predicted_price, upper_bound, actual_price, chart_data):
+    """
+    Writes the outputs data from the bits of code
+    """
+
+    output_data = {}
+
+    # Store API data in output_data if available
+    if api_data:
+        output_data["api_artist"] = api_data.get("api_artist")
+        output_data["api_title"] = api_data.get("api_title")
+        output_data["api_year"] = api_data.get("api_year")
+        output_data["api_original_year"] = api_data.get("api_original_year")
+        # You can add more API fields here if needed later
+        if api_data.get("api_artist") or api_data.get("api_title"):
+            print(f"VIN.PY: API Data processed: {api_data.get('api_artist', '')} - {api_data.get('api_title', '')}")
+
+    # If all calculations are successful, populate output_data
+    output_data["calculated_price"] = round(predicted_price, 2)
+    output_data["upper_bound"] = round(upper_bound, 2)
+    output_data["actual_price"] = round(actual_price, 2)
+    output_data["chart_data"] = chart_data
+
+    return output_data
+

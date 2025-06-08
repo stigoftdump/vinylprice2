@@ -691,7 +691,6 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
             discogs_data,
             start_date
         )
-        # status_message_from_parsing from make_processed_grid is now more of a general status
 
         if add_data_str == "True":
             saved_grid_for_charting = read_save_value("processed_grid", [])  # This is the old chart-specific grid
@@ -706,8 +705,8 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
             current_grid_for_processing = read_save_value("processed_grid", [])
             print(
                 f"Info: No new sales data pasted, add_data is True. Loaded {len(current_grid_for_processing)} sales from saved chart data.")
-        else:  # No new data, and not adding, so grid starts empty for charting.
-            current_grid_for_processing = []
+        else:  # No new data, and not adding, so we just need to load in the data
+            current_grid_for_processing = read_save_value("processed_grid", [])
             print("Info: No new sales data pasted, add_data is False. Charting grid starts empty.")
 
     final_grid_for_charting, deleted_count = delete_points(points_to_delete_json, current_grid_for_processing)

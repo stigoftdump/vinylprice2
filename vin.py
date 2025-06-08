@@ -1,4 +1,4 @@
-from functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params
+from functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params, write_output
 from grid_functions import extract_tuples, manage_processed_grid, machine_learning_save
 from api_import import fetch_api_data
 import sys
@@ -36,16 +36,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     info_message = None
     error_message = None
 
-    output_data = {
-        "calculated_price": None,
-        "upper_bound": None,
-        "actual_price": None,
-        "status_message": None,  # Will be set to "Completed" or an error later
-        "info_message": None,
-        "error_message": None,
-        "chart_data": {}
-    }
-
     try:
         # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
         processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
@@ -66,16 +56,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
                 print(f"Error during machine_learning_save call: {e}", file=sys.stderr)
         else:
             print("Info: No API data and no processed sales data. Nothing to save for ML.", file=sys.stderr)
-
-        # Store API data in output_data if available
-        if api_data:
-            output_data["api_artist"] = api_data.get("api_artist")
-            output_data["api_title"] = api_data.get("api_title")
-            output_data["api_year"] = api_data.get("api_year")
-            output_data["api_original_year"] = api_data.get("api_original_year")
-            # You can add more API fields here if needed later
-            if api_data.get("api_artist") or api_data.get("api_title"):
-                 print(f"VIN.PY: API Data processed: {api_data.get('api_artist', '')} - {api_data.get('api_title', '')}")
 
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
@@ -108,11 +88,8 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             "search_width": search_width
         }
 
-        # If all calculations are successful, populate output_data
-        output_data["calculated_price"] = round(predicted_price, 2)
-        output_data["upper_bound"] = round(upper_bound, 2)
-        output_data["actual_price"] = round(actual_price, 2)
-        output_data["chart_data"] = chart_data
+        # writes the output data
+        output_data = write_output(api_data, predicted_price, upper_bound, actual_price, chart_data)
 
         # Make overall status "Completed" if no error messages were set
         output_data["status_message"] = "Completed"
