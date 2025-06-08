@@ -138,7 +138,6 @@ def realprice(pred_price):
         foundprice = nearest_divisible_by_10
     return foundprice
 
-
 def get_relevant_rows(clipboard_content):
     # Split the input text into individual lines (rows)
     all_rows = clipboard_content.splitlines()
@@ -176,7 +175,6 @@ def get_relevant_rows(clipboard_content):
 
     return relevant_rows
 
-
 def extract_price(price_string, date_obj):
     # --- Extract and Process Price ---
     # Get the price string (potentially split by newline on Windows)
@@ -212,20 +210,19 @@ def extract_price(price_string, date_obj):
 
     return price_float_out
 
-
-def calculate_line_skip(part_length, iteration, relevant_rows):
+def calculate_line_skip(system_type, iteration, relevant_rows):
     """Determines how many extra lines (beyond the current one) to skip."""
     # Assume no lines to skip ahead unless stated
     lines_to_skip_ahead = 0
 
     # Checks to see where we are
-    if part_length >= 5:  # linux
-        # are wet the end?
+    if system_type == "linux":
+        # are we at the end?
         if iteration + 1 < len(relevant_rows):
             if relevant_rows[iteration + 1].strip().startswith(
                     'Comments:'):  # does the next line start with "comments:"?
                 lines_to_skip_ahead = 1
-    elif part_length == 4:  # windows
+    else:  # windows
         # the end?
         if iteration + 1 < len(relevant_rows):  # Native price line
             lines_to_skip_ahead = 1
@@ -236,13 +233,12 @@ def calculate_line_skip(part_length, iteration, relevant_rows):
 
     return lines_to_skip_ahead
 
-
-def extract_native_price(part_length, linux_date_or_price_part, relevant_rows, iteration):
+def extract_native_price(system_type, linux_date_or_price_part, relevant_rows, iteration):
     """
     Extracts the native (original currency) price string.
 
     Args:
-        part_length (int): Number of tab-separated parts in the current primary row.
+        system_type (str): The system type ('linux' or 'windows').
         linux_date_or_price_part (str): The 5th part from the primary row (Linux),
                                        which contains the native price.
         relevant_rows (list): List of all relevant sales data rows.
@@ -252,22 +248,19 @@ def extract_native_price(part_length, linux_date_or_price_part, relevant_rows, i
         str or None: The native price string, or None if not found.
     """
     native_price = None
-    if part_length >= 5:  # linux
-        native_price = linux_date_or_price_part.strip()  # This is data_parts[4]
-    elif part_length == 4:  # windows
+    if system_type == "linux":
+        native_price = linux_date_or_price_part.strip()
+    elif system_type == "windows":  # windows
         if iteration + 1 < len(relevant_rows):
-            native_price = relevant_rows[iteration + 1].strip()  # Price is on the next line
-    # else: native_price remains None
+            native_price = relevant_rows[iteration + 1].strip()
 
     return native_price
 
-
-def extract_comments(part_length, relevant_rows, iteration):
+def extract_comments(system_type, relevant_rows, iteration):
     # extracts comments
     comment_str_out = ""
 
-    # Check if the row has 5 or more parts (typical Linux copy-paste format)
-    if part_length >= 5:  # Linux Format
+    if system_type == "linux":
         # Check if the *next* line exists
         if iteration + 1 < len(relevant_rows):
             # Get the next line
@@ -277,8 +270,7 @@ def extract_comments(part_length, relevant_rows, iteration):
                 # Extract the comment text after "Comments:"
                 comment_text = next_row_1.strip()
                 comment_str_out = comment_text[len("Comments:"):].strip()
-    # Check if the row has exactly 4 parts (typical Windows copy-paste format)
-    elif part_length == 4:  # Windows Format
+    else: # windows
         # Check if the *next* line exists (this should contain the native price)
         if iteration + 1 < len(relevant_rows):
             # Check if the line *after* the native price exists
@@ -329,30 +321,33 @@ def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_o
         data_parts = row.split('\t')
         part_length = len(data_parts)
 
+        if part_length >= 5:
+            format_type = "linux"
+        elif part_length == 4:
+            format_type = "windows"
+
         date_str_raw = data_parts[0].strip()
         date_obj = datetime.strptime(date_str_raw, '%Y-%m-%d').date()
 
+        # checks that the entry isn't older than the start date
         if date_obj < start_date_obj:
             return None, 1, None  # Entry is too old
 
         date_str_out = date_str_raw
 
-        if part_length < 3:
-            raise ValueError(f"Row '{row[:50]}...' started with a date but had less than 3 tab-separated parts.")
         quality1_str_raw = data_parts[1]
         quality2_str_raw = data_parts[2]
 
-        price_string_from_data = data_parts[3] if part_length > 3 else ""
-        price_float_out = extract_price(price_string_from_data, date_obj)
+        price_float_out = extract_price(data_parts[3], date_obj)
 
-        lines_to_skip_ahead = calculate_line_skip(part_length, current_index, relevant_rows)
+        lines_to_skip_ahead = calculate_line_skip(format_type, current_index, relevant_rows)
 
         # For native price, pass the part that might contain it (for Linux)
         native_price_data_part_for_linux = data_parts[4].strip() if part_length > 4 else ""
-        native_price_str_out = extract_native_price(part_length, native_price_data_part_for_linux, relevant_rows,
+        native_price_str_out = extract_native_price(format_type, native_price_data_part_for_linux, relevant_rows,
                                                     current_index)
 
-        comment_str_out = extract_comments(part_length, relevant_rows, current_index)
+        comment_str_out = extract_comments(format_type, relevant_rows, current_index)
         score_out = calculate_score(quality1_str_raw, quality2_str_raw)
 
         processed_row_tuple = (
@@ -411,6 +406,7 @@ def make_processed_grid(clipboard_content, start_date_str_param):
 
             date_pattern = re.compile(r"^\s*(\d{4}-\d{2}-\d{2})")
             i = 0
+
             while i < len(relevant_rows):
                 parsed_tuple, lines_consumed, entry_error = _parse_single_entry(
                     relevant_rows, i, date_pattern, start_date_obj

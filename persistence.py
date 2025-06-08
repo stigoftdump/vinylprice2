@@ -4,7 +4,7 @@ import sys
 import os
 
 unified_save_file = "vinylpricedata.pkl"
-ml_save_file = "ml_data.pkl"  # Changed from ml_data_pkl to ml_data.pkl for consistency
+ml_save_file = "ml_data.pkl"
 
 
 def read_application_data():
@@ -25,7 +25,6 @@ def read_application_data():
         print(f"Error reading unified save file '{unified_save_file}': {e}. Returning empty data.", file=sys.stderr)
         return {}
 
-
 def write_application_data(data):
     """Writes the entire data dictionary to the unified pickle file."""
     if not isinstance(data, dict):
@@ -39,7 +38,6 @@ def write_application_data(data):
     except Exception as e:
         print(f"An unexpected error occurred while writing to {unified_save_file}: {e}", file=sys.stderr)
 
-
 def read_save_value(datatype, default):
     """
     Reads the data type from the saved file
@@ -52,7 +50,6 @@ def read_save_value(datatype, default):
 
     return datareturn
 
-
 def write_save_value(value, datatype):
     """
     Write the value to the datatype in the save file
@@ -60,7 +57,6 @@ def write_save_value(value, datatype):
     data = read_application_data()  # Read existing data
     data[datatype] = value
     write_application_data(data)
-
 
 def read_ml_data():
     """
@@ -96,7 +92,6 @@ def read_ml_data():
                   f"Starting with empty ML data.", file=sys.stderr)
             return {}
     return {}  # File does not exist, return empty dict
-
 
 def write_ml_data(ml_releases_data):
     """
