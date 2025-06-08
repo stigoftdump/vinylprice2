@@ -1,5 +1,5 @@
 from functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params, write_output
-from grid_functions import extract_tuples, manage_processed_grid, machine_learning_save
+from grid_functions import extract_tuples, manage_processed_grid, machine_learning_save, delete_ml_sales_for_recalled_release
 from api_import import fetch_api_data, fake_api_data
 from persistence import remember_last_run
 
@@ -60,6 +60,11 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             remember_last_run(processed_grid, None, None, None, None, None)
             # populates with fake PAI data for index.html
             api_data = fake_api_data()
+
+        # if there was no discogs_data but there was some points deleted then we want to delete
+        # them from the ML pickle file
+        if not discogs_data and deleted_count>0:
+            delete_ml_sales_for_recalled_release(points_to_delete_json)
 
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
