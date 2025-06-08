@@ -402,4 +402,4 @@ if __name__ == "__main__":
     inspect_ml_data()
     analyze_extra_comments()
     # Ensure you have a trained model and features file for this to work.
-    plot_ml_model_average_album_curve_shape(plot_individual_curves=True, plot_outlier_curves=True, num_albums_to_plot=100) # Example: plot for 100 albums
+    #plot_ml_model_average_album_curve_shape(plot_individual_curves=True, plot_outlier_curves=True, num_albums_to_plot=100) # Example: plot for 100 albums

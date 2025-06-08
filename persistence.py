@@ -143,6 +143,7 @@ def recall_last_run():
     recalled_data = {}
 
     recalled_data["processed_grid"] = data.get("processed_grid")
+    recalled_data["discogs_id"] = data.get("last_discogs_id")
     recalled_data["artist"] = data.get("last_artist")
     recalled_data["title"] = data.get("last_title")
     recalled_data["year"] = data.get("last_year")
