@@ -1,9 +1,8 @@
-# /home/stigoftdump/PycharmProjects/PythonProject/vinylprice/vin.py
 from functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params
-from grid_functions import extract_tuples, manage_processed_grid
+from grid_functions import extract_tuples, manage_processed_grid, machine_learning_save
+from api_import import fetch_api_data
+import sys
 
-
-# --- MODIFIED function signature ---
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json,
                        discogs_release_id=None):
     """
@@ -37,13 +36,6 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     info_message = None
     error_message = None
 
-    # --- For now, just print the received ID to confirm it's being passed ---
-    if discogs_release_id:
-        print(f"VIN.PY: Received Discogs Release ID: {discogs_release_id}")
-    else:
-        print("VIN.PY: No Discogs Release ID received.")
-    # --- This print can be removed once API integration starts ---
-
     output_data = {
         "calculated_price": None,
         "upper_bound": None,
@@ -56,13 +48,24 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
 
     try:
         # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
-        processed_grid, deleted_count, status_from_parsing, api_data = manage_processed_grid(
+        processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
             discogs_data,
             start_date,
             points_to_delete_json,
-            add_data,
-            discogs_release_id  # --- NEW: Pass ID to manage_processed_grid ---
+            add_data
         )
+
+        # Grabs the API data if available
+        api_data = fetch_api_data(discogs_release_id)
+
+        # Save if we have API data and we have some processed_grid data
+        if api_data and processed_grid:
+            try:
+                machine_learning_save(processed_grid, discogs_release_id, api_data)
+            except Exception as e:
+                print(f"Error during machine_learning_save call: {e}", file=sys.stderr)
+        else:
+            print("Info: No API data and no processed sales data. Nothing to save for ML.", file=sys.stderr)
 
         # Store API data in output_data if available
         if api_data:

@@ -5,8 +5,6 @@ import math
 import json
 import sys
 from persistence import read_save_value, write_save_value, read_ml_data, write_ml_data
-import discogs_client
-from discogs_secrets import DISCOGS_USER_TOKEN  # Import your token
 
 # Mapping of quality to numeric value - NO TRAILING SPACES IN KEYS
 quality_to_number = {
@@ -56,7 +54,6 @@ inflation_rates = {
     2024: 0.06,  # Placeholder, update with actual when available
 }
 
-
 def adjust_for_inflation(price, sale_year):
     """
     Adjusts a historical price to its equivalent value in a target year (currently 2024) using inflation rates.
@@ -88,7 +85,6 @@ def adjust_for_inflation(price, sale_year):
 
     return new_price
 
-
 # converts the record quality and sleeve quality into a score
 def calculate_score(record_quality, sleeve_quality):
     """
@@ -114,7 +110,6 @@ def calculate_score(record_quality, sleeve_quality):
     # Calculate score even if sleeve quality is unknown (treats sleeve_value as 0)
     score = record_value - ((record_value - sleeve_value) / 3)
     return score
-
 
 # gets the sale price from the calculated price
 def realprice(pred_price):
@@ -300,7 +295,6 @@ def extract_comments(part_length, relevant_rows, iteration):
 
     return comment_str_out
 
-
 def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_obj):
     """
     Attempts to parse a single Discogs sales entry starting from current_index.
@@ -376,9 +370,7 @@ def _parse_single_entry(relevant_rows, current_index, date_pattern, start_date_o
         error_msg = f"Error processing entry at line {current_index} ('{row[:70]}...'): {e}"
         return None, 1, error_msg
 
-
-def make_processed_grid(clipboard_content, start_date_str_param, discogs_release_id=None,
-                        api_data=None):
+def make_processed_grid(clipboard_content, start_date_str_param):
     """
     Parses raw text data (presumably pasted from Discogs sales history)
     into a structured grid format. Also triggers saving of API data and parsed sales
@@ -388,7 +380,6 @@ def make_processed_grid(clipboard_content, start_date_str_param, discogs_release
         clipboard_content (str): Raw text from Discogs sales history.
         start_date_str_param (str): Start date for filtering sales ('YYYY-MM-DD').
         discogs_release_id (str, optional): The Discogs release ID.
-        api_data (dict, optional): Pre-fetched API data for the release.
 
     Returns:
         tuple: (processed_grid, status_message)
@@ -397,13 +388,6 @@ def make_processed_grid(clipboard_content, start_date_str_param, discogs_release
     """
     status_message = None
     processed_grid = []
-    # ml_save_setting = True # This variable is not used, can be removed
-
-    if discogs_release_id:
-        print(f"Info: Processing sales data for Release ID: {discogs_release_id}")
-    if api_data:
-        print(
-            f"Info: API data available for {api_data.get('api_artist', 'N/A')} - {api_data.get('api_title', 'N/A')}")
 
     if clipboard_content and clipboard_content.strip():
         # Basic check for essential markers. More robust parsing is in get_relevant_rows.
@@ -446,19 +430,7 @@ def make_processed_grid(clipboard_content, start_date_str_param, discogs_release
     else:
         print("Info: No sales data provided in clipboard_content to parse.")
 
-    # --- Save to ML data ---
-    # Save if we have API data OR if we successfully parsed some sales data.
-    if api_data or processed_grid:
-        try:
-            machine_learning_save(processed_grid, discogs_release_id, api_data)
-        except Exception as e:
-            print(f"Error during machine_learning_save call: {e}", file=sys.stderr)
-            status_message = f"{status_message or ''} Error saving ML data.".strip()
-    else:
-        print("Info: No API data and no processed sales data. Nothing to save for ML.", file=sys.stderr)
-
     return processed_grid, status_message
-
 
 def machine_learning_save(processed_grid, discogs_release_id=None, api_data=None):
     """
@@ -578,7 +550,6 @@ def machine_learning_save(processed_grid, discogs_release_id=None, api_data=None
               f"({artist_name_for_log} - {album_title_for_log}). ML data file not modified for this entry.",
               file=sys.stderr)
 
-
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """
     Checks if a row from the processed grid matches a point selected for deletion.
@@ -617,7 +588,6 @@ def points_match(grid_row, point_to_delete, tolerance=0.001):
 
     return score_match and price_match and date_match  # and comment_match
 
-
 def delete_points(points_to_delete_json, processed_grid):
     """
     Filters the processed grid, removing rows that match points marked for deletion.
@@ -651,7 +621,6 @@ def delete_points(points_to_delete_json, processed_grid):
         processed_grid = filtered_grid
     return processed_grid, deleted_count
 
-
 def extract_tuples(processed_grid):
     # gets dates and comments from the processed_grid to go in the output
     dates = []
@@ -665,7 +634,6 @@ def extract_tuples(processed_grid):
         prices.append(row[3])  # Inflation-adjusted price
         comments.append(row[6] if len(row) > 6 and row[6] else "")
     return qualities, prices, dates, comments
-
 
 def merge_and_deduplicate_grids(grid1, grid2):
     """
@@ -696,8 +664,7 @@ def merge_and_deduplicate_grids(grid1, grid2):
                       file=sys.stderr)
     return merged_grid
 
-
-def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_data_str, discogs_release_id=None):
+def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_data_str):
     """
     Manages the lifecycle of the processed sales data grid.
     Fetches API data if discogs_release_id is provided.
@@ -711,7 +678,6 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
         start_date (str): Start date for filtering sales ('YYYY-MM-DD').
         points_to_delete_json (str): JSON string of points to delete.
         add_data_str (str): 'True' to merge with saved data, 'False' otherwise.
-        discogs_release_id (str, optional): The Discogs release ID.
 
     Returns:
         tuple: (final_grid, deleted_count, status_message_from_parsing)
@@ -723,25 +689,11 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
     """
     current_grid_for_processing = []
     status_message_from_parsing = None
-    api_data_for_release = None
-
-    if discogs_release_id:
-        print(f"Info: Managing grid for Discogs Release ID: {discogs_release_id}")
-        api_data_for_release = fetch_api_data(discogs_release_id)
-        if api_data_for_release:
-            print(
-                f"Info: API data fetched for: {api_data_for_release.get('api_artist', 'N/A')} - {api_data_for_release.get('api_title', 'N/A')}")
-        else:
-            print(f"Warning: Failed to fetch API data for Release ID: {discogs_release_id}.", file=sys.stderr)
-    else:
-        print("Info: No Discogs Release ID provided for grid management.")
 
     if discogs_data and discogs_data.strip():
         newly_parsed_data, status_message_from_parsing = make_processed_grid(
             discogs_data,
-            start_date,
-            discogs_release_id,
-            api_data_for_release
+            start_date
         )
         # status_message_from_parsing from make_processed_grid is now more of a general status
 
@@ -761,15 +713,6 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
         else:  # No new data, and not adding, so grid starts empty for charting.
             current_grid_for_processing = []
             print("Info: No new sales data pasted, add_data is False. Charting grid starts empty.")
-
-        # If no sales data pasted, but we have API data, we still need to trigger ML save
-        if api_data_for_release and discogs_release_id:
-            print("Info: No sales data pasted, but API data is available. Triggering ML save for API context.")
-            _, status_from_api_only_save = make_processed_grid(
-                "", start_date, discogs_release_id, api_data_for_release
-            )
-            if status_from_api_only_save and not status_message_from_parsing:
-                status_message_from_parsing = status_from_api_only_save
 
     final_grid_for_charting, deleted_count = delete_points(points_to_delete_json, current_grid_for_processing)
 
@@ -796,129 +739,4 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
     write_save_value(final_grid_for_charting, "processed_grid")  # Saves the grid used for charting
 
 
-    return final_grid_for_charting, deleted_count, status_message_from_parsing, api_data_for_release
-
-
-def fetch_api_data(release_id):
-    """
-    Fetches detailed information for a given release ID from the Discogs API,
-    including the original year from its master release.
-
-    Args:
-        release_id (str or int): The Discogs release ID.
-
-    Returns:
-        dict: A dictionary containing extracted release information (e.g., api_year,
-              api_artist, api_title, api_genres, api_styles, api_country, api_label,
-              api_catno, api_format_descriptions, api_notes, api_community_have,
-              api_community_want, api_community_rating_average, api_community_rating_count,
-              api_master_id, api_original_year),
-              or None if an error occurs or ID is not found.
-    """
-    if not release_id:
-        return None
-
-    try:
-        d = discogs_client.Client('VinylPriceCalculator/0.1', user_token=DISCOGS_USER_TOKEN)
-        release = d.release(int(release_id))
-        api_data = {}
-
-        api_data['api_year'] = getattr(release, 'year', None)
-        api_data['api_title'] = getattr(release, 'title', None)
-        api_data['api_artist'] = getattr(release.artists[0], 'name', None) if release.artists else None
-        api_data['api_genres'] = getattr(release, 'genres', [])
-        api_data['api_styles'] = getattr(release, 'styles', [])
-        api_data['api_country'] = getattr(release, 'country', None)
-
-        if release.labels:
-            api_data['api_label'] = getattr(release.labels[0], 'name', None)
-            api_data['api_catno'] = getattr(release.labels[0], 'catno', None)
-        else:
-            api_data['api_label'] = None
-            api_data['api_catno'] = None
-
-        format_descriptions = []
-        if release.formats:
-            for fmt in release.formats:
-                if fmt.get('descriptions'):
-                    format_descriptions.extend(fmt['descriptions'])
-        api_data['api_format_descriptions'] = list(set(format_descriptions))  # Deduplicate
-
-        api_data['api_notes'] = release.data.get('notes', None)  # Notes often in .data
-
-        community_data = release.data.get('community', {})
-        api_data['api_community_have'] = community_data.get('have', None)
-        api_data['api_community_want'] = community_data.get('want', None)
-        rating_data = community_data.get('rating', {})
-        api_data['api_community_rating_average'] = rating_data.get('average', None)
-        api_data['api_community_rating_count'] = rating_data.get('count', None)
-
-        master_id = getattr(release, 'master_id', None)
-        if not master_id or master_id == 0:  # Check .data if not on object or is 0
-            master_id_from_data = release.data.get('master_id')
-            if master_id_from_data and master_id_from_data != 0:
-                master_id = master_id_from_data
-            else:
-                master_id = None
-
-        api_data['api_master_id'] = master_id
-        api_data['api_original_year'] = None
-
-        if master_id:
-            print(
-                f"Info: Found Master ID: {master_id} for Release ID: {release_id}. Fetching master release details...")
-            try:
-                master_release = d.master(int(master_id))
-                master_release.refresh()  # Crucial step to get all data for the master release
-                print(f"Info: Refresh complete for Master ID: {master_id}.")
-
-                original_year_from_attr = getattr(master_release, 'year', None)
-                original_year_from_data = master_release.data.get('year')
-
-                if original_year_from_data and original_year_from_data != 0:
-                    api_data['api_original_year'] = original_year_from_data
-                elif original_year_from_attr and original_year_from_attr != 0:  # Fallback to attribute if .data failed
-                    api_data['api_original_year'] = original_year_from_attr
-
-                if api_data['api_original_year']:
-                    print(
-                        f"Info: Successfully fetched original year: {api_data['api_original_year']} for Master ID: {master_id}")
-                elif original_year_from_data == 0 or original_year_from_attr == 0:  # Explicitly 0
-                    print(f"Warning: Master ID {master_id} (Release ID: {release_id}) has 'year' as 0.",
-                          file=sys.stderr)
-                else:  # Both were None
-                    print(
-                        f"Warning: Master ID {master_id} (Release ID: {release_id}) found, but 'year' is missing or None after refresh.",
-                        file=sys.stderr)
-
-            except discogs_client.exceptions.HTTPError as master_http_err:
-                if master_http_err.status_code == 404:
-                    print(
-                        f"Warning: Discogs API Error - Master ID {master_id} (for Release ID: {release_id}) not found (404).",
-                        file=sys.stderr)
-                else:
-                    print(
-                        f"Warning: Discogs API HTTP Error for Master ID {master_id} (for Release ID: {release_id}): {master_http_err}",
-                        file=sys.stderr)
-            except Exception as master_e:
-                print(
-                    f"Warning: An unexpected error occurred while fetching Master ID {master_id} (for Release ID: {release_id}): {master_e}",
-                    file=sys.stderr)
-        else:
-            print(f"Info: No valid Master ID found on Release ID: {release_id}.")
-
-        print(f"Info: Successfully processed API data for release ID: {release_id}")
-        return api_data
-
-    except discogs_client.exceptions.HTTPError as http_err:
-        if http_err.status_code == 404:
-            print(f"Warning: Discogs API Error - Release ID {release_id} not found (404).", file=sys.stderr)
-        elif http_err.status_code == 401:
-            print(f"Error: Discogs API Error - Unauthorized (401). Check your User Token.", file=sys.stderr)
-        else:
-            print(f"Warning: Discogs API HTTP Error for Release ID {release_id}: {http_err}", file=sys.stderr)
-        return None
-    except Exception as e:
-        print(f"Error: An unexpected error occurred while fetching API data for Release ID {release_id}: {e}",
-              file=sys.stderr)
-        return None
+    return final_grid_for_charting, deleted_count, status_message_from_parsing

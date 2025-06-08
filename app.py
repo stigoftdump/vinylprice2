@@ -10,6 +10,8 @@ import re  # For regex matching of the ID
 
 app = Flask(__name__)
 
+# Turn on debug mode for making it easier when writing
+debug_mode = True
 
 def open_browser_once():
     """Wait briefly and open the browser."""
@@ -172,8 +174,6 @@ def index():
                                api_original_year=api_original_year_display,
                                is_initial_load=False)
 
-
-
     else:  # GET request
         media_display = read_save_value("media_quality", 6)
         sleeve_display = read_save_value("sleeve_quality", 6)
@@ -200,9 +200,8 @@ def index():
                                api_title=None,
                                api_year=None,
                                api_original_year=None,
-                               is_initial_load=True)
-
+                               is_initial_load= not debug_mode) # only load the splashscreen if not in debug mode
 
 if __name__ == "__main__":
     threading.Thread(target=open_browser_once).start()
-    app.run(debug=False, port=5002)
+    app.run(debug=debug_mode, port=5002)
