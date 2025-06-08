@@ -1,6 +1,8 @@
 import sys
 import discogs_client
 from discogs_secrets import DISCOGS_USER_TOKEN
+from persistence import recall_last_run
+
 
 def fetch_api_data(release_id):
     """
@@ -125,3 +127,20 @@ def fetch_api_data(release_id):
         print(f"Error: An unexpected error occurred while fetching API data for Release ID {release_id}: {e}",
               file=sys.stderr)
         return None
+
+def fake_api_data():
+    # produces data from the last run where no discogs data exists so it can be fed back to index.html
+    recalled_data = recall_last_run()
+    fake_data = {}
+
+    print(recalled_data.get("artist"))
+    print(recalled_data.get("title"))
+    print(recalled_data.get("year"))
+    print(recalled_data.get("original_year"))
+
+    fake_data["api_artist"] = recalled_data.get("artist")
+    fake_data["api_title"] = recalled_data.get("title")
+    fake_data["api_year"] = recalled_data.get("year")
+    fake_data["api_original_year"] = recalled_data.get("original_year")
+
+    return fake_data

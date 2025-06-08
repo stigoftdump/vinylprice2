@@ -1,7 +1,7 @@
 from functions import predict_price, get_actual_price, generate_smooth_curve_data, fit_curve_and_get_params, write_output
 from grid_functions import extract_tuples, manage_processed_grid, machine_learning_save
-from api_import import fetch_api_data
-import sys
+from api_import import fetch_api_data, fake_api_data
+from persistence import remember_last_run
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json,
                        discogs_release_id=None):
@@ -35,6 +35,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     status_message = None
     info_message = None
     error_message = None
+    output_data = {}
 
     try:
         # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
@@ -45,17 +46,20 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
             add_data
         )
 
-        # Grabs the API data if available
-        api_data = fetch_api_data(discogs_release_id)
-
-        # Save if we have API data and we have some processed_grid data
-        if api_data and processed_grid:
-            try:
-                machine_learning_save(processed_grid, discogs_release_id, api_data)
-            except Exception as e:
-                print(f"Error during machine_learning_save call: {e}", file=sys.stderr)
+        # Grabs the API data if available and saves it, otherwise just remember the latest processed_grid
+        if discogs_release_id:
+            # gets the api_data
+            api_data = fetch_api_data(discogs_release_id)
+            # remembers it for later
+            machine_learning_save(processed_grid, discogs_release_id, api_data)
+            # saves for picking up in later runs if required.
+            remember_last_run(processed_grid, discogs_release_id, api_data["api_artist"], api_data["api_title"],
+                              api_data["api_year"], api_data["api_original_year"])
         else:
-            print("Info: No API data and no processed sales data. Nothing to save for ML.", file=sys.stderr)
+            # saves for picking up in later runs if required.
+            remember_last_run(processed_grid, None, None, None, None, None)
+            # populates with fake PAI data for index.html
+            api_data = fake_api_data()
 
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)

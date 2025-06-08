@@ -110,3 +110,47 @@ def write_ml_data(ml_releases_data):
             pickle.dump(ml_releases_data, f)
     except Exception as e:
         print(f"Error writing ML data file '{ml_save_file}': {e}", file=sys.stderr)
+
+def remember_last_run(processed_grid, discogs_id, artist, title, year, original_year):
+    """
+    Saves multiple pieces of data from the last run to the unified save file
+    efficiently by performing a single read and a single write operation.
+    """
+    # Read the entire application data once
+    data = read_application_data()
+
+    # Update all the necessary keys in the dictionary
+    data["processed_grid"] = processed_grid
+
+    if discogs_id is not None:
+        data["last_discogs_id"] = discogs_id
+    if artist is not None:
+        data["last_artist"] = artist
+    if title is not None:
+        data["last_title"] = title
+    if year is not None:
+        data["last_year"] = year
+    if original_year is not None:
+        data["last_original_year"] = original_year  # Corrected to use the original_year parameter
+
+    # Write the updated dictionary back once
+    write_application_data(data)
+
+def recall_last_run():
+    # gets the last run from
+    data = read_application_data()
+
+    recalled_data = {}
+
+    recalled_data["processed_grid"] = data.get("processed_grid")
+    recalled_data["artist"] = data.get("last_artist")
+    recalled_data["title"] = data.get("last_title")
+    recalled_data["year"] = data.get("last_year")
+    recalled_data["original_year"] = data.get("last_original_year")
+
+    return recalled_data
+
+
+
+
+
