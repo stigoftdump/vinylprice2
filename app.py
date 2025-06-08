@@ -11,13 +11,12 @@ import re  # For regex matching of the ID
 app = Flask(__name__)
 
 # Turn on debug mode for making it easier when writing
-debug_mode = True
+debug_mode = False
 
 def open_browser_once():
     """Wait briefly and open the browser."""
     time.sleep(1)
     webbrowser.open("http://127.0.0.1:5002")
-
 
 # Add a shutdown route
 @app.route('/shutdown', methods=['POST'])
