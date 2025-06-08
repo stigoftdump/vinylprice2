@@ -1,7 +1,7 @@
 import sys
 import discogs_client
-from discogs_secrets import DISCOGS_USER_TOKEN
-from persistence import recall_last_run
+from .discogs_secrets import DISCOGS_USER_TOKEN
+from scripts.persistence import recall_last_run
 
 
 def fetch_api_data(release_id):

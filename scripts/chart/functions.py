@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from grid_functions import realprice
+from scripts.grid.grid_functions import realprice
 
 def sigmoid_plus_exponential(x, a1, b1, c1, a_exp, b_exp, c_exp, d):
     """

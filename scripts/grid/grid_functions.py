@@ -3,7 +3,7 @@ from datetime import datetime
 import math
 import json
 import sys
-from persistence import read_save_value, read_ml_data, write_ml_data, recall_last_run
+from scripts.persistence import read_save_value, read_ml_data, write_ml_data, recall_last_run
 
 # Mapping of quality to numeric value - NO TRAILING SPACES IN KEYS
 quality_to_number = {

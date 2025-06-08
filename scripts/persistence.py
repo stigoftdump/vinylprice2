@@ -3,8 +3,14 @@ import pickle
 import sys
 import os
 
-unified_save_file = "vinylpricedata.pkl"
-ml_save_file = "ml_data.pkl"
+# Get the directory of the current script (e.g., /path/to/your_project_root/scripts)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Get the project root directory (one level up from scripts, e.g., /path/to/your_project_root)
+_PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
+
+# Define paths as absolute paths from the project root
+unified_save_file = os.path.join(_PROJECT_ROOT, "vinylpricedata.pkl")
+ml_save_file = os.path.join(_PROJECT_ROOT, "ml_data.pkl")
 
 
 def read_application_data():

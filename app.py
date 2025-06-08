@@ -2,8 +2,8 @@ from flask import Flask, render_template, request
 import webbrowser
 import threading
 import time
-from vin import calculate_vin_data
-from persistence import read_save_value, write_save_value
+from scripts.vin import calculate_vin_data
+from scripts.persistence import read_save_value, write_save_value
 import os
 from urllib.parse import urlparse  # For parsing the URL
 import re  # For regex matching of the ID

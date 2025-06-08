@@ -1,16 +1,15 @@
 # /home/stigoftdump/PycharmProjects/PythonProject/vinylprice/checkpickle.py
-from persistence import read_ml_data
-from collections import Counter, defaultdict
+from scripts.persistence import read_ml_data
+from collections import Counter
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import pickle
 import os
 import sys  # Added for stderr
-from datetime import datetime
 
 try:
-    from machine_learning import _clean_element_for_feature_name
+    from scripts.machine_learning.machine_learning import _clean_element_for_feature_name
 except ImportError:
     print("Warning: Could not import _clean_element_for_feature_name from machine_learning.py.", file=sys.stderr)
     print("ML model curve plotting might not correctly map artist/comment features.", file=sys.stderr)

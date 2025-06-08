@@ -8,22 +8,21 @@ import numpy as np  # For np.sqrt
 import sys  # For printing to stderr
 import os  # For path joining
 from collections import defaultdict  # For grouping records
-from datetime import datetime  # For evaluate_model_on_training_data
 from sklearn.model_selection import KFold, cross_val_score
 
 # Assuming machine_learning.py is in the same directory or accessible in PYTHONPATH
-from machine_learning import (
+from scripts.machine_learning.machine_learning import (
     generate_features_for_ml_training,
     create_feature_engineered_data_from_list,  # Used by generate_features_for_ml_training
-    _clean_element_for_feature_name,  # Used by evaluate_model_on_training_data
-    _get_all_unique_extra_comment_elements,  # Used by evaluate_model_on_training_data
-    _get_all_unique_artists  # Used by evaluate_model_on_training_data
+    # Used by evaluate_model_on_training_data
+    # Used by evaluate_model_on_training_data
+    # Used by evaluate_model_on_training_data
 )
 
 # Import functions from functions.py and persistence.py
 try:
-    from functions import fit_curve_and_get_params, predict_price as predict_price_local
-    from persistence import read_ml_data
+    from scripts.chart.functions import fit_curve_and_get_params, predict_price as predict_price_local
+    from scripts.persistence import read_ml_data
 except ImportError as e:
     print(f"CRITICAL: Could not import necessary modules: {e}", file=sys.stderr)
     print("Please ensure functions.py and persistence.py are accessible.", file=sys.stderr)

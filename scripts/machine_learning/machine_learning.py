@@ -1,5 +1,5 @@
 # /home/stigoftdump/PycharmProjects/PythonProject/vinylprice/machine_learning.py
-from persistence import read_ml_data
+from scripts.persistence import read_ml_data
 from datetime import datetime
 import sys  # For printing warnings/errors
 
