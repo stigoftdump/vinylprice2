@@ -270,16 +270,25 @@
             }
 
                 function updateAddDataCheckboxState() {
-                    if (selectedPoints.length > 0) {
+                    if (selectedPoints.length > 0 && !addDataCheckbox.checked) {
+                        // If points are selected AND "Add Data" is NOT checked,
+                        // then "Add Data" should be disabled and forced unchecked.
                         addDataCheckbox.checked = false;
                         addDataCheckbox.disabled = true;
                     } else {
+                        // Otherwise (either no points selected, OR "Add Data" IS checked),
+                        // "Add Data" should be enabled.
                         addDataCheckbox.disabled = false;
                     }
                 }
 
 
             function handlePointClick(event, elements, chart) {
+                if (addDataCheckbox.checked) {
+                    // Optional: showToast("Point deletion is disabled while 'Add Data' is active.", 'warning', 2000);
+                    return; // Do nothing if "Add Data" is checked
+                }
+
                 if (elements.length > 0) {
                     const clickedElement = elements[0];
                     const datasetIndex = clickedElement.datasetIndex;
@@ -712,6 +721,40 @@
                     myChart.update(); // Redraw the chart to apply the changes
                 }
             }
+
+            // Event listener for add data checkbox
+            addDataCheckbox.addEventListener('change', function() {
+                if (this.checked) { // If "Add Data" is now checked
+                    showToast("Point deletion is disabled when 'Add Data' is active.", 'info', 4000);
+
+                    if (selectedPoints.length > 0) {
+                        selectedPoints = []; // Clear the internal list of points to delete
+                        pointsClickedForDeletionCount = 0; // Reset the counter
+
+                        // Reset visual state of points on the chart
+                        if (myChart && myChart.data.datasets[0]) {
+                            const dataset = myChart.data.datasets[0];
+                            // Assuming default color is '#CC0000' (red)
+                            dataset.backgroundColor = Array(dataset.data.length).fill('#CC0000');
+                            myChart.update();
+                        }
+
+                        // Update the hidden input field for form submission
+                        const selectedPointsInput = document.getElementById('selected_points_to_delete');
+                        if (selectedPointsInput) {
+                            selectedPointsInput.value = '[]';
+                        }
+
+                        // Since points are cleared, "Add Data" checkbox itself should become enabled
+                        // (if it was disabled due to points being selected).
+                        updateAddDataCheckboxState();
+                    }
+                }
+                // If "Add Data" is unchecked, point deletion is implicitly re-enabled
+                // because the guard in handlePointClick will no longer block it.
+                // The updateAddDataCheckboxState function will also ensure the "Add Data"
+                // checkbox is enabled if selectedPoints is empty.
+            });
 
             updateAddDataCheckboxState();
 
