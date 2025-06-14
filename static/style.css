@@ -236,6 +236,22 @@ input[type="date"]:focus {
     cursor: pointer;
 }
 
+/* --- NEW STYLES FOR DISABLED CHECKBOX AND LABEL --- */
+.add-data-group input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    /* Optional: Further style the checkbox itself if browser defaults aren't enough */
+    /* For example, some browsers might allow you to reduce opacity or change appearance */
+    /* filter: grayscale(100%); */ /* This can make it look greyed out */
+    /* opacity: 0.7; */
+}
+
+.add-data-group input[type="checkbox"]:disabled + label {
+    color: #999; /* Grey out the label text */
+    cursor: not-allowed; /* Indicate it's not interactive */
+    opacity: 0.7; /* Make it appear faded */
+}
+/* --- END OF NEW STYLES --- */
+
 .add-data-group label {
     margin-bottom: 0;
     font-weight: 400;
