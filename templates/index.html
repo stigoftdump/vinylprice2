@@ -247,6 +247,8 @@
             const actualPrice = chartData.actual_price; // Actual price at reqscore
             const dates = chartData.dates;
             const comments = chartData.comments;
+            const addDataCheckbox = document.getElementById('add_data');
+
 
             const all_qualities = labels.map(parseFloat).concat(predictedQualities.map(parseFloat));
             const minQualityInData = all_qualities.length > 0 ? Math.min(...all_qualities) : 1;
@@ -266,6 +268,16 @@
                     (point1.comment || "") === (point2.comment || "")
                 );
             }
+
+                function updateAddDataCheckboxState() {
+                    if (selectedPoints.length > 0) {
+                        addDataCheckbox.checked = false;
+                        addDataCheckbox.disabled = true;
+                    } else {
+                        addDataCheckbox.disabled = false;
+                    }
+                }
+
 
             function handlePointClick(event, elements, chart) {
                 if (elements.length > 0) {
@@ -309,6 +321,9 @@
                             }
                         }
                         chart.update();
+
+                        updateAddDataCheckboxState();
+
                     }
                 }
             }
@@ -697,6 +712,8 @@
                     myChart.update(); // Redraw the chart to apply the changes
                 }
             }
+
+            updateAddDataCheckboxState();
 
             // --- ORIGINAL Form Submission Logic (for selected points) ---
             const form = document.querySelector('form');

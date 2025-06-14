@@ -49,7 +49,7 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
 
         # Grabs the API data if available and saves it, otherwise just remember the latest processed_grid
         if discogs_release_id:
-            # gets the api_data
+            # gets the api_data. P
             api_data = fetch_api_data(discogs_release_id)
             # remembers it for later
             machine_learning_save(processed_grid, discogs_release_id, api_data)
