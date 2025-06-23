@@ -99,43 +99,50 @@ def delete_ml_sales_for_recalled_release(points_to_delete_json):
     else:
         print(f"Info (ML Delete): No matching sales found in ML data for Release ID '{release_key}' to delete based on the provided points.", file=sys.stderr)
 
+
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """
     Checks if a row from the processed grid matches a point selected for deletion.
-    Compares date, quality score, and price. Comment matching is optional/flexible.
+    Compares date, quality score, and price.
     """
     if len(grid_row) < 6:  # Needs at least date, price, score
         return False
 
-    grid_score = grid_row[5]
-    grid_price = grid_row[3]  # Inflation-adjusted price
-    grid_date = grid_row[0]
-    # grid_comment = grid_row[6] if len(grid_row) > 6 else "" # Comment matching can be tricky
+    grid_date_from_row = grid_row[0]
+    grid_price_from_row = grid_row[3]  # Inflation-adjusted price from grid
+    grid_score_from_row = grid_row[5]  # Quality score from grid
 
-    delete_score = point_to_delete.get('quality')
-    delete_price = point_to_delete.get('price')  # This is the inflation-adjusted price from the chart
     delete_date = point_to_delete.get('date')
-    # delete_comment = point_to_delete.get('comment', "")
+    delete_price = point_to_delete.get('price')  # Inflation-adjusted price from chart point
+    delete_score = point_to_delete.get('quality')  # Quality score from chart point
 
-    if delete_score is None or delete_price is None or delete_date is None:
+    # If essential data from the point_to_delete (from chart selection) is missing, it can't be a match
+    if delete_date is None or delete_price is None or delete_score is None:
         return False
 
-    # Ensure types are compatible for comparison, especially for floats
+    # --- Key Improvement: Explicitly check for None in grid_row data before conversion ---
+    # If essential numerical data from the grid_row itself is None, consider it not a match.
+    if grid_price_from_row is None or grid_score_from_row is None:
+        return False
+    # --- End of Improvement ---
+
     try:
-        grid_score_float = float(grid_score)
+        # At this point, all score/price variables for comparison should be actual numbers
+        grid_score_float = float(grid_score_from_row)
         delete_score_float = float(delete_score)
-        grid_price_float = float(grid_price) if grid_price is not None else -1  # Handle None grid_price
+        grid_price_float = float(grid_price_from_row)
         delete_price_float = float(delete_price)
     except (ValueError, TypeError):
-        return False  # Cannot compare if conversion fails
+        # This is a fallback if, despite the checks, a non-convertible value gets here.
+        # For example, if a score/price was an empty string instead of None.
+        return False
 
     score_match = math.isclose(grid_score_float, delete_score_float, rel_tol=tolerance)
-    price_match = math.isclose(grid_price_float, delete_price_float,
-                               rel_tol=tolerance) if grid_price is not None else False
-    date_match = (grid_date == delete_date)
-    # comment_match = ((grid_comment or "") == (delete_comment or "")) # Keep comment matching simple or remove
+    price_match = math.isclose(grid_price_float, delete_price_float, rel_tol=tolerance)
+    date_match = (grid_date_from_row == delete_date)
 
-    return score_match and price_match and date_match  # and comment_match
+    return score_match and price_match and date_match
+
 
 def delete_points(points_to_delete_json, processed_grid):
     """

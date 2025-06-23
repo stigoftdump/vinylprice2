@@ -541,3 +541,10 @@ def manage_processed_grid(discogs_data, start_date, points_to_delete_json, add_d
                 "Info: Final grid for charting is empty. This may be due to an API-only data update or all points being deleted.")
 
     return final_grid_for_charting, deleted_count, status_message_from_parsing
+
+def is_valid_discogs_input(discogs_data, discogs_release_id):
+    # checks there is something is both discogs inputs
+    if discogs_data and discogs_release_id:
+        return True
+    else:
+        return False

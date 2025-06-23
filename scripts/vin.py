@@ -3,6 +3,7 @@ from scripts.grid.grid_functions import extract_tuples, manage_processed_grid
 from scripts.grid.point_deletion import delete_ml_sales_for_recalled_release
 from scripts.grid.api_import import fetch_api_data, fake_api_data
 from scripts.persistence import remember_last_run, machine_learning_save
+from scripts.grid.processing_grid import execute_data_processing_flow
 
 def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, points_to_delete_json,
                        discogs_release_id=None):
@@ -39,33 +40,35 @@ def calculate_vin_data(reqscore, shop_var, start_date, add_data, discogs_data, p
     output_data = {}
 
     try:
-        # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
-        processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
-            discogs_data,
-            start_date,
-            points_to_delete_json,
-            add_data
-        )
+        # # if discogs data is empty, just load the saves processed_grid and use that, otherwise do the whole thing.
+        # processed_grid, deleted_count, status_from_parsing = manage_processed_grid(
+        #     discogs_data,
+        #     start_date,
+        #     points_to_delete_json,
+        #     add_data
+        # )
+        #
+        # # Grabs the API data if available and saves it, otherwise just remember the latest processed_grid
+        # if discogs_release_id:
+        #     # gets the api_data. P
+        #     api_data = fetch_api_data(discogs_release_id)
+        #     # remembers it for later
+        #     machine_learning_save(processed_grid, discogs_release_id, api_data)
+        #     # saves for picking up in later runs if required.
+        #     remember_last_run(processed_grid, discogs_release_id, api_data["api_artist"], api_data["api_title"],
+        #                       api_data["api_year"], api_data["api_original_year"])
+        # else:
+        #     # saves for picking up in later runs if required.
+        #     remember_last_run(processed_grid, None, None, None, None, None)
+        #     # populates with fake PAI data for index.html
+        #     api_data = fake_api_data()
+        #
+        # # if there was no discogs_data but if there was some points deleted then we want to delete
+        # # them from the ML pickle file
+        # if not discogs_data and deleted_count>0:
+        #     delete_ml_sales_for_recalled_release(points_to_delete_json)
 
-        # Grabs the API data if available and saves it, otherwise just remember the latest processed_grid
-        if discogs_release_id:
-            # gets the api_data. P
-            api_data = fetch_api_data(discogs_release_id)
-            # remembers it for later
-            machine_learning_save(processed_grid, discogs_release_id, api_data)
-            # saves for picking up in later runs if required.
-            remember_last_run(processed_grid, discogs_release_id, api_data["api_artist"], api_data["api_title"],
-                              api_data["api_year"], api_data["api_original_year"])
-        else:
-            # saves for picking up in later runs if required.
-            remember_last_run(processed_grid, None, None, None, None, None)
-            # populates with fake PAI data for index.html
-            api_data = fake_api_data()
-
-        # if there was no discogs_data but there was some points deleted then we want to delete
-        # them from the ML pickle file
-        if not discogs_data and deleted_count>0:
-            delete_ml_sales_for_recalled_release(points_to_delete_json)
+        processed_grid, api_data, status_messages, deleted_count = execute_data_processing_flow(discogs_data, discogs_release_id,points_to_delete_json,add_data, start_date)
 
         # Extracts elements
         qualities, prices, dates, comments = extract_tuples(processed_grid)
