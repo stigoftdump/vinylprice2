@@ -99,7 +99,6 @@ def delete_ml_sales_for_recalled_release(points_to_delete_json):
     else:
         print(f"Info (ML Delete): No matching sales found in ML data for Release ID '{release_key}' to delete based on the provided points.", file=sys.stderr)
 
-
 def points_match(grid_row, point_to_delete, tolerance=0.001):
     """
     Checks if a row from the processed grid matches a point selected for deletion.
@@ -120,11 +119,9 @@ def points_match(grid_row, point_to_delete, tolerance=0.001):
     if delete_date is None or delete_price is None or delete_score is None:
         return False
 
-    # --- Key Improvement: Explicitly check for None in grid_row data before conversion ---
     # If essential numerical data from the grid_row itself is None, consider it not a match.
     if grid_price_from_row is None or grid_score_from_row is None:
         return False
-    # --- End of Improvement ---
 
     try:
         # At this point, all score/price variables for comparison should be actual numbers
@@ -142,7 +139,6 @@ def points_match(grid_row, point_to_delete, tolerance=0.001):
     date_match = (grid_date_from_row == delete_date)
 
     return score_match and price_match and date_match
-
 
 def delete_points(points_to_delete_json, processed_grid):
     """

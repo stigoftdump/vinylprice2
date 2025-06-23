@@ -11,7 +11,7 @@ import re  # For regex matching of the ID
 app = Flask(__name__)
 
 # Turn on debug mode for making it easier when writing
-debug_mode = False
+debug_mode = True
 
 def open_browser_once():
     """Wait briefly and open the browser."""
