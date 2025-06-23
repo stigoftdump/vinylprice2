@@ -3,7 +3,7 @@ from scripts.persistence import recall_last_run, read_ml_data, write_ml_data
 import math
 import sys
 
-def delete_ml_sales_for_recalled_release(points_to_delete_json):
+def delete_ml_sales_for_recalled_release(release_ID, points_to_delete_json):
     """
     Deletes sales entries from the ML data file (ml_data.pkl) for a recalled release
     if those sales match points marked for deletion.
@@ -30,8 +30,7 @@ def delete_ml_sales_for_recalled_release(points_to_delete_json):
         return 0
 
     # 1. Retrieve the Last Processed Discogs ID
-    recalled_info = recall_last_run()
-    discogs_id_from_recall = recalled_info.get("discogs_id")
+    discogs_id_from_recall = str(release_ID)
 
     if not discogs_id_from_recall:
         print("Info (ML Delete): No Discogs ID found in recalled data. Cannot determine which release's ML sales to modify.", file=sys.stderr)
