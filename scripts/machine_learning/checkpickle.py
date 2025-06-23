@@ -397,8 +397,91 @@ def plot_ml_model_average_album_curve_shape(plot_individual_curves=False, plot_o
         print(f"An error occurred during plotting ML model's average normalized release curve: {e}", file=sys.stderr)
 
 
+def inspect_specific_releases():
+    """
+    Prompts the user for one or more release IDs and displays their full data
+    from the ML data file. Handles single or comma-separated IDs.
+    """
+    id_input = input("\n>>> Enter Release ID(s) to inspect (e.g., 12345 or 12345, 987654), then press Enter: ")
+    if not id_input.strip():
+        print("No input provided. Skipping specific release inspection.")
+        return
+
+    # Process the input to handle multiple, comma-separated IDs
+    requested_ids = [item.strip() for item in id_input.split(',')]
+
+    all_releases_data = read_ml_data()
+    if not all_releases_data:
+        print("The ML releases data dictionary is empty.")
+        return
+
+    print("\n--- Specific Release Inspection Results ---")
+
+    for release_id in requested_ids:
+        if not release_id:  # Skips empty entries if user types "123,,456"
+            continue
+
+        release_entry = all_releases_data.get(release_id)
+
+        if not release_entry:
+            print(f"\n----------------------------------------")
+            print(f"  Release ID '{release_id}' not found in ML data.")
+            print(f"----------------------------------------")
+            continue
+
+        # If found, print all details for the release
+        print(f"\n==================================================")
+        print(f"  Data for Release ID: {release_id}")
+        print(f"==================================================")
+        print(f"  API Master ID: {release_entry.get('api_master_id', 'N/A')}")
+        print(f"  API Artist: {release_entry.get('api_artist', 'N/A')}")
+        print(f"  API Title:  {release_entry.get('api_title', 'N/A')}")
+        print(f"  API Original Year: {release_entry.get('api_original_year', 'N/A')}")
+        print(f"  API Year (Pressing): {release_entry.get('api_year', 'N/A')}")
+        print(f"  API Country: {release_entry.get('api_country', 'N/A')}")
+        print(f"  API Label:  {release_entry.get('api_label', 'N/A')}")
+        print(f"  API Cat#:   {release_entry.get('api_catno', 'N/A')}")
+        genres_list = release_entry.get('api_genres', [])
+        print(f"  API Genres: {', '.join(genres_list) if genres_list else 'N/A'}")
+        styles_list = release_entry.get('api_styles', [])
+        print(f"  API Styles: {', '.join(styles_list) if styles_list else 'N/A'}")
+        formats_list = release_entry.get('api_format_descriptions', [])
+        print(f"  API Formats: {', '.join(formats_list) if formats_list else 'N/A'}")
+        notes = str(release_entry.get('api_notes', 'N/A'))
+        print(f"  API Notes:  {notes}")  # Print full notes for detail
+        print(f"  API Community Have: {release_entry.get('api_community_have', 'N/A')}")
+        print(f"  API Community Want: {release_entry.get('api_community_want', 'N/A')}")
+        avg_rating = release_entry.get('api_community_rating_average', 'N/A')
+        rating_count = release_entry.get('api_community_rating_count', 'N/A')
+        print(f"  API Community Rating: {avg_rating} (from {rating_count} ratings)")
+
+        sales_history = release_entry.get('sales_history', [])
+        if not sales_history:
+            print("\n  No sales history for this release.")
+        else:
+            print(f"\n  Full Sales History ({len(sales_history)} entries):")
+            s_date_w, s_qual_w, s_price_w, s_native_w, s_comment_w = 10, 8, 10, 12, 50
+            sales_header = (f"    {'Date':<{s_date_w}} | {'Quality':<{s_qual_w}} | {'Price Adj.':<{s_price_w}} | "
+                            f"{'Native Price':<{s_native_w}} | {'Sale Comment':<{s_comment_w}}")
+            print(sales_header)
+            print("    " + "-" * (len(sales_header)))
+            for sale_data in sales_history:
+                date_val = sale_data.get('date', 'N/A')
+                quality = sale_data.get('quality', 'N/A')
+                quality_str = f"{quality:.2f}" if isinstance(quality, (float, np.float64)) else str(quality)
+                price = sale_data.get('price', 'N/A')
+                price_str = f"{price:.2f}" if isinstance(price, (float, np.float64)) else str(price)
+                native_price = sale_data.get('native_price', 'N/A')
+                sale_comment = str(sale_data.get('sale_comment', 'N/A'))
+                comment_display = (sale_comment[:s_comment_w - 3] + "...") if len(
+                    sale_comment) > s_comment_w else sale_comment
+                print(f"    {str(date_val):<{s_date_w}} | {quality_str:<{s_qual_w}} | {price_str:<{s_price_w}} | "
+                      f"{str(native_price):<{s_native_w}} | {comment_display:<{s_comment_w}}")
+    print("\n--- End of Specific Release Inspection ---")
+
 if __name__ == "__main__":
-    inspect_ml_data()
-    analyze_extra_comments()
+    # inspect_ml_data()
+    # analyze_extra_comments()
+    inspect_specific_releases()
     # Ensure you have a trained model and features file for this to work.
     #plot_ml_model_average_album_curve_shape(plot_individual_curves=True, plot_outlier_curves=True, num_albums_to_plot=100) # Example: plot for 100 albums
